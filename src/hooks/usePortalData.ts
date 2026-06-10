@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
 
 export function usePortalData(orgId: string | undefined, initialClientId: string | undefined) {
   const [activeClientId, setActiveClientId] = useState<string | undefined>(initialClientId);
@@ -24,13 +27,6 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
       return;
     }
 
-    const token = new URLSearchParams(window.location.search).get('token') || sessionStorage.getItem('portalToken');
-    if (!token) {
-      setError("Token de segurança ausente. Use o link oficial enviado pelo seu consultor.");
-      setLoading(false);
-      return;
-    }
-
     const fetchPortalData = async () => {
       if (!client) {
         setLoading(true);
@@ -39,6 +35,29 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
       }
 
       try {
+        let token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken');
+
+        // Se o token não estiver localmente, busca de forma assíncrona do Firestore do cliente
+        if (!token) {
+          try {
+            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+            const clientDocSnap = await getDoc(clientDocRef);
+            if (clientDocSnap.exists()) {
+              const clientData = clientDocSnap.data();
+              if (clientData?.publicToken) {
+                token = clientData.publicToken;
+                localStorage.setItem('portalToken', token);
+              }
+            }
+          } catch (fireErr) {
+            console.error("Erro ao obter token do Firestore:", fireErr);
+          }
+        }
+
+        if (!token) {
+          throw new Error("Token de segurança ausente. Use o link oficial enviado pelo seu consultor.");
+        }
+
         const response = await fetch(`${crmApiUrl}/api/portal_handler?orgId=${orgId}&clientId=${activeClientId}&token=${token}`);
         
         if (!response.ok) {

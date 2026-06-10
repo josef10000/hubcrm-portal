@@ -35,11 +35,11 @@ export default function ClientPortalLayout() {
   const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
   const navigate = useNavigate();
 
-  // Salva o token da URL no sessionStorage para persistencia entre redirects
+  // Salva o token da URL no localStorage para persistencia entre redirects
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get('token');
     if (token) {
-      sessionStorage.setItem('portalToken', token);
+      localStorage.setItem('portalToken', token);
     }
   }, []);
   
@@ -325,6 +325,7 @@ export default function ClientPortalLayout() {
                 onClick={async () => {
                   try {
                     await auth.signOut();
+                    localStorage.removeItem('portalToken');
                     toast.success('Você saiu da área restrita.');
                     setActiveTab('home');
                   } catch (e) {

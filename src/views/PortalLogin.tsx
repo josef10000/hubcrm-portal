@@ -36,7 +36,7 @@ export default function PortalLogin() {
             if (pData.role === 'client_admin' && pData.orgId && pData.clientId) {
               const redirect = sessionStorage.getItem('portalRedirect');
               sessionStorage.removeItem('portalRedirect');
-              const token = sessionStorage.getItem('portalToken');
+              const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken');
               const tokenQuery = token ? `?token=${token}` : '';
               if (redirect) {
                 const hasToken = redirect.includes('token=');
@@ -74,7 +74,7 @@ export default function PortalLogin() {
         toast.success('Login efetuado com sucesso!');
         const redirect = sessionStorage.getItem('portalRedirect');
         sessionStorage.removeItem('portalRedirect');
-        const token = sessionStorage.getItem('portalToken');
+        const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken');
         const tokenQuery = token ? `?token=${token}` : '';
         setTimeout(() => {
           if (redirect) {
@@ -100,7 +100,7 @@ export default function PortalLogin() {
       try {
         const sessionOrgId = sessionStorage.getItem('portalOrgId');
         const sessionClientId = sessionStorage.getItem('portalClientId');
-        const sessionToken = sessionStorage.getItem('portalToken');
+        const sessionToken = localStorage.getItem('portalToken');
 
         const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
           method: 'POST',
@@ -118,7 +118,7 @@ export default function PortalLogin() {
 
         if (response.ok && data.success) {
           toast.success('Sua conta foi vinculada e o acesso liberado!');
-          const token = sessionToken || sessionStorage.getItem('portalToken');
+          const token = sessionToken || localStorage.getItem('portalToken');
           const tokenQuery = token ? `?token=${token}` : '';
           setTimeout(() => {
             navigate(`/${data.orgId}/${data.clientId}${tokenQuery}`);
