@@ -70,7 +70,10 @@ export default function PortalActivation() {
           navigate(`/${data.orgId}/${data.clientId}${data.token ? `?token=${data.token}` : ''}`);
         }, 1500);
       } else {
-        toast.error(data.error || 'Código de ativação inválido ou já utilizado.');
+        const errMsg = data.details 
+          ? `${data.error} (${data.details})` 
+          : (data.error || 'Código de ativação inválido ou já utilizado.');
+        toast.error(errMsg);
       }
     } catch (err) {
       console.error('[ActivationError]', err);
