@@ -1,6 +1,6 @@
 # 🌐 PORTAL HUB — CANAL DO CLIENTE INDEPENDENTE
 
-Aplicação web do **Portal Hub** (antigo canal do cliente), desacoplada do CRM principal e estruturada para rodar de forma isolada no domínio **`portalhub.hubsymples.com.br`** com deploy simplificado na Vercel.
+Aplicação web do **Portal Hub** (antigo canal do cliente), desacoplada do CRM principal e estruturada para rodar de forma isolada no domínio **`portahub.hubsymples.com.br`** com deploy simplificado na Vercel.
 
 O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM administrativo, garantindo reatividade e sincronização em tempo real de chamados, faturas e agendamentos sem duplicidade de dados.
 
@@ -40,7 +40,7 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 Crie um arquivo `.env` na raiz da pasta seguindo o modelo do `.env.example`:
 
 ```bash
-# URL da API do CRM administrativo (CORS configurado para portalhub.hubsymples.com.br)
+# URL da API do CRM administrativo (CORS configurado para portahub.hubsymples.com.br)
 VITE_CRM_API_URL=https://hubcrm.hubsymples.com.br
 
 # Credenciais compartilhadas do Firebase
@@ -97,5 +97,5 @@ Para implantar na Vercel:
 2. Acesse o painel da Vercel e clique em **Add New > Project**.
 3. Importe o repositório `hubcrm-portal`.
 4. Configure as variáveis de ambiente (as mesmas definidas no `.env.example`) nas configurações do projeto da Vercel.
-5. Defina o domínio personalizado como `portalhub.hubsymples.com.br`.
+5. Defina o domínio personalizado como `portahub.hubsymples.com.br`.
 6. Clique em **Deploy**!
