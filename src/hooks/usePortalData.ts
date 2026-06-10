@@ -35,7 +35,7 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
       }
 
       try {
-        let token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken');
+        let token: string = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
 
         // Se o token não estiver localmente, busca de forma assíncrona do Firestore do cliente
         if (!token) {
@@ -44,9 +44,10 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
             const clientDocSnap = await getDoc(clientDocRef);
             if (clientDocSnap.exists()) {
               const clientData = clientDocSnap.data();
-              if (clientData?.publicToken) {
-                token = clientData.publicToken;
-                localStorage.setItem('portalToken', token);
+              const publicToken = clientData?.publicToken;
+              if (publicToken) {
+                token = publicToken as string;
+                localStorage.setItem('portalToken', publicToken as string);
               }
             }
           } catch (fireErr) {
