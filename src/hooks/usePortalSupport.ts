@@ -51,6 +51,7 @@ export function usePortalSupport(orgId: string | undefined, clientId: string | u
       const docRef = doc(db, 'organizations', orgId, 'supportRequests', requestId);
       await updateDoc(docRef, {
         message: message,
+        status: 'aberto',
         updatedAt: serverTimestamp()
       });
       return true;

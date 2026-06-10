@@ -20,17 +20,45 @@ import {
 import { usePortalSupport } from '../hooks/usePortalSupport';
 import { useParams } from 'react-router-dom';
 import { uploadImageToImgBB } from '../lib/imgbb';
+import { toast } from 'sonner';
 
 interface PortalSupportProps {
   client: any;
 }
 
 export default function PortalSupport({ client }: PortalSupportProps) {
-  const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
-  const { requests, loading, createRequest } = usePortalSupport(orgId, clientId);
+  const { orgId } = useParams<{ orgId: string }>();
+  const { requests, loading, createRequest, addMessageToRequest } = usePortalSupport(orgId, client?.id);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const selectedTicket = requests.find(r => r.id === selectedTicketId) || null;
+
+  // Lógica de resposta do cliente (tréplica)
+  const [clientReplyText, setClientReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+
+  const handleSendClientReply = async () => {
+    if (!clientReplyText.trim() || !selectedTicket) return;
+    setIsSendingReply(true);
+
+    const formatTime = () => {
+      const now = new Date();
+      return now.toLocaleString('pt-BR');
+    };
+
+    const newHistoricalMessage = `${selectedTicket.message}\n\n[Cliente - ${formatTime()}]:\n${clientReplyText}`;
+
+    const success = await addMessageToRequest(selectedTicket.id, newHistoricalMessage);
+
+    if (success) {
+      setClientReplyText('');
+      toast.success('Mensagem enviada com sucesso!');
+    } else {
+      toast.error('Erro ao enviar mensagem.');
+    }
+    setIsSendingReply(false);
+  };
   
   // Form State
   const [category, setCategory] = useState('');
@@ -187,7 +215,7 @@ export default function PortalSupport({ client }: PortalSupportProps) {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedTicket(ticket)}
+                  onClick={() => setSelectedTicketId(ticket.id)}
                   className="px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-5">
@@ -350,7 +378,10 @@ export default function PortalSupport({ client }: PortalSupportProps) {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <div 
               className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
-              onClick={() => setSelectedTicket(null)} 
+              onClick={() => {
+                setSelectedTicketId(null);
+                setClientReplyText('');
+              }} 
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -365,7 +396,13 @@ export default function PortalSupport({ client }: PortalSupportProps) {
                   </h3>
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Status: {selectedTicket.status}</p>
                 </div>
-                <button onClick={() => setSelectedTicket(null)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                <button 
+                  onClick={() => {
+                    setSelectedTicketId(null);
+                    setClientReplyText('');
+                  }} 
+                  className="p-2 text-gray-500 hover:text-white transition-colors"
+                >
                   <X size={24} />
                 </button>
               </div>
@@ -445,6 +482,28 @@ export default function PortalSupport({ client }: PortalSupportProps) {
                   </div>
                 )}
               </div>
+
+              {/* Caixa de Tréplica/Mensagem do Cliente */}
+              {selectedTicket.status !== 'concluido' && (
+                <div className="p-8 border-t border-white/10 bg-white/[0.01]">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Enviar mensagem para o suporte</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <textarea
+                      value={clientReplyText}
+                      onChange={(e) => setClientReplyText(e.target.value)}
+                      placeholder="Digite sua resposta ou réplica aqui..."
+                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all resize-none h-20 custom-scrollbar"
+                    />
+                    <button
+                      onClick={handleSendClientReply}
+                      disabled={isSendingReply || !clientReplyText.trim()}
+                      className="px-6 py-4 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white font-bold rounded-2xl transition-all flex items-center justify-center shrink-0 active:scale-95"
+                    >
+                      {isSendingReply ? 'Enviando...' : 'Enviar'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {selectedTicket.status === 'concluido' && (
                 <div className="p-8 border-t border-white/10 bg-emerald-500/5 text-center">
