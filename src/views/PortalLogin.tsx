@@ -45,15 +45,22 @@ export default function PortalLogin() {
                 navigate(`/${pData.orgId}/${pData.clientId}${tokenQuery}`);
               }
               return;
-            }
-            if (pData.role === 'admin' || pData.role === 'manager') {
+            } else if (pData.role === 'admin' || pData.role === 'manager' || pData.role === 'employee') {
               const redirect = sessionStorage.getItem('portalRedirect');
               if (redirect) {
                 sessionStorage.removeItem('portalRedirect');
                 navigate(redirect);
                 return;
               }
+            } else {
+              // Perfil existente, mas sem vínculo configurado
+              navigate('/activate');
+              return;
             }
+          } else {
+            // Conta logada, mas sem perfil criado ainda -> manda para ativação
+            navigate('/activate');
+            return;
           }
         } catch (e) {
           console.error('[PortalLogin] Erro ao verificar perfil:', e);
@@ -92,8 +99,11 @@ export default function PortalLogin() {
           navigate(redirect || '/');
         }, 1000);
       } else {
-        toast.error('Acesso restrito apenas a clientes cadastrados.');
-        await auth.signOut();
+        // Se existir um perfil sem vínculo de role ou empresa, manda para ativação
+        toast.info('Ative o seu portal usando o código de ativação.');
+        setTimeout(() => {
+          navigate('/activate');
+        }, 1000);
       }
     } else {
       // Perfil ainda não existe no Firestore, tenta a vinculação automática por e-mail ou via link com token
@@ -124,17 +134,19 @@ export default function PortalLogin() {
             navigate(`/${data.orgId}/${data.clientId}${tokenQuery}`);
           }, 1000);
         } else {
-          toast.error(data.error || 'Este e-mail não está associado a nenhuma empresa no sistema.');
-          
-          if (isRegistering) {
-            try { await user.delete(); } catch (e) {}
-          }
-          await auth.signOut();
+          // Caso falhe a vinculação automática por e-mail ou link, o usuário não é desconectado!
+          // Ele é apenas direcionado para a tela de ativação manual para usar o código único.
+          toast.info('Sua conta foi criada! Agora insira seu código de ativação do portal.');
+          setTimeout(() => {
+            navigate('/activate');
+          }, 1000);
         }
       } catch (err) {
         console.error(err);
-        toast.error('Erro ao vincular perfil do portal com seu cadastro.');
-        await auth.signOut();
+        toast.info('Por favor, ative o seu portal usando o código de ativação.');
+        setTimeout(() => {
+          navigate('/activate');
+        }, 1000);
       }
     }
   };

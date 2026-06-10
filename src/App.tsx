@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 const ClientPortalLayout = lazy(() => import('./components/ClientPortalLayout'));
 const PortalLogin = lazy(() => import('./views/PortalLogin'));
+const PortalActivation = lazy(() => import('./views/PortalActivation'));
 
 export default function App() {
   return (
@@ -16,6 +17,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<PortalLogin />} />
           <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/activate" element={<PortalActivation />} />
+          <Route path="/portal/activate" element={<PortalActivation />} />
           
           <Route path="/:orgId/:clientId/*" element={<ClientPortalLayout />} />
           <Route path="/portal/:orgId/:clientId/*" element={<ClientPortalLayout />} />
