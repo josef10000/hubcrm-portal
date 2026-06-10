@@ -251,7 +251,7 @@ export default function PortalLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-4 md:p-6 relative overflow-hidden font-sans select-none">
       <Toaster position="top-right" richColors />
       
       {/* Orbes Decorativas */}
@@ -259,20 +259,20 @@ export default function PortalLogin() {
         <div className="absolute top-[-20%] left-[-20%] w-[50vw] h-[50vw] bg-primary-600/10 rounded-full blur-[140px]"></div>
         <div className="absolute bottom-[-20%] right-[-20%] w-[50vw] h-[50vw] bg-emerald-600/10 rounded-full blur-[140px]"></div>
       </div>
-
-      <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-500 relative z-10">
+ 
+      <div className="max-w-md w-full text-center space-y-4 animate-in fade-in zoom-in duration-500 relative z-10">
         <div className="flex flex-col items-center">
-          <div className="relative mb-4">
+          <div className="relative mb-2">
             <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full"></div>
-            <div className="relative w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-xl shadow-primary-500/20 border border-white/15">
-              <Globe className="w-8 h-8 text-white" />
+            <div className="relative w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary-500/20 border border-white/15">
+              <Globe className="w-6 h-6 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">PORTAL HUB</h1>
-          <p className="text-gray-400 text-xs mt-1 uppercase tracking-[0.2em] font-bold">Gestão &bull; Financeiro &bull; Suporte</p>
+          <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">PORTAL HUB</h1>
+          <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-[0.2em] font-bold">Gestão &bull; Financeiro &bull; Suporte</p>
         </div>
-
-        <div className="bg-white/[0.03] backdrop-blur-[35px] border border-white/10 p-8 rounded-[2.5rem] shadow-2xl space-y-6 text-left">
+ 
+        <div className="bg-white/[0.03] backdrop-blur-[35px] border border-white/10 p-6 md:p-7 rounded-[2rem] shadow-2xl space-y-4 text-left">
           {/* Seletor de Abas */}
           <div className="flex bg-black/40 border border-white/10 p-1 rounded-xl">
             <button
@@ -281,7 +281,7 @@ export default function PortalLogin() {
                 setEmail('');
                 setPassword('');
               }}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                 !isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -293,53 +293,53 @@ export default function PortalLogin() {
                 setEmail('');
                 setPassword('');
               }}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                 isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
               }`}
             >
               Criar Conta
             </button>
           </div>
-
+ 
           <div>
-            <h2 className="text-lg font-bold text-white mb-1">
+            <h2 className="text-base font-bold text-white mb-0.5">
               {isRegistering ? 'Criar minha conta' : 'Acessar minha conta'}
             </h2>
-            <p className="text-xs text-gray-500">
+            <p className="text-[11px] text-gray-500 leading-relaxed">
               {isRegistering 
                 ? 'Insira o e-mail cadastrado no seu contrato para criar sua senha de acesso.' 
                 : 'Insira suas credenciais corporativas para acessar sua agenda e finanças.'}
             </p>
           </div>
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">E-mail Cadastrado</label>
+ 
+          <form onSubmit={handleAuth} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">E-mail Cadastrado</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                  <Mail size={16} />
+                  <Mail size={15} />
                 </span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@empresa.com"
-                  className="w-full pl-12 pr-4 py-3.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                  className="w-full pl-11 pr-4 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                   required
                 />
               </div>
             </div>
-
-            <div className="space-y-1.5">
+ 
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                   {isRegistering ? 'Definir Senha (mín. 6 caract.)' : 'Senha Secreta'}
                 </label>
                 {!isRegistering && (
                   <button 
                     type="button" 
                     onClick={handleResetPassword}
-                    className="text-[10px] text-primary-500 hover:text-primary-400 font-bold transition-colors"
+                    className="text-[9px] text-primary-500 hover:text-primary-400 font-bold transition-colors"
                   >
                     Esqueci a senha
                   </button>
@@ -347,14 +347,14 @@ export default function PortalLogin() {
               </div>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                  <Lock size={16} />
+                  <Lock size={15} />
                 </span>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                  className="w-full pl-12 pr-12 py-3.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                  className="w-full pl-11 pr-11 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                   required
                 />
                 <button
@@ -362,61 +362,61 @@ export default function PortalLogin() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
-
+ 
             {isRegistering && (
-              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Confirmar Senha</label>
+              <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Confirmar Senha</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    <Lock size={16} />
+                    <Lock size={15} />
                   </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                    className="w-full pl-12 pr-4 py-3.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                    className="w-full pl-11 pr-4 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                     required={isRegistering}
                   />
                 </div>
               </div>
             )}
-
+ 
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 py-4 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/50 text-white font-bold rounded-xl text-sm transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2"
+              className="w-full mt-2.5 py-3 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
                   <span>Processando...</span>
                 </>
               ) : (
                 <>
                   <span>{isRegistering ? 'Finalizar Cadastro' : 'Entrar no Portal'}</span>
-                  <Shield size={16} />
+                  <Shield size={14} />
                 </>
               )}
             </button>
           </form>
-
-          <div className="flex items-center justify-between gap-4 py-2">
+ 
+          <div className="flex items-center justify-between gap-3 py-1">
             <div className="h-px bg-white/10 flex-1"></div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Ou acesse com</span>
+            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Ou acesse com</span>
             <div className="h-px bg-white/10 flex-1"></div>
           </div>
-
+ 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center active:scale-[0.98]"
+            className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all flex items-center justify-center active:scale-[0.98]"
           >
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 mr-2" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -437,8 +437,8 @@ export default function PortalLogin() {
             {isRegistering ? 'Criar Conta com Google' : 'Entrar com Google'}
           </button>
         </div>
-
-        <p className="text-gray-600 text-[10px] uppercase tracking-widest font-medium">
+ 
+        <p className="text-gray-600 text-[9px] uppercase tracking-widest font-medium">
           Portal Hub &copy; 2026 - Área Restrita
         </p>
       </div>
