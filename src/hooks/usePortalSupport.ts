@@ -16,10 +16,16 @@ export function usePortalSupport(orgId: string | undefined, clientId: string | u
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      },
+      (error) => {
+        console.error('[Portal Support] Erro no onSnapshot:', error.code, error.message);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [orgId, clientId]);

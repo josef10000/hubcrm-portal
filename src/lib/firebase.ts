@@ -1,10 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { 
-  initializeFirestore, 
-  persistentLocalCache, 
-  persistentMultipleTabManager 
-} from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -19,13 +15,13 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
+// Usando getFirestore simples (sem cache persistente) para garantir
+// dados em tempo real. O portal é uma app de suporte — o cliente
+// precisa ver respostas do consultor instantaneamente.
+export const db = getFirestore(app);
 
 export const storage = getStorage(app);
 storage.maxUploadRetryTime = 10000; 
 
 export const googleProvider = new GoogleAuthProvider();
+
