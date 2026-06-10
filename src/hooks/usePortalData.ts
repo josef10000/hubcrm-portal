@@ -40,7 +40,7 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
         // Se o token não estiver localmente, busca de forma assíncrona do Firestore do cliente
         if (!token) {
           try {
-            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+            const clientDocRef = doc(db, 'organizations', orgId as string, 'clients', activeClientId as string);
             const clientDocSnap = await getDoc(clientDocRef);
             if (clientDocSnap.exists()) {
               const clientData = clientDocSnap.data();
