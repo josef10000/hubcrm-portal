@@ -705,12 +705,12 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
             <p className="text-xs text-gray-400">Gerencie a saúde financeira da sua microempresa registrando receitas e gastos.</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             {/* Seletor de visualização (Receitas vs Despesas vs Projetos) */}
-            <div className="flex p-1 bg-black/40 border border-white/10 rounded-xl">
+            <div className="flex p-1 bg-black/40 border border-white/10 rounded-xl w-full sm:w-auto">
               <button
                 onClick={() => { setSubTab('revenues'); setFilterPayment('all'); }}
-                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'revenues' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -718,7 +718,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               </button>
               <button
                 onClick={() => { setSubTab('expenses'); setFilterPayment('all'); }}
-                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'expenses' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -726,7 +726,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               </button>
               <button
                 onClick={() => { setSubTab('projects'); setFilterPayment('all'); }}
-                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'projects' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -738,7 +738,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
             {subTab === 'revenues' && (
               <button
                 onClick={openNewRevenueModal}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer w-full sm:w-auto"
               >
                 <Plus size={14} />
                 Registrar Receita
@@ -749,7 +749,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
             {subTab === 'expenses' && (
               <button
                 onClick={openNewExpenseModal}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer w-full sm:w-auto"
               >
                 <Plus size={14} />
                 Registrar Gasto
@@ -1100,7 +1100,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
       {/* Modal Glassmorphism de Cadastro e Edição de Gasto */}
       {isExpenseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
             <button
               onClick={() => setIsExpenseModalOpen(false)}
               className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
@@ -1264,7 +1264,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
       {/* Modal Glassmorphism de Cadastro e Edição de Receita */}
       {isRevenueModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
             <button
               onClick={() => setIsRevenueModalOpen(false)}
               className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"

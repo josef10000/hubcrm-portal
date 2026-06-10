@@ -366,10 +366,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       )}
 
       {/* Abas Superiores */}
-      <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
+      <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-full overflow-x-auto scrollbar-none snap-x flex-nowrap md:w-fit">
         <button
           onClick={() => setSubTab('timeline')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
             subTab === 'timeline' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -378,7 +378,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         </button>
         <button
           onClick={() => setSubTab('services')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
             subTab === 'services' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -387,7 +387,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         </button>
         <button
           onClick={() => setSubTab('settings')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
             subTab === 'settings' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
         >
@@ -408,19 +408,19 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               <p className="text-xs text-gray-400">Gerencie os horários marcados pelos clientes do seu site e WhatsApp.</p>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-4 py-2.5 bg-black/40 border border-white/15 hover:border-white/30 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all font-bold"
+                className="flex-1 sm:flex-initial px-4 py-2.5 bg-black/40 border border-white/15 hover:border-white/30 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all font-bold w-full"
               />
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer"
               >
                 <Plus size={16} />
-                <span className="hidden sm:inline">Novo Agendamento</span>
+                <span>Agendar</span>
               </button>
             </div>
           </div>
@@ -434,10 +434,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               <p className="text-xs text-gray-500 mt-1">Sua agenda de {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} está livre.</p>
             </div>
           ) : (
-            <div className="relative border-l-2 border-primary-500/20 ml-4 pl-8 space-y-8 py-2">
+            <div className="relative border-l-2 border-primary-500/20 ml-2 pl-4 sm:ml-4 sm:pl-8 space-y-8 py-2">
               {appointmentsToday.map((app) => (
                 <div key={app.id} className="relative group">
-                  <div className={`absolute -left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
+                  <div className={`absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
                     app.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                     app.status === 'cancelled' ? 'bg-rose-500' : 'bg-primary-500 animate-pulse'
                   }`} />
@@ -463,62 +463,70 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      {app.clientPhone && (
-                        <a
-                          href={`https://wa.me/${app.clientPhone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
-                        >
-                          <Phone size={14} />
-                          Contatar
-                        </a>
-                      )}
-                      
-                      {app.status !== 'completed' && app.status !== 'cancelled' && (
-                        <>
-                          <button
-                            onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
-                            className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5"
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
+                      {/* Botões de Ação Principais */}
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        {app.clientPhone && (
+                          <a
+                            href={`https://wa.me/${app.clientPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
                           >
-                            <Check size={14} />
-                            Finalizar
-                          </button>
-                          <button
-                            onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
-                            className="p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
-                          >
-                            <X size={14} />
-                            Cancelar
-                          </button>
-                        </>
-                      )}
-                      {app.status === 'completed' && (
-                        <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
-                          <Check size={14} /> Concluído
-                        </span>
-                      )}
-                      {app.status === 'cancelled' && (
-                        <span className="text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
-                          <X size={14} /> Cancelado
-                        </span>
-                      )}
+                            <Phone size={14} />
+                            Contatar
+                          </a>
+                        )}
+                        
+                        {app.status !== 'completed' && app.status !== 'cancelled' && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
+                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Check size={14} />
+                              Finalizar
+                            </button>
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
+                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <X size={14} />
+                              Cancelar
+                            </button>
+                          </>
+                        )}
+                        {app.status === 'completed' && (
+                          <span className="flex-1 sm:flex-initial justify-center text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
+                            <Check size={14} /> Concluído
+                          </span>
+                        )}
+                        {app.status === 'cancelled' && (
+                          <span className="flex-1 sm:flex-initial justify-center text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
+                            <X size={14} /> Cancelado
+                          </span>
+                        )}
+                      </div>
 
-                      <button
-                        onClick={() => handleEditAppointment(app)}
-                        className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90"
-                        title="Editar agendamento"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAppointment(app.id)}
-                        className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90"
-                        title="Excluir agendamento"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {/* Botões de Ação Utilitários */}
+                      <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2 sm:pt-0 sm:border-0 w-full sm:w-auto shrink-0">
+                        <button
+                          onClick={() => handleEditAppointment(app)}
+                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center"
+                          title="Editar agendamento"
+                        >
+                          <Edit2 size={13} className="mr-1 sm:mr-0" />
+                          <span className="sm:hidden text-xs">Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAppointment(app.id)}
+                          className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center"
+                          title="Excluir agendamento"
+                        >
+                          <Trash2 size={13} className="mr-1 sm:mr-0" />
+                          <span className="sm:hidden text-xs">Excluir</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -833,7 +841,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       {/* Modal Novo Agendamento */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
             <button
               onClick={closeAppointmentModal}
               className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
