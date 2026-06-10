@@ -4,7 +4,7 @@ import {
   collection, onSnapshot, query, orderBy, addDoc, serverTimestamp 
 } from 'firebase/firestore';
 import { 
-  Coins, Hourglass, Plus, Trash2, Save, RotateCcw, HelpCircle, Calculator, Percent
+  Coins, Hourglass, Plus, Trash2, Save, RotateCcw, Calculator, Percent
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
