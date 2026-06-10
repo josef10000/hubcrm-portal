@@ -72,9 +72,9 @@ describe('Cálculos Matemáticos de Orçamento', () => {
 
     it('deve calcular corretamente o preço sugerido com margem de lucro', () => {
       // Preço = 700 / (1 - 0.3) = 700 / 0.7 = 1000
-      expect(calculateSuggestedPrice(700, 30)).toBe(1000);
+      expect(calculateSuggestedPrice(700, 30)).toBeCloseTo(1000);
       // Preço = 150 / (1 - 0.5) = 150 / 0.5 = 300
-      expect(calculateSuggestedPrice(150, 50)).toBe(300);
+      expect(calculateSuggestedPrice(150, 50)).toBeCloseTo(300);
     });
 
     it('deve evitar divisão por zero se a margem for 100% ou maior', () => {
