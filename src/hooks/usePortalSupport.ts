@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export function usePortalSupport(orgId: string | undefined, clientId: string | undefined) {
@@ -44,15 +44,18 @@ export function usePortalSupport(orgId: string | undefined, clientId: string | u
     }
   };
 
-  const addMessageToRequest = async (requestId: string, message: string) => {
+  const addMessageToRequest = async (requestId: string, newMessage: string, previousReply?: string) => {
     if (!orgId) return;
     
     try {
       const docRef = doc(db, 'organizations', orgId, 'supportRequests', requestId);
       await updateDoc(docRef, {
-        message: message,
+        message: newMessage,
         status: 'aberto',
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        // Limpa a resposta do consultor para que o portal mostre "Aguardando resposta..."
+        reply: deleteField(),
+        repliedAt: deleteField(),
       });
       return true;
     } catch (error) {

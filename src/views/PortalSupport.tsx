@@ -47,9 +47,15 @@ export default function PortalSupport({ client }: PortalSupportProps) {
       return now.toLocaleString('pt-BR');
     };
 
-    const newHistoricalMessage = `${selectedTicket.message}\n\n[Cliente - ${formatTime()}]:\n${clientReplyText}`;
+    // Inclui a resposta anterior do consultor no histórico antes de adicionar a réplica do cliente
+    let historicalBase = selectedTicket.message || '';
+    if (selectedTicket.reply) {
+      historicalBase += `\n\n[Consultor - ${selectedTicket.repliedAt?.toDate ? selectedTicket.repliedAt.toDate().toLocaleString('pt-BR') : formatTime()}]:\n${selectedTicket.reply}`;
+    }
 
-    const success = await addMessageToRequest(selectedTicket.id, newHistoricalMessage);
+    const newHistoricalMessage = `${historicalBase}\n\n[Cliente - ${formatTime()}]:\n${clientReplyText}`;
+
+    const success = await addMessageToRequest(selectedTicket.id, newHistoricalMessage, selectedTicket.reply);
 
     if (success) {
       setClientReplyText('');
