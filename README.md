@@ -69,6 +69,26 @@ npm run build
 
 ---
 
+## 🧪 Testes Automatizados & Integração Contínua (CI)
+
+A aplicação conta com uma esteira de testes automatizados configurada com **Vitest** para garantir a consistência das regras de negócio e fórmulas de precificação e cálculo de orçamento.
+
+### Como Executar os Testes (Se houver Node instalado na máquina)
+```bash
+# Executar todos os testes unitários uma vez
+npm run test
+```
+
+### GitHub Actions (CI)
+Toda vez que novas alterações são enviadas (`git push`) ou um Pull Request é aberto para a branch `main`, a esteira do GitHub Actions (.github/workflows/test.yml) é executada automaticamente na nuvem para:
+1. Instalar as dependências do projeto.
+2. Rodar todos os testes unitários (`vitest run`).
+3. Validar a build de produção do Vite/TypeScript (`npm run build`).
+
+Isso garante que códigos que não passem nos testes ou com erros de tipagem/compilação TypeScript não subam para a produção.
+
+---
+
 ## ☁️ Deploy na Vercel
 
 O projeto conta com o arquivo `vercel.json` configurado para lidar com rotas SPA do React Router.

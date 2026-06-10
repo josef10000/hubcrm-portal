@@ -7,6 +7,14 @@ import {
   Coins, Hourglass, Plus, Trash2, Save, RotateCcw, HelpCircle, Calculator, Percent
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  calculateMaterialsCost,
+  calculateLaborCost,
+  parseExtraCost,
+  calculateTotalCost,
+  calculateSuggestedPrice,
+  calculateNetProfit
+} from '../utils/calculations';
 
 interface PortalCalculatorProps {
   orgId: string;
@@ -108,17 +116,12 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
   };
 
   // Cálculos matemáticos de precificação
-  const materialsCost = selectedMaterials.reduce((acc, m) => acc + (m.quantity * m.costPerUnit), 0);
-  const laborCost = Number(laborHours) * Number(hourlyRate);
-  const extraCost = Number(additionalCosts.replace(',', '.'));
-  
-  const totalCost = materialsCost + laborCost + extraCost;
-  
-  // Fórmula de Margem de Contribuição / Preço de Venda
-  // Preço Sugerido = Custo Total / (1 - Margem %)
-  const marginDecimal = margin / 100;
-  const suggestedPrice = marginDecimal < 1 ? totalCost / (1 - marginDecimal) : totalCost;
-  const netProfit = suggestedPrice - totalCost;
+  const materialsCost = calculateMaterialsCost(selectedMaterials);
+  const laborCost = calculateLaborCost(laborHours, hourlyRate);
+  const extraCost = parseExtraCost(additionalCosts);
+  const totalCost = calculateTotalCost(materialsCost, laborCost, extraCost);
+  const suggestedPrice = calculateSuggestedPrice(totalCost, margin);
+  const netProfit = calculateNetProfit(suggestedPrice, totalCost);
 
   const handleSaveBudget = async (e: React.FormEvent) => {
     e.preventDefault();
