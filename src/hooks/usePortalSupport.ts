@@ -18,7 +18,7 @@ export function usePortalSupport(orgId: string | undefined, clientId: string | u
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportTicket));
         // Ordena por createdAt decrescente (mais recente primeiro)
         docs.sort((a: any, b: any) => {
           const timeA = a.createdAt?.toMillis 

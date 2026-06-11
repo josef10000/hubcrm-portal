@@ -309,7 +309,7 @@ export default function PortalFinance({
                           <div className={`p-2 rounded-lg ${style.class}`}>
                             <style.icon size={16} />
                           </div>
-                          <span className="text-white font-medium text-sm">#{payment.id.split('_').pop().toUpperCase()}</span>
+                          <span className="text-white font-medium text-sm">#{payment.id.split('_').pop()?.toUpperCase()}</span>
                         </div>
                       </td>
                       <td className="py-5 px-4 border-y border-white/5 text-sm text-gray-300">
@@ -370,7 +370,7 @@ export default function PortalFinance({
                         <style.icon size={16} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-white font-bold text-sm">#{payment.id.split('_').pop().toUpperCase()}</span>
+                        <span className="text-white font-bold text-sm">#{payment.id.split('_').pop()?.toUpperCase()}</span>
                         <span className="text-[10px] text-gray-500">{new Date(payment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                       </div>
                     </div>
