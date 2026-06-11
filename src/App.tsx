@@ -4,6 +4,7 @@ import PortalLogin from './views/PortalLogin';
 
 const ClientPortalLayout = lazy(() => import('./components/ClientPortalLayout'));
 const PortalActivation = lazy(() => import('./views/PortalActivation'));
+const ConfirmarPresenca = lazy(() => import('./views/ConfirmarPresenca'));
 
 export default function App() {
   return (
@@ -20,6 +21,8 @@ export default function App() {
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/activate" element={<PortalActivation />} />
           <Route path="/portal/activate" element={<PortalActivation />} />
+          <Route path="/confirmar-presenca" element={<ConfirmarPresenca />} />
+          <Route path="/portal/confirmar-presenca" element={<ConfirmarPresenca />} />
           
           <Route path="/:orgId/:clientId/*" element={<ClientPortalLayout />} />
           <Route path="/portal/:orgId/:clientId/*" element={<ClientPortalLayout />} />

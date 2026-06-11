@@ -42,6 +42,29 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [currentSelectedMaterialId, setCurrentSelectedMaterialId] = useState('');
   const [currentSelectedMaterialQty, setCurrentSelectedMaterialQty] = useState('');
 
+  // Estados para Templates de WhatsApp
+  const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([
+    {
+      id: 'local',
+      title: 'Atendimento no Local',
+      text: 'Olá, {nome}! Confirmando seu agendamento de {servico} para o dia {data} às {hora}. Valor: R$ {valor}. Para confirmar ou reagendar seu horário, clique no link: {link}. Te aguardamos!'
+    },
+    {
+      id: 'domicilio',
+      title: 'Atendimento a Domicílio',
+      text: 'Olá, {nome}! Confirmando nossa visita para o serviço de {servico} no dia {data} às {hora}. Valor: R$ {valor}. Por favor, confirme seu agendamento clicando no link: {link}.'
+    }
+  ]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('local');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [activeAppointmentForWhatsApp, setActiveAppointmentForWhatsApp] = useState<any>(null);
+  
+  // Estados para CRUD de templates em settings
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateTitle, setTemplateTitle] = useState('');
+  const [templateText, setTemplateText] = useState('');
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -224,7 +247,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        setExpediente(docSnap.data());
+        const data = docSnap.data();
+        setExpediente(data);
+        if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
+          setWhatsappTemplates(data.whatsappTemplates);
+        }
       }
     });
     return () => unsub();
@@ -352,8 +379,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const handleSaveExpediente = async () => {
     if (!orgId) return;
     try {
-      await setDoc(doc(db, 'organizations', orgId, 'settings', 'scheduling'), expediente, { merge: true });
-      toast.success('Configurações de expediente salvas!');
+      await setDoc(doc(db, 'organizations', orgId, 'settings', 'scheduling'), {
+        ...expediente,
+        whatsappTemplates: whatsappTemplates
+      }, { merge: true });
+      toast.success('Configurações de expediente e templates salvas!');
     } catch (e) {
       toast.error('Erro ao salvar configurações.');
     }
@@ -362,11 +392,64 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   // Ações de Agendamento (Mudar Status)
   const handleUpdateAppointmentStatus = async (appId: string, status: 'confirmed' | 'cancelled' | 'completed') => {
     try {
-      await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), { status });
-      toast.success(`Status atualizado para: ${status === 'confirmed' ? 'Confirmado' : status === 'cancelled' ? 'Cancelado' : 'Concluído'}`);
+      const updatePayload: any = { status };
+      if (status === 'completed') {
+        updatePayload.paymentStatus = 'paid';
+      }
+      await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), updatePayload);
+      toast.success(
+        status === 'confirmed' ? 'Status atualizado para: Confirmado' :
+        status === 'cancelled' ? 'Status atualizado para: Cancelado' :
+        'Agendamento concluído e enviado ao Financeiro!'
+      );
     } catch (e) {
       toast.error('Erro ao atualizar agendamento.');
     }
+  };
+
+  // Ação para abrir o modal de disparo de WhatsApp
+  const handleOpenWhatsAppModal = (app: any) => {
+    setActiveAppointmentForWhatsApp(app);
+    setIsWhatsAppModalOpen(true);
+  };
+
+  // Função para processar o texto e substituir as tags dinâmicas
+  const renderWhatsAppText = (templateText: string, app: any) => {
+    if (!app) return '';
+    const linkPublico = `https://portalhub.hubsymples.com.br/confirmar-presenca?id=${app.id}&orgId=${orgId}&clientId=${clientId}`;
+    const dataFormatada = app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+    
+    return templateText
+      .replace(/{nome}/g, app.clientName || '')
+      .replace(/{servico}/g, app.serviceName || '')
+      .replace(/{data}/g, dataFormatada)
+      .replace(/{hora}/g, app.time || '')
+      .replace(/{valor}/g, app.price ? app.price.toFixed(2).replace('.', ',') : '0,00')
+      .replace(/{link}/g, linkPublico);
+  };
+
+  // Função para de fato disparar a mensagem
+  const handleSendWhatsAppMessage = async () => {
+    if (!activeAppointmentForWhatsApp || !orgId) return;
+
+    const template = whatsappTemplates.find(t => t.id === selectedTemplateId) || whatsappTemplates[0];
+    const text = renderWhatsAppText(template.text, activeAppointmentForWhatsApp);
+    const phone = activeAppointmentForWhatsApp.clientPhone.replace(/\D/g, '');
+
+    // Atualiza o status do agendamento para 'pending' (Pendente de Confirmação) no Firestore
+    try {
+      await updateDoc(doc(db, 'organizations', orgId, 'appointments', activeAppointmentForWhatsApp.id), {
+        status: 'pending'
+      });
+    } catch (err) {
+      console.error('Erro ao atualizar status do agendamento para pendente:', err);
+    }
+
+    setIsWhatsAppModalOpen(false);
+
+    // Abre o WhatsApp Web
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   const appointmentsToday = appointments.filter(app => app.date === selectedDate);
@@ -473,7 +556,9 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 <div key={app.id} className="relative group">
                   <div className={`absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
                     app.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
-                    app.status === 'cancelled' ? 'bg-rose-500' : 'bg-primary-500 animate-pulse'
+                    app.status === 'cancelled' ? 'bg-rose-500' : 
+                    app.status === 'pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 
+                    'bg-primary-500 animate-pulse'
                   }`} />
 
                   <div className="bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -488,6 +573,16 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                         }`}>
                           {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
                         </span>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                          app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
+                          app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                          'bg-sky-500/20 text-sky-400 border-sky-500/30'
+                        }`}>
+                          {app.status === 'completed' ? 'CONCLUÍDO' :
+                           app.status === 'cancelled' ? 'CANCELADO' :
+                           app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' : 'CONFIRMADO'}
+                        </span>
                       </div>
                       <h3 className="text-base font-bold text-white">{app.clientName}</h3>
                       <p className="text-xs text-gray-400 flex items-center gap-1.5">
@@ -501,15 +596,13 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                       {/* Botões de Ação Principais */}
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {app.clientPhone && (
-                          <a
-                            href={`https://wa.me/${app.clientPhone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                          <button
+                            onClick={() => handleOpenWhatsAppModal(app)}
+                            className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
                           >
                             <Phone size={14} />
-                            Contatar
-                          </a>
+                            Enviar Confirmação
+                          </button>
                         )}
                         
                         {app.status !== 'completed' && app.status !== 'cancelled' && (
@@ -862,9 +955,197 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             </select>
           </div>
 
+          <div className="w-full h-[1px] bg-white/15 my-6" />
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Phone size={14} className="text-primary-400" />
+                  Templates de Mensagens do WhatsApp
+                </h3>
+                <p className="text-xs text-gray-400">Cadastre e personalize os textos que serão enviados como confirmação no WhatsApp do cliente.</p>
+              </div>
+              {!isAddingTemplate && !editingTemplateId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateTitle('');
+                    setTemplateText('');
+                    setEditingTemplateId(null);
+                    setIsAddingTemplate(true);
+                  }}
+                  className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Plus size={12} />
+                  <span>Novo Template</span>
+                </button>
+              )}
+            </div>
+
+            {/* Formulário de Template (Novo ou Edição) */}
+            {(isAddingTemplate || editingTemplateId) && (
+              <div className="p-5 bg-black/40 border border-white/10 rounded-2xl space-y-4 animate-in fade-in duration-200">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Título do Template</label>
+                  <input
+                    type="text"
+                    value={templateTitle}
+                    onChange={(e) => setTemplateTitle(e.target.value)}
+                    placeholder="Ex: Confirmação Salão, Visita Técnica..."
+                    className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mensagem</label>
+                    <span className="text-[9px] text-gray-500">Clique nas tags abaixo para inserir no texto</span>
+                  </div>
+                  
+                  {/* Botões Rápidos de Tags */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {[
+                      { tag: '{nome}', label: 'Nome' },
+                      { tag: '{servico}', label: 'Serviço' },
+                      { tag: '{data}', label: 'Data' },
+                      { tag: '{hora}', label: 'Hora' },
+                      { tag: '{valor}', label: 'Valor' },
+                      { tag: '{link}', label: 'Link' }
+                    ].map(t => (
+                      <button
+                        key={t.tag}
+                        type="button"
+                        onClick={() => setTemplateText(prev => prev + t.tag)}
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-lg text-[10px] font-mono transition-all cursor-pointer"
+                      >
+                        {t.label} ({t.tag})
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    value={templateText}
+                    onChange={(e) => setTemplateText(e.target.value)}
+                    rows={4}
+                    placeholder="Olá, {nome}! Seu agendamento de {servico} foi marcado para dia {data}..."
+                    className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 resize-none font-sans"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!templateTitle.trim() || !templateText.trim()) {
+                        toast.error('Preencha o título e o texto do template.');
+                        return;
+                      }
+
+                      const currentTemplates = [...whatsappTemplates];
+                      if (editingTemplateId) {
+                        const index = currentTemplates.findIndex(t => t.id === editingTemplateId);
+                        if (index !== -1) {
+                          currentTemplates[index] = {
+                            id: editingTemplateId,
+                            title: templateTitle.trim(),
+                            text: templateText.trim()
+                          };
+                        }
+                      } else {
+                        currentTemplates.push({
+                          id: String(Date.now()),
+                          title: templateTitle.trim(),
+                          text: templateText.trim()
+                        });
+                      }
+
+                      setWhatsappTemplates(currentTemplates);
+                      setTemplateTitle('');
+                      setTemplateText('');
+                      setEditingTemplateId(null);
+                      setIsAddingTemplate(false);
+                      toast.success(editingTemplateId ? 'Template atualizado!' : 'Template criado! Salve as configurações para gravar.');
+                    }}
+                    className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Check size={12} />
+                    <span>{editingTemplateId ? 'Atualizar Template' : 'Adicionar Template'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemplateTitle('');
+                      setTemplateText('');
+                      setEditingTemplateId(null);
+                      setIsAddingTemplate(false);
+                    }}
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Listagem de Templates */}
+            {!isAddingTemplate && !editingTemplateId && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {whatsappTemplates.map((tpl) => (
+                  <div key={tpl.id} className="p-4 bg-black/20 border border-white/5 rounded-2xl flex flex-col justify-between gap-3 relative group">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-white block">{tpl.title}</span>
+                        {tpl.id === 'local' || tpl.id === 'domicilio' ? (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded border border-primary-500/20">
+                            Nativo
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-[11px] text-gray-500 leading-relaxed mt-1 line-clamp-3">{tpl.text}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 border-t border-white/5 pt-2.5 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTemplateId(tpl.id);
+                          setTemplateTitle(tpl.title);
+                          setTemplateText(tpl.text);
+                          setIsAddingTemplate(false);
+                        }}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                      >
+                        <Edit2 size={10} />
+                        <span>Editar</span>
+                      </button>
+                      {tpl.id !== 'local' && tpl.id !== 'domicilio' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWhatsappTemplates(whatsappTemplates.filter(t => t.id !== tpl.id));
+                            toast.info('Template removido da lista. Clique em Salvar Expediente para confirmar.');
+                          }}
+                          className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                        >
+                          <Trash2 size={10} />
+                          <span>Excluir</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="w-full h-[1px] bg-white/15 my-4" />
+
           <button
             onClick={handleSaveExpediente}
-            className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center gap-1.5"
+            className="px-6 py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center gap-1.5 cursor-pointer"
           >
             <Check size={14} />
             Salvar Expediente
@@ -1022,6 +1303,82 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           </div>
         </div>
       )}
+      {/* Modal Disparo WhatsApp */}
+      {isWhatsAppModalOpen && activeAppointmentForWhatsApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300 text-left">
+            <button
+              onClick={() => setIsWhatsAppModalOpen(false)}
+              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white mb-1">
+                Enviar Confirmação
+              </h3>
+              <p className="text-xs text-gray-400">
+                Selecione o template de WhatsApp que deseja utilizar e confira a mensagem antes de disparar.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Template da Mensagem</label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
+                >
+                  {whatsappTemplates.map(t => (
+                    <option key={t.id} value={t.id} className="bg-[#050505] text-white">
+                      {t.title || t.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Visualização do Envio</label>
+                <div className="p-4 bg-[#0b141a] border border-[#202c33] rounded-2xl text-sm text-[#e9edef] whitespace-pre-wrap font-sans relative shadow-inner">
+                  {/* Balão estilo WhatsApp */}
+                  <div className="bg-[#005c4b] p-3 rounded-2xl rounded-tr-none text-white max-w-[90%] ml-auto relative">
+                    <p className="text-sm leading-relaxed">
+                      {renderWhatsAppText(
+                        whatsappTemplates.find(t => t.id === selectedTemplateId)?.text || whatsappTemplates[0]?.text || '',
+                        activeAppointmentForWhatsApp
+                      )}
+                    </p>
+                    <span className="block text-[9px] text-emerald-200/80 text-right mt-1 font-mono">
+                      {activeAppointmentForWhatsApp.time || ''} ✓✓
+                    </span>
+                    <div className="absolute top-0 right-[-6px] w-0 h-0 border-t-[8px] border-t-[#005c4b] border-r-[8px] border-r-transparent"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleSendWhatsAppMessage}
+                  className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-emerald-600/10 flex items-center justify-center gap-2 cursor-pointer border-0"
+                >
+                  <Phone size={14} />
+                  <span>Enviar via WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsWhatsAppModalOpen(false)}
+                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Confirmação de Exclusão */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}

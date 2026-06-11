@@ -16,6 +16,9 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 ### 2. 📅 Agenda e Atendimentos
 *   Exibição reativa de compromissos futuros.
 *   Alertas preventivos integrados ao estoque se o consumo de insumos dos agendamentos futuros confirmados exceder o estoque físico atual.
+*   **Confirmação via WhatsApp [NOVO]:** Integração de templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com suporte a tags dinâmicas como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
+*   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`) [NOVO]:** Página pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar presença ou cancelar, atualizando em tempo real a agenda do assinante.
+*   **Faturamento Automático [NOVO]:** Ao finalizar o atendimento na linha do tempo, o sistema atualiza o status do pagamento para pago (`paid`), integrando instantaneamente o ganho no painel do CRM Financeiro.
 
 ### 3. 💳 Faturamento (Faturas Hub)
 *   Visualização e acompanhamento de faturas geradas no Asaas via API integrada segura.
