@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { Client, Offer } from '../types';
 
 
 export function usePortalData(orgId: string | undefined, initialClientId: string | undefined) {
   const [activeClientId, setActiveClientId] = useState<string | undefined>(initialClientId);
-  const [allClients, setAllClients] = useState<any[]>([]);
-  const [client, setClient] = useState<any>(null);
+  const [allClients, setAllClients] = useState<Client[]>([]);
+  const [client, setClient] = useState<Client | null>(null);
   const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [announcement, setAnnouncement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
@@ -91,9 +92,19 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
 
     fetchPortalData();
 
-    // Polling a cada 60 segundos para manter dados atualizados
-    const interval = setInterval(fetchPortalData, 60000);
-    return () => clearInterval(interval);
+    // Atualiza automaticamente apenas quando o usuário volta a focar na aba/janela do portal
+    const handleFocus = () => {
+      fetchPortalData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // Polling preventivo de segurança a cada 5 minutos (300000 ms)
+    const interval = setInterval(fetchPortalData, 300000);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, [orgId, activeClientId]);
 
   // 2. Buscar todas as assinaturas vinculadas (CPF/CNPJ)

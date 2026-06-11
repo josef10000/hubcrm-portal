@@ -38,11 +38,18 @@ export default function ClientPortalLayout() {
   const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
   const navigate = useNavigate();
 
-  // Salva o token da URL no localStorage para persistencia entre redirects
+  // Salva o token da URL no localStorage para persistencia e limpa a URL para maior segurança
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
     if (token) {
       localStorage.setItem('portalToken', token);
+      
+      // Remove o token sensível da barra de endereços do navegador sem recarregar a tela
+      params.delete('token');
+      const newQuery = params.toString();
+      const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+      window.history.replaceState({}, '', newUrl);
     }
   }, []);
   
