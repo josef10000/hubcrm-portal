@@ -1344,7 +1344,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 <div className="p-4 bg-[#0b141a] border border-[#202c33] rounded-2xl text-sm text-[#e9edef] whitespace-pre-wrap font-sans relative shadow-inner">
                   {/* Balão estilo WhatsApp */}
                   <div className="bg-[#005c4b] p-3 rounded-2xl rounded-tr-none text-white max-w-[90%] ml-auto relative">
-                    <p className="text-sm leading-relaxed">
+                    <p className="text-sm leading-relaxed break-all">
                       {renderWhatsAppText(
                         whatsappTemplates.find(t => t.id === selectedTemplateId)?.text || whatsappTemplates[0]?.text || '',
                         activeAppointmentForWhatsApp
