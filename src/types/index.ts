@@ -26,6 +26,12 @@ export interface Client {
   paymentStatus?: string;
   contracts?: ClientContract[];
   logs?: ClientLog[];
+  brandAssets?: {
+    logoUrl?: string;
+    colors?: string[];
+    typography?: string;
+    customCanvaLinks?: { title: string; url: string }[];
+  };
 }
 
 export interface Offer {
@@ -85,3 +91,13 @@ export interface SupportTicket {
   reply?: string;
   repliedAt?: any;
 }
+
+export interface GrowthAsset {
+  id: string;
+  title: string;
+  type: 'video' | 'pdf' | 'script' | 'template';
+  url?: string;
+  content?: string;
+  category?: string;
+}
+

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Client, Offer, Payment, SupportTicket } from '../types';
+import { Client, Offer, Payment, SupportTicket, GrowthAsset } from '../types';
 
 
 export function usePortalData(orgId: string | undefined, initialClientId: string | undefined) {
@@ -11,6 +11,7 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
   const [paymentsHistory, setPaymentsHistory] = useState<Payment[]>([]);
   const [requests, setRequests] = useState<SupportTicket[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [growthAssets, setGrowthAssets] = useState<GrowthAsset[]>([]);
   const [announcement, setAnnouncement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
@@ -75,6 +76,16 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
         setOffers(data.offers || []);
         setAnnouncement(data.announcement);
         
+        // Busca da coleção global growth_assets do Firestore
+        let growthList: GrowthAsset[] = [];
+        try {
+          const growthSnapshot = await getDocs(collection(db, 'growth_assets'));
+          growthList = growthSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GrowthAsset));
+        } catch (firestoreErr) {
+          console.error("[usePortalData] Erro ao buscar growth_assets no Firestore:", firestoreErr);
+        }
+        setGrowthAssets(data.growthAssets || growthList);
+        
         if (allClients.length === 0) {
           setAllClients([data.client]);
         }
@@ -124,6 +135,7 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
     paymentsHistory, 
     requests, 
     offers, 
+    growthAssets,
     announcement, 
     loading, 
     switching,

@@ -14,10 +14,12 @@ import {
   Calendar,
   DollarSign,
   Briefcase,
-  User
+  User,
+  Rocket
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
+import PortalGrowthHub from '../views/PortalGrowthHub';
 import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -63,7 +65,8 @@ export default function ClientPortalLayout() {
     error, 
     announcement, 
     paymentsHistory, 
-    offers 
+    offers,
+    growthAssets
   } = usePortalData(orgId, clientId);
 
   const { requests: supportRequests } = usePortalSupport(orgId, client?.id);
@@ -191,6 +194,7 @@ export default function ClientPortalLayout() {
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
     { id: 'management', label: 'Meu Negócio', icon: Briefcase },
+    { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard },
       { id: 'services', label: 'Marketplace', icon: ShoppingBag }
@@ -505,6 +509,9 @@ export default function ClientPortalLayout() {
               )}
               {activeTab === 'management' && (
                 <PortalManagement orgId={orgId || ''} clientId={activeClientId || ''} />
+              )}
+              {activeTab === 'growth' && (
+                <PortalGrowthHub client={client} growthAssets={growthAssets} />
               )}
               {activeTab === 'finance' && (
                 <PortalFinance 
