@@ -25,7 +25,7 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   Central de suporte para abertura e acompanhamento de chamados.
 
 ### 5. 👤 Área de Perfil e Conta
-*   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de foto de perfil (avatar) integrada ao Cloudinary, atualização de nome/razão social e WhatsApp de contato.
+*   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de foto de perfil (avatar) integrada ao Cloudinary, atualização de nome/razão social e WhatsApp de contato protegidos por modo de leitura controlada (bloqueio de inputs e botões de Salvar/Cancelar) e sincronizados em tempo real de forma segura com o CRM administrativo via API.
 *   **Segurança de Acesso:** Redefinição de senha segura integrada ao Firebase Auth com envio de e-mail de redefinição.
 
 ---

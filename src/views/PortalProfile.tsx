@@ -9,7 +9,8 @@ import {
   Lock, 
   Globe, 
   Save, 
-  Loader2 
+  Loader2,
+  Pencil
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -28,6 +29,7 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
   const [name, setName] = useState(userProfile?.displayName || userProfile?.name || client?.name || '');
   const [phone, setPhone] = useState(userProfile?.phone || client?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   // Imagem do Avatar
   const [avatarUrl, setAvatarUrl] = useState(userProfile?.photoURL || userProfile?.imageUrl || client?.imageUrl || '');
@@ -136,6 +138,7 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
       }
 
       toast.success('Configurações salvas com sucesso!');
+      setIsEditing(false);
     } catch (err) {
       console.error('[Profile] Save error:', err);
       toast.error('Erro ao salvar configurações.');
@@ -243,7 +246,12 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Digite seu nome completo..."
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+                    className={`w-full rounded-2xl px-4 py-4 text-sm outline-none transition-all ${
+                      isEditing 
+                        ? 'bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-primary-500/50' 
+                        : 'bg-white/[0.01] border border-white/5 text-gray-400 cursor-not-allowed'
+                    }`}
+                    readOnly={!isEditing}
                   />
                 </div>
 
@@ -255,7 +263,12 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
                       value={phone}
                       onChange={handlePhoneChange}
                       placeholder="(00) 00000-0000"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+                      className={`w-full pl-12 pr-4 py-4 text-sm outline-none transition-all ${
+                        isEditing 
+                          ? 'bg-white/5 border border-white/10 text-white focus:ring-2 focus:ring-primary-500/50' 
+                          : 'bg-white/[0.01] border border-white/5 text-gray-400 cursor-not-allowed'
+                      }`}
+                      readOnly={!isEditing}
                     />
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
                       <Phone size={16} />
@@ -264,24 +277,48 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
-                <button
-                  type="submit"
-                  disabled={isSaving || !name.trim()}
-                  className="px-6 py-4 bg-white hover:bg-gray-100 disabled:opacity-50 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2.5 active:scale-95 text-xs uppercase tracking-wider"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      Salvar Alterações
-                    </>
-                  )}
-                </button>
+              <div className="flex justify-end pt-4 gap-3">
+                {isEditing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setName(userProfile?.displayName || userProfile?.name || client?.name || '');
+                        setPhone(userProfile?.phone || client?.phone || '');
+                        setIsEditing(false);
+                      }}
+                      className="px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold rounded-2xl transition-all active:scale-95 text-xs uppercase tracking-wider"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSaving || !name.trim()}
+                      className="px-6 py-4 bg-white hover:bg-gray-100 disabled:opacity-50 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2.5 active:scale-95 text-xs uppercase tracking-wider"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          Salvar Alterações
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="px-6 py-4 bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2.5 active:scale-95 text-xs uppercase tracking-wider"
+                  >
+                    <Pencil size={16} className="text-white" />
+                    Editar Informações
+                  </button>
+                )}
               </div>
             </form>
           </div>
