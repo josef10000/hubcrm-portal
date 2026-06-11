@@ -12,13 +12,27 @@ export function usePortalSupport(orgId: string | undefined, clientId: string | u
 
     const q = query(
       collection(db, 'organizations', orgId, 'supportRequests'),
-      where('clientId', '==', clientId),
-      orderBy('createdAt', 'desc')
+      where('clientId', '==', clientId)
     );
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Ordena por createdAt decrescente (mais recente primeiro)
+        docs.sort((a: any, b: any) => {
+          const timeA = a.createdAt?.toMillis 
+            ? a.createdAt.toMillis() 
+            : (a.createdAt?.seconds 
+                ? a.createdAt.seconds * 1000 
+                : Date.now());
+          const timeB = b.createdAt?.toMillis 
+            ? b.createdAt.toMillis() 
+            : (b.createdAt?.seconds 
+                ? b.createdAt.seconds * 1000 
+                : Date.now());
+          return timeB - timeA;
+        });
+        setRequests(docs);
         setLoading(false);
       },
       (error) => {

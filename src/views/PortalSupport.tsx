@@ -97,6 +97,7 @@ export default function PortalSupport({ client }: PortalSupportProps) {
     switch (status) {
       case 'concluido': return { label: 'Concluído', color: 'text-emerald-400', bg: 'bg-emerald-500/20', icon: CheckCircle2 };
       case 'em_analise': return { label: 'Em Análise', color: 'text-amber-400', bg: 'bg-amber-500/20', icon: Clock };
+      case 'resolvido': return { label: 'Resolvido', color: 'text-violet-400', bg: 'bg-violet-500/20', icon: CheckCircle2 };
       default: return { label: 'Aberto', color: 'text-blue-400', bg: 'bg-blue-500/20', icon: MessageSquare };
     }
   };
@@ -263,7 +264,7 @@ export default function PortalSupport({ client }: PortalSupportProps) {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-[#0f0f0f] border border-white/10 w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden"
+              className="relative bg-[#0f0f0f] border border-white/10 w-full max-w-xl rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="px-8 py-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
                 <h3 className="text-xl font-bold text-white flex items-center gap-3">
@@ -277,21 +278,30 @@ export default function PortalSupport({ client }: PortalSupportProps) {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-4">Selecione o Assunto</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setCategory(cat.id)}
-                        className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 text-center group ${category === cat.id ? 'bg-primary-500/20 border-primary-500/50' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
-                      >
-                        <cat.icon className={`w-6 h-6 ${category === cat.id ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
-                        <span className={`text-[10px] font-bold uppercase ${category === cat.id ? 'text-primary-400' : 'text-gray-500'}`}>{cat.label}</span>
-                      </button>
-                    ))}
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Selecione o Assunto</label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="" disabled className="bg-[#0f0f0f] text-gray-500">Escolha o motivo do contato...</option>
+                      {categories.map((cat) => (
+                        <option 
+                          key={cat.id} 
+                          value={cat.id} 
+                          className="bg-[#0f0f0f] text-white py-2"
+                        >
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                      <ChevronRight size={16} className="rotate-90" />
+                    </div>
                   </div>
                 </div>
 
@@ -393,7 +403,7 @@ export default function PortalSupport({ client }: PortalSupportProps) {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-[#0f0f0f] border border-white/10 w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="relative bg-[#0f0f0f] border border-white/10 w-full max-w-2xl rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="px-8 py-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
                 <div>
