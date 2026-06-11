@@ -372,17 +372,7 @@ export default function ClientPortalLayout() {
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
-                {item.id === 'profile' && (userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
-                  <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
-                    <img 
-                      src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} 
-                      alt="Perfil" 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
-                ) : (
-                  <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
-                )}
+                <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
                 <span className="font-medium">{item.label}</span>
                 {item.id === 'support' && hasUnreadSupport && (
                   <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />

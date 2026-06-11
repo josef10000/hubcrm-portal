@@ -106,6 +106,35 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
         phone: phone.trim()
       });
 
+      // Sincroniza em tempo real as alterações com o card do CRM
+      try {
+        const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+        const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+        
+        if (orgId && clientId && token) {
+          const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update_client',
+              orgId,
+              clientId,
+              token,
+              uid: user.uid,
+              email: user.email,
+              clientName: name.trim(),
+              clientPhone: phone.trim()
+            })
+          });
+          
+          if (!response.ok) {
+            console.warn('[Profile] CRM data synchronization failed.');
+          }
+        }
+      } catch (crmErr) {
+        console.error('[Profile] CRM synchronization error:', crmErr);
+      }
+
       toast.success('Configurações salvas com sucesso!');
     } catch (err) {
       console.error('[Profile] Save error:', err);
