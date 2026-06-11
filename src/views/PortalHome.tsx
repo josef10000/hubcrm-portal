@@ -50,18 +50,17 @@ export default function PortalHome({ client, announcement, setActiveTab, support
 
   // Escuta os compromissos de hoje reativamente
   useEffect(() => {
-    if (!orgId || !client?.id) return;
+    if (!orgId) return;
     const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
     const appointmentsRef = collection(db, 'organizations', orgId, 'appointments');
 
     const unsub = onSnapshot(appointmentsRef, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Filtra os agendamentos do cliente logado, para o dia de hoje, não cancelados
+      // Filtra os agendamentos para o dia de hoje que estão confirmados
       const filtered = list.filter((app: any) => 
-        app.clientId === client.id && 
         app.date === todayStr && 
-        app.status !== 'cancelled'
+        app.status === 'confirmed'
       );
       
       // Ordena por horário
@@ -71,7 +70,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
     });
 
     return () => unsub();
-  }, [orgId, client?.id]);
+  }, [orgId]);
 
   const getAppStatusBadge = (status: string) => {
     switch (status) {
