@@ -202,7 +202,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       } else {
         await addDoc(collection(db, 'organizations', orgId, 'appointments'), {
           ...payload,
-          status: 'confirmed',
+          status: 'created',
           createdAt: serverTimestamp()
         });
         toast.success('Agendamento realizado com sucesso!');
@@ -577,11 +577,13 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                           app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
                           app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
                           app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                          app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
                           'bg-sky-500/20 text-sky-400 border-sky-500/30'
                         }`}>
                           {app.status === 'completed' ? 'CONCLUÍDO' :
                            app.status === 'cancelled' ? 'CANCELADO' :
-                           app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' : 'CONFIRMADO'}
+                           app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
+                           app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
                         </span>
                       </div>
                       <h3 className="text-base font-bold text-white">{app.clientName}</h3>
@@ -595,7 +597,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
                       {/* Botões de Ação Principais */}
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {app.clientPhone && (
+                        {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
                           <button
                             onClick={() => handleOpenWhatsAppModal(app)}
                             className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"

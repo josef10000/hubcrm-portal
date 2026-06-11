@@ -161,7 +161,7 @@ export default function ConfirmarPresenca() {
         {/* Logo da Organização */}
         {appointment?.logoUrl ? (
           <div className="flex justify-center mb-6">
-            <div className="p-3 bg-white/[0.02] border border-white/10 rounded-2xl shadow-xl max-w-[160px] h-16 flex items-center justify-center overflow-hidden">
+            <div className="p-2 bg-white/[0.02] border border-white/10 rounded-3xl shadow-xl max-w-[240px] h-28 flex items-center justify-center overflow-hidden">
               <img src={appointment.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
             </div>
           </div>
