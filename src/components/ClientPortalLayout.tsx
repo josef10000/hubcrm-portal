@@ -21,7 +21,7 @@ import { usePortalSupport } from '../hooks/usePortalSupport';
 import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 // Importando as views
 import PortalHome from '../views/PortalHome';
@@ -114,8 +114,24 @@ export default function ClientPortalLayout() {
   const [activeTab, setActiveTab] = useState('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isClientAdmin, setIsClientAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // Escuta o perfil do usuário logado do Firestore em tempo real
+  useEffect(() => {
+    if (!currentUser) {
+      setUserProfile(null);
+      return;
+    }
+    const profileRef = doc(db, 'profiles', currentUser.uid);
+    const unsub = onSnapshot(profileRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserProfile({ id: docSnap.id, ...docSnap.data() });
+      }
+    });
+    return () => unsub();
+  }, [currentUser]);
 
   // Escuta autenticação para verificar se o usuário está logado como client_admin
   useEffect(() => {
@@ -368,15 +384,15 @@ export default function ClientPortalLayout() {
                   ? 'border-2 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
                   : 'border-2 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
               }`}>
-                {client.imageUrl ? (
-                  <img src={client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {(userProfile?.imageUrl || client.imageUrl) ? (
+                  <img src={userProfile?.imageUrl || client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  client.name.charAt(0).toUpperCase()
+                  (userProfile?.name || client.name).charAt(0).toUpperCase()
                 )}
               </div>
               <div className="flex flex-col overflow-hidden text-left">
-                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{client.name}</span>
-                <span className="text-[10px] text-gray-500 truncate lowercase mb-0.5">{client.email}</span>
+                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{userProfile?.name || client.name}</span>
+                <span className="text-[10px] text-gray-500 truncate lowercase mb-0.5">{userProfile?.email || client.email}</span>
                 <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border w-fit ${
                   client.status === 'Ativo'
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
@@ -504,6 +520,7 @@ export default function ClientPortalLayout() {
               {activeTab === 'profile' && (
                 <PortalProfile 
                   client={client} 
+                  userProfile={userProfile} 
                   orgId={orgId} 
                   clientId={clientId} 
                 />

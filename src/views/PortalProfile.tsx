@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   User, 
@@ -19,19 +19,29 @@ import { toast } from 'sonner';
 
 interface PortalProfileProps {
   client: any;
+  userProfile: any;
   orgId: string | undefined;
   clientId: string | undefined;
 }
 
-export default function PortalProfile({ client, orgId, clientId }: PortalProfileProps) {
-  const [name, setName] = useState(client?.name || '');
-  const [phone, setPhone] = useState(client?.phone || '');
+export default function PortalProfile({ client, userProfile, orgId, clientId }: PortalProfileProps) {
+  const [name, setName] = useState(userProfile?.name || client?.name || '');
+  const [phone, setPhone] = useState(userProfile?.phone || client?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   
   // Imagem do Avatar
-  const [avatarUrl, setAvatarUrl] = useState(client?.imageUrl || '');
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.imageUrl || client?.imageUrl || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+
+  // Mantém os estados em sincronia com o banco de dados
+  useEffect(() => {
+    if (userProfile) {
+      setName(userProfile.name || client?.name || '');
+      setPhone(userProfile.phone || client?.phone || '');
+      setAvatarUrl(userProfile.imageUrl || client?.imageUrl || '');
+    }
+  }, [userProfile, client]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -54,23 +64,18 @@ export default function PortalProfile({ client, orgId, clientId }: PortalProfile
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !orgId || !clientId) return;
+    const user = auth.currentUser;
+    if (!file || !user) return;
 
     setIsUploading(true);
     try {
       const secureUrl = await uploadToCloudinary(file);
       
-      // Salva a nova imagem diretamente no banco do Firestore do cliente
-      const clientRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(clientRef, { imageUrl: secureUrl });
+      // Salva a nova imagem diretamente no documento de perfil do usuário logado no Firestore
+      const profileRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileRef, { imageUrl: secureUrl });
       
       setAvatarUrl(secureUrl);
-      
-      // Atualiza também o objeto em cache local se disponível
-      if (client) {
-        client.imageUrl = secureUrl;
-      }
-      
       toast.success('Foto de perfil atualizada com sucesso!');
     } catch (err) {
       console.error('[Profile] Upload failed:', err);
@@ -82,24 +87,20 @@ export default function PortalProfile({ client, orgId, clientId }: PortalProfile
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orgId || !clientId || !name.trim()) {
+    const user = auth.currentUser;
+    if (!user || !name.trim()) {
       toast.error('O nome do perfil é obrigatório.');
       return;
     }
 
     setIsSaving(true);
     try {
-      const clientRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(clientRef, {
+      // Salva as alterações de Nome e Telefone no perfil do usuário no Firestore
+      const profileRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileRef, {
         name: name.trim(),
         phone: phone.trim()
       });
-
-      // Atualiza o objeto em cache local
-      if (client) {
-        client.name = name.trim();
-        client.phone = phone.trim();
-      }
 
       toast.success('Configurações salvas com sucesso!');
     } catch (err) {
