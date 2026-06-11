@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { usePortalSupport } from '../hooks/usePortalSupport';
 import { useParams } from 'react-router-dom';
-import { uploadImageToImgBB } from '../lib/imgbb';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { toast } from 'sonner';
 
 interface PortalSupportProps {
@@ -124,7 +124,7 @@ export default function PortalSupport({ client, requests, onViewTicket }: Portal
     let imageUrl = '';
     if (selectedImage) {
       try {
-        imageUrl = await uploadImageToImgBB(selectedImage);
+        imageUrl = await uploadToCloudinary(selectedImage);
       } catch (err) {
         console.error("Image upload failed:", err);
       }

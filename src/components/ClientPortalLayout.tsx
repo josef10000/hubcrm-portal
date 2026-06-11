@@ -13,7 +13,8 @@ import {
   Bell,
   Calendar,
   DollarSign,
-  Briefcase
+  Briefcase,
+  User
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
@@ -31,6 +32,7 @@ import PortalSupport from '../views/PortalSupport';
 import PortalAgenda from '../views/PortalAgenda';
 import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
+import PortalProfile from '../views/PortalProfile';
 
 export default function ClientPortalLayout() {
   const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
@@ -172,6 +174,7 @@ export default function ClientPortalLayout() {
     ] : []),
     { id: 'docs', label: 'Documentos', icon: Files },
     { id: 'support', label: 'Atendimento', icon: MessageCircle },
+    { id: 'profile', label: 'Perfil', icon: User },
   ];
 
   // Redireciona automaticamente para o login se não estiver autenticado
@@ -356,16 +359,23 @@ export default function ClientPortalLayout() {
           </nav>
 
           <div className="mt-auto pt-6 border-t border-white/10 space-y-3 relative z-10">
-            <div className="flex items-center gap-3 p-4 bg-[#0a0c10]/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-inner">
+            <div 
+              onClick={() => setActiveTab('profile')}
+              className="flex items-center gap-3 p-4 bg-[#0a0c10]/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-inner cursor-pointer hover:bg-white/5 transition-all group"
+            >
               <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${
                 client.status === 'Ativo'
                   ? 'border-2 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
                   : 'border-2 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
               }`}>
-                {client.name.charAt(0).toUpperCase()}
+                {client.imageUrl ? (
+                  <img src={client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  client.name.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col overflow-hidden text-left">
-                <span className="font-semibold truncate text-sm text-white">{client.name}</span>
+                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{client.name}</span>
                 <span className="text-[10px] text-gray-500 truncate lowercase mb-0.5">{client.email}</span>
                 <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border w-fit ${
                   client.status === 'Ativo'
@@ -456,7 +466,14 @@ export default function ClientPortalLayout() {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="h-full"
             >
-              {activeTab === 'home' && <PortalHome client={client} announcement={announcement} setActiveTab={setActiveTab} />}
+              {activeTab === 'home' && (
+                <PortalHome 
+                  client={client} 
+                  announcement={announcement} 
+                  setActiveTab={setActiveTab} 
+                  supportRequests={supportRequests} 
+                />
+              )}
               {activeTab === 'agenda' && (
                 <PortalAgenda orgId={orgId || ''} clientId={activeClientId || ''} />
               )}
@@ -482,6 +499,13 @@ export default function ClientPortalLayout() {
                   client={client} 
                   requests={supportRequests} 
                   onViewTicket={handleViewTicket} 
+                />
+              )}
+              {activeTab === 'profile' && (
+                <PortalProfile 
+                  client={client} 
+                  orgId={orgId} 
+                  clientId={clientId} 
                 />
               )}
             </motion.div>
