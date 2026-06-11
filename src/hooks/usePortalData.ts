@@ -68,9 +68,24 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
           throw new Error(errData.error || "Erro ao carregar dados do portal.");
         }
 
+        // Busca direta do documento do cliente para reatividade em tempo real dos brandAssets
+        let firestoreBrandAssets = null;
+        try {
+          const clientDocRef = doc(db, 'organizations', orgId as string, 'clients', activeClientId as string);
+          const clientDocSnap = await getDoc(clientDocRef);
+          if (clientDocSnap.exists()) {
+            firestoreBrandAssets = clientDocSnap.data()?.brandAssets || null;
+          }
+        } catch (fireErr) {
+          console.error("[usePortalData] Erro ao obter brandAssets do Firestore:", fireErr);
+        }
+
         const data = await response.json();
         
-        setClient(data.client);
+        setClient({
+          ...data.client,
+          brandAssets: firestoreBrandAssets || data.client?.brandAssets || null
+        });
         setPaymentsHistory(data.payments || []);
         setRequests(data.requests || []);
         setOffers(data.offers || []);
