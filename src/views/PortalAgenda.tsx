@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -40,6 +41,40 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [selectedServiceMaterials, setSelectedServiceMaterials] = useState<any[]>([]);
   const [currentSelectedMaterialId, setCurrentSelectedMaterialId] = useState('');
   const [currentSelectedMaterialQty, setCurrentSelectedMaterialQty] = useState('');
+
+  // Estado para Confirmação Customizada
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'appointment' | 'service' | '';
+    itemId: string;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: '',
+    itemId: '',
+    title: '',
+    message: ''
+  });
+
+  const executeConfirmAction = async () => {
+    const { type, itemId } = confirmModal;
+    if (!itemId || !orgId) return;
+
+    try {
+      if (type === 'appointment') {
+        await deleteDoc(doc(db, 'organizations', orgId, 'appointments', itemId));
+        toast.success('Agendamento excluído com sucesso!');
+      } else if (type === 'service') {
+        await deleteDoc(doc(db, 'organizations', orgId, 'client_services', itemId));
+        toast.success('Serviço excluído!');
+      }
+      setConfirmModal({ isOpen: false, type: '', itemId: '', title: '', message: '' });
+    } catch (e) {
+      console.error(e);
+      toast.error(`Erro ao excluir ${type === 'appointment' ? 'agendamento' : 'serviço'}.`);
+    }
+  };
 
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
@@ -100,15 +135,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setIsModalOpen(true);
   };
 
-  const handleDeleteAppointment = async (appId: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir permanentemente este agendamento?')) return;
-    try {
-      await deleteDoc(doc(db, 'organizations', orgId, 'appointments', appId));
-      toast.success('Agendamento excluído com sucesso!');
-    } catch (e) {
-      console.error(e);
-      toast.error('Erro ao excluir agendamento.');
-    }
+  const handleDeleteAppointment = (appId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'appointment',
+      itemId: appId,
+      title: 'Excluir Agendamento',
+      message: 'Tem certeza que deseja excluir permanentemente este agendamento? Essa ação não poderá ser desfeita.'
+    });
   };
 
   const handleSaveAppointment = async (e: React.FormEvent) => {
@@ -304,14 +338,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setSelectedServiceMaterials(srv.materials || []);
   };
 
-  const handleDeleteService = async (srvId: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este serviço?')) return;
-    try {
-      await deleteDoc(doc(db, 'organizations', orgId, 'client_services', srvId));
-      toast.success('Serviço excluído!');
-    } catch (e) {
-      toast.error('Erro ao excluir serviço.');
-    }
+  const handleDeleteService = (srvId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'service',
+      itemId: srvId,
+      title: 'Excluir Serviço',
+      message: 'Tem certeza que deseja excluir este serviço? Essa ação não poderá ser desfeita.'
+    });
   };
 
   // Salvar Regras de Expediente
@@ -988,6 +1022,16 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           </div>
         </div>
       )}
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onConfirm={executeConfirmAction}
+        onCancel={() => setConfirmModal({ isOpen: false, type: '', itemId: '', title: '', message: '' })}
+      />
     </div>
   );
 }

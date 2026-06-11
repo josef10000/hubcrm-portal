@@ -7,6 +7,7 @@ import {
   Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ConfirmModal from './ConfirmModal';
 
 interface PortalInventoryProps {
   orgId: string;
@@ -35,6 +36,15 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [minQuantity, setMinQuantity] = useState('');
   const [costPerUnit, setCostPerUnit] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estado para Confirmação Customizada
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    itemId: string;
+  }>({
+    isOpen: false,
+    itemId: ''
+  });
 
   // Escuta os itens no Firestore
   useEffect(() => {
@@ -112,10 +122,20 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir permanentemente este insumo?')) return;
+    setConfirmModal({
+      isOpen: true,
+      itemId: id
+    });
+  };
+
+  const executeDeleteItem = async () => {
+    const id = confirmModal.itemId;
+    if (!id || !orgId) return;
+
     try {
       await deleteDoc(doc(db, 'organizations', orgId, 'inventory', id));
       toast.success('Insumo removido com sucesso!');
+      setConfirmModal({ isOpen: false, itemId: '' });
     } catch (err) {
       console.error(err);
       toast.error('Erro ao remover o insumo.');
@@ -379,6 +399,16 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           </div>
         </div>
       )}
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir permanentemente este insumo? Essa ação não poderá ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onConfirm={executeDeleteItem}
+        onCancel={() => setConfirmModal({ isOpen: false, itemId: '' })}
+      />
     </div>
   );
 }

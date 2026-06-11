@@ -5,6 +5,7 @@ import {
   DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Phone, Filter, Plus, Trash2, Edit3, TrendingDown, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface PortalCRMFinanceProps {
   orgId: string;
@@ -75,6 +76,40 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   const [revenueType, setRevenueType] = useState<'pontual' | 'fixo'>('pontual');
   const [revenueStatus, setRevenueStatus] = useState<'paid' | 'unpaid'>('paid');
   const [savingRevenue, setSavingRevenue] = useState(false);
+
+  // Estado para Confirmação Customizada
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'expense' | 'revenue' | '';
+    itemId: string;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: '',
+    itemId: '',
+    title: '',
+    message: ''
+  });
+
+  const executeConfirmAction = async () => {
+    const { type, itemId } = confirmModal;
+    if (!itemId || !orgId) return;
+
+    try {
+      if (type === 'expense') {
+        await deleteDoc(doc(db, 'organizations', orgId, 'expenses', itemId));
+        toast.success('Gasto removido com sucesso.');
+      } else if (type === 'revenue') {
+        await deleteDoc(doc(db, 'organizations', orgId, 'revenues', itemId));
+        toast.success('Receita removida com sucesso.');
+      }
+      setConfirmModal({ isOpen: false, type: '', itemId: '', title: '', message: '' });
+    } catch (e) {
+      console.error(e);
+      toast.error(`Erro ao excluir ${type === 'expense' ? 'gasto' : 'receita'}.`);
+    }
+  };
 
   // Escuta agendamentos em tempo real
   useEffect(() => {
@@ -365,14 +400,14 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   };
 
   // Deleção de despesa
-  const handleDeleteExpense = async (expId: string) => {
-    if (!window.confirm('Deseja realmente excluir este registro de gasto?')) return;
-    try {
-      await deleteDoc(doc(db, 'organizations', orgId, 'expenses', expId));
-      toast.success('Gasto removido com sucesso.');
-    } catch (e) {
-      toast.error('Erro ao remover despesa.');
-    }
+  const handleDeleteExpense = (expId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'expense',
+      itemId: expId,
+      title: 'Excluir Gasto',
+      message: 'Deseja realmente excluir este registro de gasto? Essa ação não poderá ser desfeita.'
+    });
   };
 
   // Abertura do modal para novo gasto
@@ -490,14 +525,14 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   };
 
   // Deleção de receita manual
-  const handleDeleteRevenue = async (revId: string) => {
-    if (!window.confirm('Deseja realmente excluir este registro de receita?')) return;
-    try {
-      await deleteDoc(doc(db, 'organizations', orgId, 'revenues', revId));
-      toast.success('Receita removida com sucesso.');
-    } catch (e) {
-      toast.error('Erro ao remover receita.');
-    }
+  const handleDeleteRevenue = (revId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'revenue',
+      itemId: revId,
+      title: 'Excluir Receita',
+      message: 'Deseja realmente excluir este registro de receita? Essa ação não poderá ser desfeita.'
+    });
   };
 
   // Salvamento (Criação ou Edição) de receita manual
@@ -1406,6 +1441,16 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
           </div>
         </div>
       )}
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onConfirm={executeConfirmAction}
+        onCancel={() => setConfirmModal({ isOpen: false, type: '', itemId: '', title: '', message: '' })}
+      />
     </div>
   );
 }
