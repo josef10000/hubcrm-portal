@@ -29,6 +29,7 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
   const [activeSubTab, setActiveSubTab] = useState<TabId>('brand');
   const [copiedColorIndex, setCopiedColorIndex] = useState<number | null>(null);
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const brandAssets = client?.brandAssets || null;
 
@@ -139,28 +140,53 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
         </div>
       </div>
 
-      {/* Selector Mobile (Dropdown) */}
-      <div className="relative block md:hidden w-full mb-6">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400 pointer-events-none">
-          {(() => {
-            const ActiveIcon = tabs.find(t => t.id === activeSubTab)?.icon || Palette;
-            return <ActiveIcon size={18} />;
-          })()}
-        </div>
-        <select
-          value={activeSubTab}
-          onChange={(e) => setActiveSubTab(e.target.value as TabId)}
-          className="w-full pl-12 pr-10 py-4 bg-white/[0.02] border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer appearance-none"
+      {/* Selector Mobile (Custom Dropdown) */}
+      <div className="relative block md:hidden w-full mb-6 z-30">
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
         >
-          {tabs.map(tab => (
-            <option key={tab.id} value={tab.id} className="bg-[#0c0d12] text-white py-3">
-              {tab.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-          <ChevronDown size={16} />
-        </div>
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
+            {(() => {
+              const ActiveIcon = tabs.find(t => t.id === activeSubTab)?.icon || Palette;
+              return <ActiveIcon size={18} />;
+            })()}
+          </div>
+          <span>{tabs.find(t => t.id === activeSubTab)?.label}</span>
+          <ChevronDown 
+            size={16} 
+            className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <>
+            <div className="fixed inset-0 z-20 cursor-default" onClick={() => setIsDropdownOpen(false)} />
+            <div className="absolute top-full left-0 right-0 mt-2 z-30 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+              {tabs.map((tab) => {
+                const TabIcon = tab.icon;
+                const isActive = activeSubTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveSubTab(tab.id);
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                      isActive 
+                        ? 'bg-primary-500/15 text-primary-400 font-black' 
+                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                    }`}
+                  >
+                    <TabIcon size={16} className={isActive ? 'text-primary-400' : 'text-gray-500'} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tabs (Desktop) */}
