@@ -4,6 +4,8 @@ export interface Client {
   email: string;
   status: string;
   plan: string;
+  imageUrl?: string;
+  cpfCnpj?: string;
   billingCycle?: string;
   nextDueDate?: string;
   invoiceUrl?: string;
