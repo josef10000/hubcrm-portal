@@ -21,10 +21,11 @@ import { usePortalSupport } from '../hooks/usePortalSupport';
 import { useParams } from 'react-router-dom';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { toast } from 'sonner';
+import { SupportTicket } from '../types';
 
 interface PortalSupportProps {
   client: any;
-  requests: any[];
+  requests: SupportTicket[];
   onViewTicket: (ticketId: string) => void;
 }
 

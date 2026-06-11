@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { SupportTicket } from '../types';
 
 export function usePortalSupport(orgId: string | undefined, clientId: string | undefined) {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

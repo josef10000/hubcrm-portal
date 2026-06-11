@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Client, Offer } from '../types';
+import { Client, Offer, Payment, SupportTicket } from '../types';
 
 
 export function usePortalData(orgId: string | undefined, initialClientId: string | undefined) {
   const [activeClientId, setActiveClientId] = useState<string | undefined>(initialClientId);
   const [allClients, setAllClients] = useState<Client[]>([]);
   const [client, setClient] = useState<Client | null>(null);
-  const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [paymentsHistory, setPaymentsHistory] = useState<Payment[]>([]);
+  const [requests, setRequests] = useState<SupportTicket[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [announcement, setAnnouncement] = useState<any>(null);
   const [loading, setLoading] = useState(true);

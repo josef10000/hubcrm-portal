@@ -55,3 +55,33 @@ export interface ClientLog {
   text: string;
   date: number;
 }
+
+export interface Payment {
+  id: string;
+  status: string;
+  dueDate: string;
+  value: number;
+  description?: string;
+  bankSlipUrl?: string;
+  invoiceUrl?: string;
+  pixQrCodeUrl?: string;
+  netValue?: number;
+  paymentLink?: string;
+  invoiceHtmlUrl?: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  clientId: string;
+  category: string;
+  message: string;
+  priority: string;
+  clientName: string;
+  imageUrl?: string;
+  status: string;
+  origin?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  reply?: string;
+  repliedAt?: any;
+}

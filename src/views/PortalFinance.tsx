@@ -13,10 +13,11 @@ import {
   Calendar,
   Star
 } from 'lucide-react';
+import { Payment } from '../types';
 
 interface PortalFinanceProps {
   client: any;
-  paymentsHistory: any[];
+  paymentsHistory: Payment[];
   allClients?: any[];
   activeClientId?: string;
   setActiveClientId?: (id: string) => void;
