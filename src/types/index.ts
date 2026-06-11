@@ -28,6 +28,7 @@ export interface Client {
   logs?: ClientLog[];
   brandAssets?: {
     logoUrl?: string;
+    logos?: { name: string; url: string }[];
     colors?: string[];
     typography?: string;
     customCanvaLinks?: { title: string; url: string }[];

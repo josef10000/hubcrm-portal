@@ -29,8 +29,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Segurança de Acesso:** Redefinição de senha segura integrada ao Firebase Auth com envio de e-mail de redefinição.
 
 ### 6. 🚀 Hub de Crescimento (`PortalGrowthHub.tsx`) [NOVO]
-*   **Cofre da Marca:** Visualização centralizada do logotipo da empresa do cliente, paleta de cores institucional com opção de cópia rápida do código HEX, e tipografia recomendada.
-*   **Templates Rápidos:** Acesso direto a modelos de design personalizados no Canva e ativos do tipo 'template'.
+*   **Cofre da Marca:** Visualização centralizada de múltiplos logotipos da empresa do cliente (com suporte a nomes customizados como SVG, PNG transparente e download individual), paleta de cores institucional com opção de cópia rápida do código HEX, tipografia oficial recomendada e múltiplos links e templates customizados.
+*   **Templates Rápidos:** Acesso a modelos de design personalizados e ativos com detecção e classificação inteligente de links (exibindo badges e botões dedicados de marcas conhecidas como Canva, Trello e Google Drive).
 *   **Arsenal de Vendas:** Roteiros comerciais e scripts de abordagem comercial com atalho de cópia rápida para o clipboard e feedback em toast.
 *   **Treinamentos:** Grid de videoaulas com integração para reprodução ou links externos visando capacitação e conversão de vendas.
 

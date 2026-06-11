@@ -31,6 +31,45 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
 
   const brandAssets = client?.brandAssets || null;
 
+  // Função auxiliar para classificar e estilizar links
+  const getLinkTypeDetails = (url: string) => {
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('canva.com')) {
+      return {
+        badge: 'Canva Template',
+        badgeClass: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+        buttonText: 'Abrir no Canva',
+        buttonClass: 'bg-purple-600 hover:bg-purple-700 shadow-purple-900/20',
+        description: 'Link direto do editor do Canva para criar novos materiais com base na identidade visual oficial.'
+      };
+    }
+    if (lowerUrl.includes('trello.com')) {
+      return {
+        badge: 'Painel do Trello',
+        badgeClass: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
+        buttonText: 'Abrir no Trello',
+        buttonClass: 'bg-sky-600 hover:bg-sky-700 shadow-sky-900/20',
+        description: 'Quadro do Trello para gerenciar tarefas, cronograma de postagens ou fluxos de trabalho da marca.'
+      };
+    }
+    if (lowerUrl.includes('drive.google.com') || lowerUrl.includes('docs.google.com')) {
+      return {
+        badge: 'Google Drive',
+        badgeClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+        buttonText: 'Abrir no Drive',
+        buttonClass: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20',
+        description: 'Pasta compartilhada no Google Drive contendo arquivos, fotos, vídeos ou documentos da marca.'
+      };
+    }
+    return {
+      badge: 'Link Útil',
+      badgeClass: 'bg-primary-500/10 border-primary-500/20 text-primary-400',
+      buttonText: 'Acessar Link',
+      buttonClass: 'bg-white hover:bg-gray-100 text-black shadow-md',
+      description: 'Link útil ou template personalizado configurado para acesso rápido à sua marca.'
+    };
+  };
+
   // Filtragem dos assets por tipo
   const templateAssets = growthAssets.filter(asset => asset.type === 'template');
   const scriptAssets = growthAssets.filter(asset => asset.type === 'script');
@@ -146,34 +185,67 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Logo Card */}
-                  <div className="md:col-span-1 bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group">
-                    <div className="w-full">
-                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block text-left mb-6">Logotipo Oficial</span>
-                      
-                      <div className="w-full aspect-square bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-6 mb-6 overflow-hidden relative group">
-                        {brandAssets.logoUrl ? (
-                          <img 
-                            src={brandAssets.logoUrl} 
-                            alt="Logo oficial" 
-                            className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="text-gray-600 text-xs italic">Nenhum logo cadastrado</div>
-                        )}
+                  {/* Logos Section */}
+                  <div className="md:col-span-1 space-y-6">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Logotipos Oficiais</span>
+                    
+                    {brandAssets.logos && brandAssets.logos.length > 0 ? (
+                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        {brandAssets.logos.map((logo, idx) => (
+                          <div 
+                            key={idx} 
+                            className="bg-white/[0.03] border border-white/10 p-5 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4"
+                          >
+                            <div className="w-full">
+                              <span className="text-[10px] text-primary-400 font-bold uppercase tracking-widest block text-left mb-3">
+                                {logo.name}
+                              </span>
+                              <div className="w-full h-32 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-4 overflow-hidden relative group">
+                                <img 
+                                  src={logo.url} 
+                                  alt={logo.name} 
+                                  className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                                />
+                              </div>
+                            </div>
+                            <a 
+                              href={logo.url} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="w-full py-2.5 bg-white hover:bg-gray-100 text-black font-black rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-95"
+                            >
+                              <Download size={12} />
+                              Download
+                            </a>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-
-                    {brandAssets.logoUrl && (
-                      <a 
-                        href={brandAssets.logoUrl} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="w-full py-4 bg-white hover:bg-gray-100 text-black font-black rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-95"
-                      >
-                        <Download size={14} />
-                        Download Logotipo
-                      </a>
+                    ) : brandAssets.logoUrl ? (
+                      <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4">
+                        <div className="w-full">
+                          <span className="text-[10px] text-primary-400 font-bold uppercase tracking-widest block text-left mb-3">Logotipo Padrão</span>
+                          <div className="w-full aspect-square bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-6 overflow-hidden relative group">
+                            <img 
+                              src={brandAssets.logoUrl} 
+                              alt="Logo oficial" 
+                              className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                        </div>
+                        <a 
+                          href={brandAssets.logoUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="w-full py-4 bg-white hover:bg-gray-100 text-black font-black rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-95"
+                        >
+                          <Download size={14} />
+                          Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] text-center text-gray-500 text-xs italic">
+                        Nenhum logotipo cadastrado
+                      </div>
                     )}
                   </div>
 
@@ -285,35 +357,38 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Canva Links */}
-                  {brandAssets?.customCanvaLinks?.map((link, index) => (
-                    <div 
-                      key={`canva_${index}`}
-                      className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.05] transition-all duration-300 hover:-translate-y-1 shadow-xl group"
-                    >
-                      <div>
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="px-2.5 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[9px] font-black text-purple-400 uppercase tracking-widest">
-                            Canva Template
-                          </span>
-                        </div>
-                        <h4 className="font-bold text-white text-base mb-2 group-hover:text-primary-400 transition-colors line-clamp-1">{link.title}</h4>
-                        <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">
-                          Link direto do editor do Canva para criar novos materiais com base na identidade visual oficial.
-                        </p>
-                      </div>
-
-                      <a 
-                        href={link.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-95 shadow-lg shadow-purple-900/20"
+                  {/* Canva / Trello / Google Drive / Custom Links */}
+                  {brandAssets?.customCanvaLinks?.map((link, index) => {
+                    const details = getLinkTypeDetails(link.url);
+                    return (
+                      <div 
+                        key={`custom_link_${index}`}
+                        className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.05] transition-all duration-300 hover:-translate-y-1 shadow-xl group"
                       >
-                        Abrir no Canva
-                        <ExternalLink size={14} />
-                      </a>
-                    </div>
-                  ))}
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <span className={`px-2.5 py-1 border rounded-full text-[9px] font-black uppercase tracking-widest ${details.badgeClass}`}>
+                              {details.badge}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-white text-base mb-2 group-hover:text-primary-400 transition-colors line-clamp-1">{link.title}</h4>
+                          <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">
+                            {details.description}
+                          </p>
+                        </div>
+
+                        <a 
+                          href={link.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`mt-6 py-3.5 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider active:scale-95 shadow-lg ${details.buttonClass} ${details.buttonText === 'Acessar Link' ? 'text-black' : 'text-white'}`}
+                        >
+                          {details.buttonText}
+                          <ExternalLink size={14} />
+                        </a>
+                      </div>
+                    );
+                  })}
 
                   {/* Outros Templates */}
                   {templateAssets.map((asset) => (
