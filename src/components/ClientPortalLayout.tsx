@@ -16,6 +16,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
+import { usePortalSupport } from '../hooks/usePortalSupport';
 import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -55,6 +56,58 @@ export default function ClientPortalLayout() {
     paymentsHistory, 
     offers 
   } = usePortalData(orgId, clientId);
+
+  const { requests: supportRequests } = usePortalSupport(orgId, client?.id);
+  const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
+
+  // Calcula chamados com respostas não lidas
+  useEffect(() => {
+    if (!supportRequests || supportRequests.length === 0) {
+      setHasUnreadSupport(false);
+      return;
+    }
+
+    const checkUnread = () => {
+      const hasUnread = supportRequests.some((ticket) => {
+        if (ticket.reply && ticket.repliedAt) {
+          const repliedTime = ticket.repliedAt.toMillis 
+            ? ticket.repliedAt.toMillis() 
+            : (ticket.repliedAt.seconds ? ticket.repliedAt.seconds * 1000 : new Date(ticket.repliedAt).getTime());
+          
+          const lastViewed = localStorage.getItem(`viewed_ticket_${ticket.id}`);
+          if (!lastViewed) return true;
+          return Number(lastViewed) < repliedTime;
+        }
+        return false;
+      });
+      setHasUnreadSupport(hasUnread);
+    };
+
+    checkUnread();
+  }, [supportRequests]);
+
+  const handleViewTicket = (ticketId: string) => {
+    localStorage.setItem(`viewed_ticket_${ticketId}`, String(Date.now()));
+    
+    // Força atualização imediata do indicador local
+    if (supportRequests) {
+      const hasUnread = supportRequests.some((ticket) => {
+        if (ticket.reply && ticket.repliedAt) {
+          const repliedTime = ticket.repliedAt.toMillis 
+            ? ticket.repliedAt.toMillis() 
+            : (ticket.repliedAt.seconds ? ticket.repliedAt.seconds * 1000 : new Date(ticket.repliedAt).getTime());
+          
+          if (ticket.id === ticketId) return false;
+
+          const lastViewed = localStorage.getItem(`viewed_ticket_${ticket.id}`);
+          if (!lastViewed) return true;
+          return Number(lastViewed) < repliedTime;
+        }
+        return false;
+      });
+      setHasUnreadSupport(hasUnread);
+    }
+  };
   
   const [activeTab, setActiveTab] = useState('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -198,7 +251,7 @@ export default function ClientPortalLayout() {
         <div className="flex items-center gap-2">
           <button className="relative p-2 hover:bg-white/5 rounded-xl transition-colors">
             <Bell size={20} className="text-gray-400" />
-            {announcement && <span className="absolute top-2 right-2 w-2 h-2 bg-primary-500 rounded-full border-2 border-black" />}
+            {(announcement || hasUnreadSupport) && <span className="absolute top-2 right-2 w-2 h-2 bg-primary-500 rounded-full border-2 border-black animate-pulse" />}
           </button>
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
             <Menu size={24} />
@@ -295,6 +348,9 @@ export default function ClientPortalLayout() {
                 )}
                 <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
                 <span className="font-medium">{item.label}</span>
+                {item.id === 'support' && hasUnreadSupport && (
+                  <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
+                )}
               </button>
             ))}
           </nav>
@@ -377,7 +433,7 @@ export default function ClientPortalLayout() {
           <div className="flex items-center gap-4">
             <button className="relative p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
               <Bell size={20} className="text-gray-400 group-hover:text-white" />
-              {announcement && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-500 rounded-full border-2 border-[#050505]" />}
+              {(announcement || hasUnreadSupport) && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-500 rounded-full border-2 border-[#050505] animate-pulse" />}
             </button>
             <div className="h-8 w-px bg-white/10 mx-2" />
             <div className="flex flex-col items-end">
@@ -421,7 +477,13 @@ export default function ClientPortalLayout() {
               )}
               {activeTab === 'services' && <PortalServices offers={offers} client={client} />}
               {activeTab === 'docs' && <PortalDocuments client={client} orgId={orgId || ''} />}
-              {activeTab === 'support' && <PortalSupport client={client} />}
+              {activeTab === 'support' && (
+                <PortalSupport 
+                  client={client} 
+                  requests={supportRequests} 
+                  onViewTicket={handleViewTicket} 
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -438,7 +500,12 @@ export default function ClientPortalLayout() {
               ${activeTab === item.id ? 'text-primary-500' : 'text-gray-500'}
             `}
           >
-            <item.icon size={20} />
+            <div className="relative">
+              <item.icon size={20} />
+              {item.id === 'support' && hasUnreadSupport && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary-500 rounded-full border-2 border-black animate-pulse" />
+              )}
+            </div>
             <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
             {activeTab === item.id && (
               <motion.div 

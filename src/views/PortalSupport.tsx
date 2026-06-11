@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LifeBuoy, 
@@ -24,15 +24,28 @@ import { toast } from 'sonner';
 
 interface PortalSupportProps {
   client: any;
+  requests: any[];
+  onViewTicket: (ticketId: string) => void;
 }
 
-export default function PortalSupport({ client }: PortalSupportProps) {
+export default function PortalSupport({ client, requests, onViewTicket }: PortalSupportProps) {
   const { orgId } = useParams<{ orgId: string }>();
-  const { requests, loading, createRequest, addMessageToRequest } = usePortalSupport(orgId, client?.id);
+  const { loading, createRequest, addMessageToRequest } = usePortalSupport(orgId, client?.id);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const selectedTicket = requests.find(r => r.id === selectedTicketId) || null;
+
+  const handleSelectTicket = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    onViewTicket(ticketId);
+  };
+
+  useEffect(() => {
+    if (selectedTicketId && selectedTicket && selectedTicket.reply && selectedTicket.repliedAt) {
+      onViewTicket(selectedTicketId);
+    }
+  }, [selectedTicketId, selectedTicket?.reply, selectedTicket?.repliedAt]);
 
   // Lógica de resposta do cliente (tréplica)
   const [clientReplyText, setClientReplyText] = useState('');
@@ -222,7 +235,7 @@ export default function PortalSupport({ client }: PortalSupportProps) {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => setSelectedTicketId(ticket.id)}
+                  onClick={() => handleSelectTicket(ticket.id)}
                   className="px-8 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-5">
