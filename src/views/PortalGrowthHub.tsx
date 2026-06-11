@@ -12,7 +12,8 @@ import {
   ExternalLink, 
   Sparkles, 
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronDown
 } from 'lucide-react';
 import { Client, GrowthAsset } from '../types';
 import { toast } from 'sonner';
@@ -138,9 +139,33 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Selector Mobile (Dropdown) */}
+      <div className="relative block md:hidden w-full mb-6">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400 pointer-events-none">
+          {(() => {
+            const ActiveIcon = tabs.find(t => t.id === activeSubTab)?.icon || Palette;
+            return <ActiveIcon size={18} />;
+          })()}
+        </div>
+        <select
+          value={activeSubTab}
+          onChange={(e) => setActiveSubTab(e.target.value as TabId)}
+          className="w-full pl-12 pr-10 py-4 bg-white/[0.02] border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer appearance-none"
+        >
+          {tabs.map(tab => (
+            <option key={tab.id} value={tab.id} className="bg-[#0c0d12] text-white py-3">
+              {tab.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+          <ChevronDown size={16} />
+        </div>
+      </div>
+
+      {/* Tabs (Desktop) */}
       <div 
-        className="border-b border-white/10 pb-px flex overflow-x-auto gap-2 w-full no-scrollbar"
+        className="border-b border-white/10 pb-px hidden md:flex overflow-x-auto gap-2 w-full no-scrollbar"
         style={{ 
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
