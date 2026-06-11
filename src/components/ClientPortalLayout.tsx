@@ -365,7 +365,17 @@ export default function ClientPortalLayout() {
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
-                <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
+                {item.id === 'profile' && (userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
+                  <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
+                    <img 
+                      src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} 
+                      alt="Perfil" 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                ) : (
+                  <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
+                )}
                 <span className="font-medium">{item.label}</span>
                 {item.id === 'support' && hasUnreadSupport && (
                   <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
@@ -384,14 +394,14 @@ export default function ClientPortalLayout() {
                   ? 'border-2 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
                   : 'border-2 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
               }`}>
-                {(userProfile?.imageUrl || client.imageUrl) ? (
-                  <img src={userProfile?.imageUrl || client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
+                  <img src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  (userProfile?.name || client.name).charAt(0).toUpperCase()
+                  (userProfile?.displayName || userProfile?.name || client.name).charAt(0).toUpperCase()
                 )}
               </div>
               <div className="flex flex-col overflow-hidden text-left">
-                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{userProfile?.name || client.name}</span>
+                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{userProfile?.displayName || userProfile?.name || client.name}</span>
                 <span className="text-[10px] text-gray-500 truncate lowercase mb-0.5">{userProfile?.email || client.email}</span>
                 <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border w-fit ${
                   client.status === 'Ativo'

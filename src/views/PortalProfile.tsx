@@ -25,21 +25,21 @@ interface PortalProfileProps {
 }
 
 export default function PortalProfile({ client, userProfile, orgId, clientId }: PortalProfileProps) {
-  const [name, setName] = useState(userProfile?.name || client?.name || '');
+  const [name, setName] = useState(userProfile?.displayName || userProfile?.name || client?.name || '');
   const [phone, setPhone] = useState(userProfile?.phone || client?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   
   // Imagem do Avatar
-  const [avatarUrl, setAvatarUrl] = useState(userProfile?.imageUrl || client?.imageUrl || '');
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.photoURL || userProfile?.imageUrl || client?.imageUrl || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
 
   // Mantém os estados em sincronia com o banco de dados
   useEffect(() => {
     if (userProfile) {
-      setName(userProfile.name || client?.name || '');
+      setName(userProfile.displayName || userProfile.name || client?.name || '');
       setPhone(userProfile.phone || client?.phone || '');
-      setAvatarUrl(userProfile.imageUrl || client?.imageUrl || '');
+      setAvatarUrl(userProfile.photoURL || userProfile.imageUrl || client?.imageUrl || '');
     }
   }, [userProfile, client]);
 
@@ -73,7 +73,10 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
       
       // Salva a nova imagem diretamente no documento de perfil do usuário logado no Firestore
       const profileRef = doc(db, 'profiles', user.uid);
-      await updateDoc(profileRef, { imageUrl: secureUrl });
+      await updateDoc(profileRef, { 
+        imageUrl: secureUrl,
+        photoURL: secureUrl 
+      });
       
       setAvatarUrl(secureUrl);
       toast.success('Foto de perfil atualizada com sucesso!');
@@ -99,6 +102,7 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
       const profileRef = doc(db, 'profiles', user.uid);
       await updateDoc(profileRef, {
         name: name.trim(),
+        displayName: name.trim(),
         phone: phone.trim()
       });
 
