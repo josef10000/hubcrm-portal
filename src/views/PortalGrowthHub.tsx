@@ -114,6 +114,11 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -134,7 +139,14 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-white/10 pb-px flex overflow-x-auto custom-scrollbar gap-2">
+      <div 
+        className="border-b border-white/10 pb-px flex overflow-x-auto gap-2 w-full no-scrollbar"
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -143,7 +155,7 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
               className={`
-                px-5 py-4 text-xs font-black uppercase tracking-wider border-b-2 flex items-center gap-2.5 transition-all duration-300 relative whitespace-nowrap outline-none
+                px-5 py-4 text-xs font-black uppercase tracking-wider border-b-2 flex items-center gap-2.5 transition-all duration-300 relative whitespace-nowrap outline-none shrink-0
                 ${isActive 
                   ? 'border-primary-500 text-white' 
                   : 'border-transparent text-gray-500 hover:text-gray-300'}
