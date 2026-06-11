@@ -262,13 +262,17 @@ export default function PortalLogin() {
  
       <div className="max-w-md w-full text-center space-y-4 animate-in fade-in zoom-in duration-500 relative z-10">
         <div className="flex flex-col items-center">
-          <div className="relative mb-2">
-            <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full"></div>
-            <div className="relative w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary-500/20 border border-white/15">
-              <Globe className="w-6 h-6 text-white" />
-            </div>
+          <div className="relative mb-3 flex items-center gap-3">
+            <div className="absolute inset-0 bg-primary-500/10 blur-3xl rounded-full"></div>
+            <img 
+              src="https://i.imgur.com/zCvL7xy.png" 
+              alt="Hub Symples Logo" 
+              className="w-12 h-12 object-contain drop-shadow-2xl relative z-10" 
+            />
+            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 leading-none">
+              Portal <span className="text-primary-500">Hub</span>
+            </h1>
           </div>
-          <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">PORTAL HUB</h1>
           <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-[0.2em] font-bold">Gestão &bull; Financeiro &bull; Suporte</p>
         </div>
  
