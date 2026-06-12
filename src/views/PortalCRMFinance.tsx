@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, doc, onSnapshot, updateDoc, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
 import { 
-  DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Phone, Filter, Plus, Trash2, Edit3, TrendingDown, X
+  DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Phone, Filter, Plus, Trash2, Edit3, TrendingDown, X, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
@@ -49,6 +49,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'last_month' | 'all'>('month');
   const [subTab, setSubTab] = useState<'revenues' | 'expenses' | 'projects'>('revenues');
   const [filterPayment, setFilterPayment] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // Modal de despesas
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -740,10 +741,64 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
             <p className="text-xs text-gray-400">Gerencie a saúde financeira da sua microempresa registrando receitas e gastos.</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Seletor de visualização (Receitas vs Despesas vs Projetos) */}
-            <div className="flex p-1 bg-black/40 border border-white/10 rounded-xl w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto relative">
+            {/* Dropdown Customizado para Mobile */}
+            <div className="relative block sm:hidden w-full z-20">
               <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full px-4 py-3 bg-[#0d0e12]/85 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left"
+              >
+                <span>
+                  {subTab === 'revenues' ? 'Receitas' :
+                   subTab === 'expenses' ? 'Despesas' : 'Lucro por Projeto'}
+                </span>
+                <ChevronDown 
+                  size={14} 
+                  className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
+                />
+              </button>
+
+              {isDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsDropdownOpen(false)} />
+                  <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-xl p-1.5 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      type="button"
+                      onClick={() => { setSubTab('revenues'); setFilterPayment('all'); setIsDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 rounded-lg text-left text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
+                        subTab === 'revenues' ? 'bg-primary-500/15 text-primary-400 font-black' : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                      }`}
+                    >
+                      Receitas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSubTab('expenses'); setFilterPayment('all'); setIsDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 rounded-lg text-left text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
+                        subTab === 'expenses' ? 'bg-primary-500/15 text-primary-400 font-black' : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                      }`}
+                    >
+                      Despesas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSubTab('projects'); setFilterPayment('all'); setIsDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 rounded-lg text-left text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
+                        subTab === 'projects' ? 'bg-primary-500/15 text-primary-400 font-black' : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                      }`}
+                    >
+                      Lucro por Projeto
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Seletor de visualização Desktop (Receitas vs Despesas vs Projetos) */}
+            <div className="hidden sm:flex p-1 bg-black/40 border border-white/10 rounded-xl w-full sm:w-auto">
+              <button
+                type="button"
                 onClick={() => { setSubTab('revenues'); setFilterPayment('all'); }}
                 className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'revenues' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
@@ -752,6 +807,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 Receitas
               </button>
               <button
+                type="button"
                 onClick={() => { setSubTab('expenses'); setFilterPayment('all'); }}
                 className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'expenses' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
@@ -760,6 +816,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 Despesas
               </button>
               <button
+                type="button"
                 onClick={() => { setSubTab('projects'); setFilterPayment('all'); }}
                 className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                   subTab === 'projects' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'

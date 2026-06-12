@@ -15,7 +15,12 @@ import {
   DollarSign,
   Briefcase,
   User,
-  Rocket
+  Rocket,
+  ChevronDown,
+  Palette,
+  Layout,
+  FileText,
+  Video
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
@@ -122,6 +127,15 @@ export default function ClientPortalLayout() {
   };
   
   const [activeTab, setActiveTab] = useState('home');
+  const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
+  const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'templates' | 'sales' | 'trainings'>('brand');
+
+  useEffect(() => {
+    if (activeTab === 'growth') {
+      setIsGrowthExpanded(true);
+    }
+  }, [activeTab]);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -348,41 +362,134 @@ export default function ClientPortalLayout() {
           )}
 
           <nav className="flex-1 space-y-2 relative z-10">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setIsSidebarOpen(false);
-                }}
-                className={`
-                  w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative
-                  ${activeTab === item.id 
-                    ? 'bg-white/5 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)] font-semibold' 
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'}
-                `}
-              >
-                {activeTab === item.id && (
-                  <motion.div 
-                    layoutId="activePortalTabBg"
-                    className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-2xl -z-10"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-                {activeTab === item.id && (
-                  <motion.div 
-                    layoutId="activePortalTabIndicator"
-                    className="absolute left-0 top-[15%] bottom-[15%] w-[3px] bg-primary-400 rounded-r-full shadow-[0_0_8px_currentColor] text-primary-400 z-10"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
-                <span className="font-medium">{item.label}</span>
-                {item.id === 'support' && hasUnreadSupport && (
-                  <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
-                )}
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const isGrowth = item.id === 'growth';
+              const isSelected = activeTab === item.id;
+
+              if (isGrowth) {
+                return (
+                  <div key={item.id} className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab('growth');
+                        setIsGrowthExpanded(!isGrowthExpanded);
+                      }}
+                      className={`
+                        w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative
+                        ${isSelected 
+                          ? 'bg-white/5 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)] font-semibold' 
+                          : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'}
+                      `}
+                    >
+                      {isSelected && (
+                        <motion.div 
+                          layoutId="activePortalTabBg"
+                          className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-2xl -z-10"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                      {isSelected && (
+                        <motion.div 
+                          layoutId="activePortalTabIndicator"
+                          className="absolute left-0 top-[15%] bottom-[15%] w-[3px] bg-primary-400 rounded-r-full shadow-[0_0_8px_currentColor] text-primary-400 z-10"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                      <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
+                      <span className="font-medium">{item.label}</span>
+                      <ChevronDown 
+                        size={16} 
+                        className={`ml-auto text-gray-500 transition-transform duration-300 ${isGrowthExpanded ? 'rotate-180 text-primary-400' : 'group-hover:text-gray-300'}`} 
+                      />
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {isGrowthExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden pl-4 pr-1 py-1 space-y-1 flex flex-col border-l border-white/5 ml-6"
+                        >
+                          {[
+                            { subId: 'brand', label: 'Cofre da Marca', icon: Palette },
+                            { subId: 'templates', label: 'Templates Rápidos', icon: Layout },
+                            { subId: 'sales', label: 'Arsenal de Vendas', icon: FileText },
+                            { subId: 'trainings', label: 'Treinamentos', icon: Video },
+                          ].map((subItem) => {
+                            const isSubActive = isSelected && growthSubTab === subItem.subId;
+                            const SubIcon = subItem.icon;
+                            return (
+                              <button
+                                key={subItem.subId}
+                                onClick={() => {
+                                  setActiveTab('growth');
+                                  setGrowthSubTab(subItem.subId as any);
+                                  setIsSidebarOpen(false);
+                                }}
+                                className={`
+                                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-300 text-left relative group/subitem cursor-pointer
+                                  ${isSubActive 
+                                    ? 'text-white font-semibold' 
+                                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'}
+                                `}
+                              >
+                                {isSubActive && (
+                                  <motion.div 
+                                    layoutId="activePortalSubTabBg"
+                                    className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-xl -z-10"
+                                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                  />
+                                )}
+                                <SubIcon size={14} className={`transition-colors ${isSubActive ? 'text-primary-400' : 'text-gray-600 group-hover/subitem:text-primary-400'}`} />
+                                <span>{subItem.label}</span>
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative
+                    ${isSelected 
+                      ? 'bg-white/5 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)] font-semibold' 
+                      : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'}
+                  `}
+                >
+                  {isSelected && (
+                    <motion.div 
+                      layoutId="activePortalTabBg"
+                      className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-2xl -z-10"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  {isSelected && (
+                    <motion.div 
+                      layoutId="activePortalTabIndicator"
+                      className="absolute left-0 top-[15%] bottom-[15%] w-[3px] bg-primary-400 rounded-r-full shadow-[0_0_8px_currentColor] text-primary-400 z-10"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
+                  <span className="font-medium">{item.label}</span>
+                  {item.id === 'support' && hasUnreadSupport && (
+                    <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="mt-auto pt-6 border-t border-white/10 space-y-3 relative z-10">
@@ -511,7 +618,12 @@ export default function ClientPortalLayout() {
                 <PortalManagement orgId={orgId || ''} clientId={activeClientId || ''} />
               )}
               {activeTab === 'growth' && (
-                <PortalGrowthHub client={client} growthAssets={growthAssets} />
+                <PortalGrowthHub 
+                  client={client} 
+                  growthAssets={growthAssets} 
+                  activeSubTab={growthSubTab}
+                  setActiveSubTab={setGrowthSubTab}
+                />
               )}
               {activeTab === 'finance' && (
                 <PortalFinance 

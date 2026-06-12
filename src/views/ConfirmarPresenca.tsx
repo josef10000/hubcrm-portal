@@ -159,19 +159,15 @@ export default function ConfirmarPresenca() {
       <div className="max-w-md w-full space-y-6 relative z-10">
         
         {/* Logo da Organização */}
-        {appointment?.logoUrl ? (
-          <div className="flex justify-center mb-6">
-            <div className="p-2 bg-white/[0.02] border border-white/10 rounded-3xl shadow-xl max-w-[240px] h-28 flex items-center justify-center overflow-hidden">
-              <img src={appointment.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
-            </div>
+        <div className="flex justify-center mb-6">
+          <div className="p-2 bg-white/[0.02] border border-white/10 rounded-3xl shadow-xl max-w-[240px] h-28 flex items-center justify-center overflow-hidden">
+            <img 
+              src={appointment?.logoUrl || "https://i.imgur.com/zCvL7xy.png"} 
+              alt="Logo" 
+              className="max-w-full max-h-full object-contain" 
+            />
           </div>
-        ) : (
-          <div className="text-center mb-6">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary-400 bg-primary-500/10 px-3.5 py-1.5 rounded-full border border-primary-500/20">
-              Hub Agenda
-            </span>
-          </div>
-        )}
+        </div>
 
         {/* Card Principal */}
         <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">

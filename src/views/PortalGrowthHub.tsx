@@ -13,23 +13,32 @@ import {
   Sparkles, 
   Layers,
   ArrowUpRight,
-  ChevronDown
+  ChevronDown,
+  Play,
+  X
 } from 'lucide-react';
 import { Client, GrowthAsset } from '../types';
 import { toast } from 'sonner';
 
+type TabId = 'brand' | 'templates' | 'sales' | 'trainings';
+
 interface PortalGrowthHubProps {
   client: Client | null;
   growthAssets: GrowthAsset[];
+  activeSubTab: TabId;
+  setActiveSubTab: (tab: TabId) => void;
 }
 
-type TabId = 'brand' | 'templates' | 'sales' | 'trainings';
-
-export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHubProps) {
-  const [activeSubTab, setActiveSubTab] = useState<TabId>('brand');
+export default function PortalGrowthHub({ 
+  client, 
+  growthAssets, 
+  activeSubTab, 
+  setActiveSubTab 
+}: PortalGrowthHubProps) {
   const [copiedColorIndex, setCopiedColorIndex] = useState<number | null>(null);
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   const brandAssets = client?.brandAssets || null;
 
@@ -103,6 +112,24 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
     const match = url.match(regExp);
     if (match && match[2].length === 11) {
       return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    return null;
+  };
+
+  const getYouTubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return match[2];
+    }
+    return null;
+  };
+
+  const getYouTubeThumbnail = (url: string) => {
+    const id = getYouTubeId(url);
+    if (id) {
+      return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
     }
     return null;
   };
@@ -189,9 +216,9 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
         )}
       </div>
 
-      {/* Tabs (Desktop) */}
+      {/* Tabs (Desktop) - Oculto em favor da navegação por submenu na sidebar */}
       <div 
-        className="border-b border-white/10 pb-px hidden md:flex overflow-x-auto gap-2 w-full no-scrollbar"
+        className="border-b border-white/10 pb-px hidden overflow-x-auto gap-2 w-full no-scrollbar"
         style={{ 
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
@@ -577,23 +604,36 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {videoAssets.map((asset) => {
-                    const embedUrl = asset.url ? getYouTubeEmbedUrl(asset.url) : null;
+                    const youtubeId = asset.url ? getYouTubeId(asset.url) : null;
+                    const thumbnailUrl = youtubeId ? getYouTubeThumbnail(asset.url) : null;
                     return (
                       <div 
                         key={asset.id}
-                        className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group"
+                        className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group hover:border-white/20 transition-all duration-300"
                       >
                         {/* Player / Preview */}
-                        <div className="w-full aspect-video bg-black relative">
-                          {embedUrl ? (
-                            <iframe
-                              src={embedUrl}
-                              title={asset.title}
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
+                        <div className="w-full aspect-video bg-black relative overflow-hidden">
+                          {youtubeId ? (
+                            <div 
+                              onClick={() => setActiveVideoId(youtubeId)}
+                              className="w-full h-full relative cursor-pointer group/thumb"
+                            >
+                              {/* Imagem de Capa do YouTube */}
+                              <img 
+                                src={thumbnailUrl || ''} 
+                                alt={asset.title} 
+                                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+                              />
+                              {/* Overlay de Degradê Escuro */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 group-hover/thumb:from-black/90 transition-all" />
+                              
+                              {/* Botão Play Centralizado */}
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="p-4 bg-primary-500 text-white rounded-full shadow-lg shadow-primary-500/30 transform group-hover/thumb:scale-110 group-hover/thumb:bg-primary-600 transition-all duration-300">
+                                  <Play size={24} fill="currentColor" className="ml-0.5" />
+                                </div>
+                              </div>
+                            </div>
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-4 bg-gradient-to-br from-black/60 to-black/20">
                               <Video size={40} className="text-gray-600" />
@@ -636,6 +676,43 @@ export default function PortalGrowthHub({ client, growthAssets }: PortalGrowthHu
           )}
         </AnimatePresence>
       </div>
+
+      {/* Modal / Lightbox do Vídeo do YouTube */}
+      <AnimatePresence>
+        {activeVideoId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200"
+          >
+            {/* Overlay invisível para fechar ao clicar fora do player */}
+            <div 
+              className="absolute inset-0 cursor-default" 
+              onClick={() => setActiveVideoId(null)}
+            />
+            
+            <div className="relative w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
+              {/* Botão de Fechar */}
+              <button
+                onClick={() => setActiveVideoId(null)}
+                className="absolute top-4 right-4 z-20 p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-full border border-white/10 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+              
+              <iframe
+                src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=1`}
+                title="Treinamento"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

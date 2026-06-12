@@ -17,8 +17,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   Exibição reativa de compromissos futuros.
 *   Alertas preventivos integrados ao estoque se o consumo de insumos dos agendamentos futuros confirmados exceder o estoque físico atual.
 *   **Confirmação via WhatsApp [NOVO]:** Integração de templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com suporte a tags dinâmicas como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
-*   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`) [NOVO]:** Página pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar presença ou cancelar, atualizando em tempo real a agenda do assinante.
-*   **Faturamento Automático [NOVO]:** Ao finalizar o atendimento na linha do tempo, o sistema atualiza o status do pagamento para pago (`paid`), integrando instantaneamente o ganho no painel do CRM Financeiro.
+*   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Página pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar presença ou cancelar. Conta agora com exibição da logo personalizada do estabelecimento (vinda do CRM) ou fallback automático para o logotipo oficial do **Hub Symples** se nenhuma imagem for cadastrada.
+*   **Faturamento Automático:** Ao finalizar o atendimento na linha do tempo, o sistema atualiza o status do pagamento para pago (`paid`), integrando instantaneamente o ganho no painel do CRM Financeiro.
 
 ### 3. 💳 Faturamento (Faturas Hub)
 *   Visualização e acompanhamento de faturas geradas no Asaas via API integrada segura.
@@ -31,11 +31,12 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de foto de perfil (avatar) integrada ao Cloudinary, atualização de nome/razão social e WhatsApp de contato protegidos por modo de leitura controlada (bloqueio de inputs e botões de Salvar/Cancelar) e sincronizados em tempo real de forma segura com o CRM administrativo via API.
 *   **Segurança de Acesso:** Redefinição de senha segura integrada ao Firebase Auth com envio de e-mail de redefinição.
 
-### 6. 🚀 Hub de Crescimento (`PortalGrowthHub.tsx`) [NOVO]
+### 6. 🚀 Hub de Crescimento (`PortalGrowthHub.tsx`)
+*   **Menu Lateral Integrado (Submenu Sanfona):** Naveão expandida na sidebar que divide o hub em 4 telas focadas e independentes (Cofre da Marca, Templates Rápidos, Arsenal de Vendas e Treinamentos) no desktop.
 *   **Cofre da Marca:** Visualização centralizada de múltiplos logotipos da empresa do cliente (com suporte a nomes customizados como SVG, PNG transparente e download individual), paleta de cores institucional com opção de cópia rápida do código HEX, tipografia oficial recomendada e múltiplos links e templates customizados.
 *   **Templates Rápidos:** Acesso a modelos de design personalizados e ativos com detecção e classificação inteligente de links (exibindo badges e botões dedicados de marcas conhecidas como Canva, Trello e Google Drive).
 *   **Arsenal de Vendas:** Roteiros comerciais e scripts de abordagem comercial com atalho de cópia rápida para o clipboard e feedback em toast.
-*   **Treinamentos:** Grid de videoaulas com integração para reprodução ou links externos visando capacitação e conversão de vendas.
+*   **Treinamentos (Player Inteligente em Lightbox):** Grid de videoaulas otimizado com extração dinâmica de thumbnails do YouTube (sem carregar iframes pesados em lote) e reprodução fluida em Modal/Lightbox dedicado com efeito desfocado (*backdrop-blur*).
 
 ---
 
