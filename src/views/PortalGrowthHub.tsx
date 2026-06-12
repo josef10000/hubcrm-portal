@@ -266,10 +266,12 @@ export default function PortalGrowthHub({
               className="space-y-8"
             >
               {!brandAssets ? (
-                <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center">
-                  <Palette className="w-12 h-12 text-gray-600 mx-auto mb-4" strokeWidth={1} />
-                  <h4 className="text-white font-bold mb-2">Cofre da Marca Vazio</h4>
-                  <p className="text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
+                <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center overflow-hidden">
+                  {/* Brilho Radial de Fundo */}
+                  <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)]" />
+                  <Palette className="relative z-10 w-12 h-12 text-primary-400/80 mx-auto mb-4 animate-pulse" strokeWidth={1} />
+                  <h4 className="relative z-10 text-white font-bold mb-2">Cofre da Marca Vazio</h4>
+                  <p className="relative z-10 text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
                     Seus ativos visuais institucionais (logotipos, cores e fontes) ainda não foram configurados. Solicite a integração ao seu consultor para ter acesso rápido aqui.
                   </p>
                 </div>
@@ -284,7 +286,7 @@ export default function PortalGrowthHub({
                         {brandAssets.logos.map((logo, idx) => (
                           <div 
                             key={idx} 
-                            className="bg-white/[0.03] border border-white/10 p-5 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4"
+                            className="bg-white/[0.03] border border-white/10 p-5 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4 premium-card-hover"
                           >
                             <div className="w-full">
                               <span className="text-[10px] text-primary-400 font-bold uppercase tracking-widest block text-left mb-3">
@@ -311,7 +313,7 @@ export default function PortalGrowthHub({
                         ))}
                       </div>
                     ) : brandAssets.logoUrl ? (
-                      <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4">
+                      <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col items-center justify-between text-center relative overflow-hidden group gap-4 premium-card-hover">
                         <div className="w-full">
                           <span className="text-[10px] text-primary-400 font-bold uppercase tracking-widest block text-left mb-3">Logotipo Padrão</span>
                           <div className="w-full aspect-square bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-6 overflow-hidden relative group">
@@ -438,10 +440,12 @@ export default function PortalGrowthHub({
               className="space-y-8"
             >
               {(!brandAssets?.customCanvaLinks || brandAssets.customCanvaLinks.length === 0) && templateAssets.length === 0 ? (
-                <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center">
-                  <Layout className="w-12 h-12 text-gray-600 mx-auto mb-4" strokeWidth={1} />
-                  <h4 className="text-white font-bold mb-2">Nenhum Template Encontrado</h4>
-                  <p className="text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
+                <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center overflow-hidden">
+                  {/* Brilho Radial de Fundo */}
+                  <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)]" />
+                  <Layout className="relative z-10 w-12 h-12 text-primary-400/80 mx-auto mb-4 animate-pulse" strokeWidth={1} />
+                  <h4 className="relative z-10 text-white font-bold mb-2">Nenhum Template Encontrado</h4>
+                  <p className="relative z-10 text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
                     Você ainda não possui modelos rápidos ou links do Canva recomendados configurados. Fale com seu suporte técnico.
                   </p>
                 </div>
@@ -453,7 +457,7 @@ export default function PortalGrowthHub({
                     return (
                       <div 
                         key={`custom_link_${index}`}
-                        className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.05] transition-all duration-300 hover:-translate-y-1 shadow-xl group"
+                        className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between shadow-xl group premium-card-hover"
                       >
                         <div>
                           <div className="flex justify-between items-start mb-4">
@@ -484,7 +488,7 @@ export default function PortalGrowthHub({
                   {templateAssets.map((asset) => (
                     <div 
                       key={asset.id}
-                      className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.05] transition-all duration-300 hover:-translate-y-1 shadow-xl group"
+                      className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between shadow-xl group premium-card-hover"
                     >
                       <div>
                         <div className="flex justify-between items-start mb-4">
@@ -594,10 +598,12 @@ export default function PortalGrowthHub({
               className="space-y-8"
             >
               {videoAssets.length === 0 ? (
-                <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center">
-                  <Video className="w-12 h-12 text-gray-600 mx-auto mb-4" strokeWidth={1} />
-                  <h4 className="text-white font-bold mb-2">Nenhum Vídeo de Treinamento</h4>
-                  <p className="text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
+                <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center overflow-hidden">
+                  {/* Brilho Radial de Fundo */}
+                  <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)]" />
+                  <Video className="relative z-10 w-12 h-12 text-primary-400/80 mx-auto mb-4 animate-pulse" strokeWidth={1} />
+                  <h4 className="relative z-10 text-white font-bold mb-2">Nenhum Treinamento Disponível</h4>
+                  <p className="relative z-10 text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
                     Nenhuma videoaula ou material complementar em vídeo disponível atualmente.
                   </p>
                 </div>
@@ -609,7 +615,7 @@ export default function PortalGrowthHub({
                     return (
                       <div 
                         key={asset.id}
-                        className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group hover:border-white/20 transition-all duration-300"
+                        className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group premium-card-hover"
                       >
                         {/* Player / Preview */}
                         <div className="w-full aspect-video bg-black relative overflow-hidden">

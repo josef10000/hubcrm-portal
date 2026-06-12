@@ -92,12 +92,14 @@ export default function PortalDocuments({ client, orgId }: PortalDocumentsProps)
       </div>
 
       {contracts.length === 0 ? (
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-20 rounded-[3rem] flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-white/10">
-            <FolderOpen className="text-gray-600 w-10 h-10" />
+        <div className="relative bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-20 rounded-[3rem] flex flex-col items-center justify-center text-center overflow-hidden">
+          {/* Brilho Radial de Fundo */}
+          <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15)_0%,transparent_60%)]" />
+          <div className="relative z-10 w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-8 border border-white/10 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+            <FolderOpen className="text-blue-400/80 w-10 h-10 animate-pulse" />
           </div>
-          <h4 className="text-xl font-bold text-white mb-2">Sua pasta está sendo organizada</h4>
-          <p className="text-gray-500 max-w-sm leading-relaxed">
+          <h4 className="relative z-10 text-xl font-bold text-white mb-2">Sua pasta está sendo organizada</h4>
+          <p className="relative z-10 text-gray-500 text-xs lg:text-sm max-w-sm leading-relaxed">
             Nossa equipe está finalizando a organização dos seus documentos. Em breve você encontrará aqui seus contratos e arquivos técnicos.
           </p>
         </div>
@@ -106,8 +108,7 @@ export default function PortalDocuments({ client, orgId }: PortalDocumentsProps)
           {contracts.map((contract) => (
             <motion.div
               key={contract.id}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-6 rounded-3xl flex flex-col gap-4 group transition-all hover:bg-white/[0.05]"
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-6 rounded-3xl flex flex-col gap-4 group premium-card-hover"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

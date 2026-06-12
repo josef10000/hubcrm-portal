@@ -132,7 +132,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* KPI 1: Compromissos Hoje */}
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group hover:border-white/20 transition-all cursor-pointer" onClick={() => setActiveTab('agenda')}>
+        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group premium-card-hover cursor-pointer" onClick={() => setActiveTab('agenda')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
               <Calendar size={22} />
@@ -146,7 +146,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
         </div>
 
         {/* KPI 2: Chamados Ativos */}
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group hover:border-white/20 transition-all cursor-pointer" onClick={() => setActiveTab('support')}>
+        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group premium-card-hover cursor-pointer" onClick={() => setActiveTab('support')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-violet-500/20 rounded-2xl flex items-center justify-center text-violet-400 group-hover:scale-110 transition-transform">
               <MessageSquare size={22} />
@@ -160,7 +160,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
         </div>
 
         {/* KPI 3: Status Financeiro */}
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group hover:border-white/20 transition-all cursor-pointer" onClick={() => setActiveTab('finance')}>
+        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] flex items-center justify-between group premium-card-hover cursor-pointer" onClick={() => setActiveTab('finance')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
               <DollarSign size={22} />
