@@ -771,7 +771,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           </div>
           <span>
             {subTab === 'timeline' ? 'Linha do Tempo' :
-             subTab === 'services' ? 'Gerenciar Serviços' : 'Expediente Comercial'}
+             subTab === 'services' ? 'Gerenciar Serviços' : 'Configurações da Agenda'}
           </span>
           <ChevronDown 
             size={16} 
@@ -826,7 +826,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 }`}
               >
                 <Settings size={16} className={subTab === 'settings' ? 'text-primary-400' : 'text-gray-500'} />
-                Expediente Comercial
+                Configurações da Agenda
               </button>
             </div>
           </>
@@ -860,7 +860,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           }`}
         >
           <Settings size={14} />
-          Expediente Comercial
+          Configurações
         </button>
       </div>
 
