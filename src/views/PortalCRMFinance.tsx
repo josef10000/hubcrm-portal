@@ -78,6 +78,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   const [revenueType, setRevenueType] = useState<'pontual' | 'fixo'>('pontual');
   const [revenueStatus, setRevenueStatus] = useState<'paid' | 'unpaid'>('paid');
   const [savingRevenue, setSavingRevenue] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
@@ -649,31 +650,42 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
 
   return (
     <div className="space-y-6">
-      {/* Abas de Filtro de Período Temporal com efeito Glass */}
-      <div className="flex flex-wrap gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
-        {[
-          { id: 'today', label: 'Hoje' },
-          { id: 'week', label: 'Esta Semana' },
-          { id: 'month', label: 'Este Mês' },
-          { id: 'last_month', label: 'Mês Passado' },
-          { id: 'all', label: 'Geral' }
-        ].map(period => (
-          <button
-            key={period.id}
-            onClick={() => setFilterPeriod(period.id as any)}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
-              filterPeriod === period.id 
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {period.label}
-          </button>
-        ))}
+      {/* Abas de Filtro de Período Temporal com botão de Fechamento */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+        <div className="flex flex-wrap gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
+          {[
+            { id: 'today', label: 'Hoje' },
+            { id: 'week', label: 'Esta Semana' },
+            { id: 'month', label: 'Este Mês' },
+            { id: 'last_month', label: 'Mês Passado' },
+            { id: 'all', label: 'Geral' }
+          ].map(period => (
+            <button
+              key={period.id}
+              onClick={() => setFilterPeriod(period.id as any)}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
+                filterPeriod === period.id 
+                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {period.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsPrintModalOpen(true)}
+          className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl text-xs flex items-center gap-2 transition-all active:scale-95 shadow-xl shadow-emerald-500/10 cursor-pointer shrink-0"
+        >
+          <ExternalLink size={14} />
+          <span>Exportar Fechamento</span>
+        </button>
       </div>
 
       {/* Cards de Métricas Reativas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
         {/* Card 1: Faturamento Projetado */}
         <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 p-5 rounded-3xl relative overflow-hidden group hover:border-white/20 transition-all duration-300">
           <div className="absolute -right-4 -bottom-4 opacity-5 text-white group-hover:scale-110 transition-transform">
@@ -732,7 +744,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
       </div>
 
       {/* Seção Principal Contábil */}
-      <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6">
+      <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1493,6 +1505,199 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
         onConfirm={executeConfirmAction}
         onCancel={() => setConfirmModal({ isOpen: false, type: '', itemId: '', title: '', message: '' })}
       />
+
+      {/* Modal de Fechamento do Mês (Impressão A4) */}
+      {isPrintModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto print:absolute print:inset-0 print:bg-white print:text-black print:p-0 print:m-0 print:overflow-visible print:static">
+          
+          <div className="relative w-full max-w-4xl bg-[#0f1115] border border-white/10 rounded-none md:rounded-[2.5rem] shadow-2xl flex flex-col max-h-screen md:max-h-[92vh] overflow-y-auto custom-scrollbar print:border-none print:bg-white print:text-black print:max-h-none print:w-full print:rounded-none print:shadow-none print:overflow-visible print:static">
+            
+            {/* Header (Oculto na Impressão) */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5 print:hidden">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                  <CheckCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Relatório de Fechamento</h3>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Visualização Pré-Impressão</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-500/10 active:scale-95"
+                >
+                  <ExternalLink size={12} />
+                  <span>Imprimir / PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(false)}
+                  className="p-2 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Folha A4 do Relatório */}
+            <div className="flex-1 p-8 md:p-12 bg-white text-black font-sans print:p-0 print:m-0">
+              
+              {/* Cabeçalho do Relatório */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-black pb-6 gap-6">
+                <div>
+                  <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-black">Relatório de Fechamento</h1>
+                  <span className="text-xs font-bold text-gray-600 block mt-1">
+                    Período: {
+                      filterPeriod === 'today' ? 'Hoje' :
+                      filterPeriod === 'week' ? 'Esta Semana' :
+                      filterPeriod === 'month' ? 'Este Mês' :
+                      filterPeriod === 'last_month' ? 'Mês Passado' : 'Histórico Geral'
+                    }
+                  </span>
+                  <span className="text-[10px] text-gray-500 block mt-0.5">
+                    Data de Emissão: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="text-left sm:text-right">
+                  <h2 className="text-sm font-black text-black uppercase">{client.name}</h2>
+                  <span className="text-[10px] text-gray-500 block">Gestão Simplificada no Portal Hub</span>
+                </div>
+              </div>
+
+              {/* Tabela de Indicadores */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 py-8">
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider block">Faturamento Projetado</span>
+                  <span className="text-base font-black text-black block mt-1">
+                    R$ {totalProjetado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                  <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider block">Receitas Recebidas</span>
+                  <span className="text-base font-black text-emerald-700 block mt-1">
+                    R$ {totalPago.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
+                  <span className="text-[8px] font-black text-red-600 uppercase tracking-wider block">Despesas Totais</span>
+                  <span className="text-base font-black text-red-700 block mt-1">
+                    R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider block">Lucro Líquido</span>
+                  <span className={`text-base font-black block mt-1 ${lucroLiquido >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                    R$ {lucroLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl col-span-2 md:col-span-1">
+                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider block">Margem de Lucro</span>
+                  <span className="text-base font-black text-black block mt-1">
+                    {totalPago > 0 ? ((lucroLiquido / totalPago) * 100).toFixed(1) : '0'}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Detalhamento de Entradas */}
+              <div className="space-y-3 pb-8">
+                <h3 className="text-xs font-black uppercase tracking-wider border-b border-gray-300 pb-1.5 text-black">
+                  Detalhamento de Entradas (Receitas)
+                </h3>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[10px] text-gray-500 font-bold uppercase">
+                      <th className="py-2 w-24">Data</th>
+                      <th className="py-2">Descrição</th>
+                      <th className="py-2 w-32">Categoria</th>
+                      <th className="py-2 w-28 text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-xs">
+                    {combinedRevenues.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-4 text-center text-gray-400 italic">Nenhuma entrada registrada neste período.</td>
+                      </tr>
+                    ) : (
+                      combinedRevenues.map((rev) => (
+                        <tr key={rev.id} className="text-black">
+                          <td className="py-2 font-mono">{rev.date ? new Date(rev.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''}</td>
+                          <td className="py-2">{rev.description}</td>
+                          <td className="py-2 text-gray-600">{rev.category}</td>
+                          <td className="py-2 text-right font-bold">R$ {rev.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Detalhamento de Saídas */}
+              <div className="space-y-3 pb-12">
+                <h3 className="text-xs font-black uppercase tracking-wider border-b border-gray-300 pb-1.5 text-black">
+                  Detalhamento de Saídas (Despesas)
+                </h3>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[10px] text-gray-500 font-bold uppercase">
+                      <th className="py-2 w-24">Data</th>
+                      <th className="py-2">Descrição</th>
+                      <th className="py-2 w-32">Categoria</th>
+                      <th className="py-2 w-28 text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-xs">
+                    {filteredExpenses.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-4 text-center text-gray-400 italic">Nenhuma saída registrada neste período.</td>
+                      </tr>
+                    ) : (
+                      filteredExpenses.map((exp) => (
+                        <tr key={exp.id} className="text-black">
+                          <td className="py-2 font-mono">{exp.date ? new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''}</td>
+                          <td className="py-2">{exp.description}</td>
+                          <td className="py-2 text-gray-600">{exp.category}</td>
+                          <td className="py-2 text-right font-bold text-red-600">R$ {exp.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Assinatura no Rodapé (Espaço Executivo) */}
+              <div className="border-t border-gray-300 pt-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="text-left">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase block">Portal Hub - Sistema de CRM e Gestão</span>
+                  <span className="text-[9px] text-gray-500 block mt-0.5">Relatório gerado de forma segura e auditada.</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="w-48 border-b border-black text-center pb-1 font-mono text-[10px]">
+                    {new Date().toLocaleDateString('pt-BR')}
+                  </div>
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1.5">Data da Assinatura</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Rodapé (Oculto na Impressão) */}
+            <div className="p-6 border-t border-white/5 bg-white/5 text-right print:hidden">
+              <button
+                type="button"
+                onClick={() => setIsPrintModalOpen(false)}
+                className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/10 transition-all cursor-pointer"
+              >
+                Voltar ao Painel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

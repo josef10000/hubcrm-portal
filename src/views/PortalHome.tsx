@@ -15,11 +15,16 @@ import {
   CalendarPlus,
   ExternalLink,
   ChevronRight,
-  Phone
+  Phone,
+  Check,
+  X,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface PortalHomeProps {
   client: any;
@@ -32,6 +37,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
   const { orgId } = useParams<{ orgId: string }>();
   const [appointmentsToday, setAppointmentsToday] = useState<any[]>([]);
   const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
+  const [inactiveClients, setInactiveClients] = useState<any[]>([]);
   const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([
     {
       id: 'local',
@@ -78,7 +84,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
     return () => unsub();
   }, [orgId]);
 
-  // Escuta os compromissos reativamente
+  // Escuta os compromissos reativamente e calcula LTV / Inativos
   useEffect(() => {
     if (!orgId) return;
     const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
@@ -109,6 +115,61 @@ export default function PortalHome({ client, announcement, setActiveTab, support
         return a.time.localeCompare(b.time);
       });
       setPendingAppointments(filteredPending);
+
+      // CALCULA CLIENTES INATIVOS (LTV)
+      const clientLastVisits: Record<string, { name: string, phone: string, lastDate: string, hasFuture: boolean }> = {};
+      const today = new Date();
+      const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+
+      list.forEach((app: any) => {
+        if (!app.clientPhone) return;
+        const phone = app.clientPhone.trim();
+        const name = app.clientName || 'Cliente';
+        const dateStr = app.date; // YYYY-MM-DD
+        
+        // Verifica se possui agendamento ativo ou pendente no futuro
+        const isFuture = dateStr >= todayStr && (app.status === 'confirmed' || app.status === 'pending');
+
+        if (!clientLastVisits[phone]) {
+          clientLastVisits[phone] = {
+            name,
+            phone,
+            lastDate: app.status === 'completed' ? dateStr : '',
+            hasFuture: isFuture
+          };
+        } else {
+          if (isFuture) {
+            clientLastVisits[phone].hasFuture = true;
+          }
+          if (app.status === 'completed') {
+            if (!clientLastVisits[phone].lastDate || dateStr > clientLastVisits[phone].lastDate) {
+              clientLastVisits[phone].lastDate = dateStr;
+            }
+          }
+        }
+      });
+
+      // Filtra clientes sem visita futura e cuja última visita foi há mais de 30 dias
+      const inactives: any[] = [];
+      Object.values(clientLastVisits).forEach((client: any) => {
+        if (client.hasFuture || !client.lastDate) return;
+        
+        const lastVisitDate = new Date(client.lastDate + 'T12:00:00');
+        const diffTime = todayTime - new Date(lastVisitDate.getFullYear(), lastVisitDate.getMonth(), lastVisitDate.getDate()).getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 30) {
+          inactives.push({
+            name: client.name,
+            phone: client.phone,
+            lastDateStr: client.lastDate,
+            daysInactive: diffDays
+          });
+        }
+      });
+
+      inactives.sort((a, b) => b.daysInactive - a.daysInactive);
+      setInactiveClients(inactives);
       
       setLoadingApps(false);
     });
@@ -157,6 +218,32 @@ export default function PortalHome({ client, announcement, setActiveTab, support
         return { label: 'Confirmado', color: 'text-blue-400', bg: 'bg-blue-500/10' };
       default:
         return { label: 'Pendente', color: 'text-amber-400', bg: 'bg-amber-500/10' };
+    }
+  };
+
+  const handleConfirmApp = async (appId: string) => {
+    if (!orgId) return;
+    try {
+      await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), {
+        status: 'confirmed'
+      });
+      toast.success('Agendamento confirmado com sucesso!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao confirmar agendamento.');
+    }
+  };
+
+  const handleCancelApp = async (appId: string) => {
+    if (!orgId) return;
+    try {
+      await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), {
+        status: 'cancelled'
+      });
+      toast.success('Agendamento cancelado/recusado.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao recusar agendamento.');
     }
   };
 
@@ -491,13 +578,34 @@ export default function PortalHome({ client, announcement, setActiveTab, support
                           </div>
                         </div>
                         
-                        <div className="text-right flex flex-col items-end gap-2 shrink-0">
-                          <span className="text-xs font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                            {appDateFormatted} às {app.time}
-                          </span>
-                          <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.color}`}>
-                            {badge.label}
-                          </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right flex flex-col items-end gap-1.5">
+                            <span className="text-[11px] font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5 whitespace-nowrap">
+                              {appDateFormatted} às {app.time}
+                            </span>
+                            <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.color}`}>
+                              {badge.label}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmApp(app.id)}
+                              title="Confirmar Agendamento"
+                              className="w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelApp(app.id)}
+                              title="Recusar/Cancelar Agendamento"
+                              className="w-9 h-9 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -508,6 +616,61 @@ export default function PortalHome({ client, announcement, setActiveTab, support
           </div>
         </div>
 
+      </div>
+
+      {/* Seção LTV - Reativação de Clientes Inativos */}
+      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl space-y-6">
+        <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
+              <AlertCircle size={16} className="text-primary-400" />
+              💡 Reativar Clientes (LTV)
+            </h4>
+            <p className="text-xs text-gray-400">Clientes que realizaram serviços no passado e não agendaram mais nada nos últimos 30 dias.</p>
+          </div>
+          <span className="px-3 py-1 bg-primary-500/10 border border-primary-500/20 rounded-lg text-[10px] text-primary-400 font-bold uppercase tracking-wider self-start sm:self-auto">
+            Inativos há 30 dias+
+          </span>
+        </div>
+
+        <div className="p-6">
+          {inactiveClients.length === 0 ? (
+            <p className="text-gray-500 text-xs italic text-center py-8">Nenhum cliente inativo há mais de 30 dias detectado no momento.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {inactiveClients.slice(0, 6).map((clientItem, idx) => {
+                const handleSendLTVMessage = () => {
+                  const bioUrl = `${window.location.origin}/bio/${orgId}`;
+                  const text = `Olá, ${clientItem.name}! Tudo bem? Faz um tempinho que você não nos visita (sua última visita foi em ${new Date(clientItem.lastDateStr + 'T12:00:00').toLocaleDateString('pt-BR')}). Que tal reservar um novo horário? Você pode agendar direto pelo nosso link: ${bioUrl}`;
+                  const phone = clientItem.phone.replace(/\D/g, '');
+                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                };
+
+                return (
+                  <div key={idx} className="p-4 bg-black/20 border border-white/5 rounded-2xl flex flex-col justify-between gap-4 group hover:border-white/10 transition-all">
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-bold text-white block truncate">{clientItem.name}</span>
+                      <span className="text-[10px] text-rose-400 font-bold block bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded w-max">
+                        Inativo há {clientItem.daysInactive} dias
+                      </span>
+                      <span className="text-[10px] text-gray-500 block">
+                        Última visita: {new Date(clientItem.lastDateStr + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleSendLTVMessage}
+                      className="w-full py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    >
+                      <Phone size={12} />
+                      <span>Chamar no WhatsApp</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

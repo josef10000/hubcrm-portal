@@ -4,8 +4,10 @@ import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp 
 } from 'firebase/firestore';
 import { 
-  Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown
+  Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
+  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles
 } from 'lucide-react';
+import { Offer, Client } from '../types';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import CustomSelect from '../components/CustomSelect';
@@ -72,6 +74,27 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [hoursBackup, setHoursBackup] = useState<any>(null);
   const [isEditingNomenclature, setIsEditingNomenclature] = useState(false);
   const [nomenclatureBackup, setNomenclatureBackup] = useState<any>(null);
+
+  // Estados para o Mini-Site (Bio)
+  const [bioTitle, setBioTitle] = useState('');
+  const [bioDescription, setBioDescription] = useState('');
+  const [bioAvatarUrl, setBioAvatarUrl] = useState('');
+  const [bioLinks, setBioLinks] = useState<any[]>([]);
+  const [bioShowBooking, setBioShowBooking] = useState(true);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioBackup, setBioBackup] = useState<any>(null);
+  
+  // Estados auxiliares para inserção de novo link na Bio
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkIcon, setNewLinkIcon] = useState('instagram');
+
+  // Estados para o Clube de Fidelidade Digital
+  const [fidelityActive, setFidelityActive] = useState(false);
+  const [fidelityGoal, setFidelityGoal] = useState(10);
+  const [fidelityReward, setFidelityReward] = useState('');
+  const [isEditingFidelity, setIsEditingFidelity] = useState(false);
+  const [fidelityBackup, setFidelityBackup] = useState<any>(null);
 
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
@@ -281,6 +304,42 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     return () => unsub();
   }, [orgId]);
 
+  // Escuta Configurações do Mini-Site (Bio)
+  useEffect(() => {
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setBioTitle(data.title || '');
+        setBioDescription(data.description || '');
+        setBioAvatarUrl(data.avatarUrl || '');
+        setBioLinks(data.links || []);
+        setBioShowBooking(data.showBooking !== undefined ? data.showBooking : true);
+      }
+    }, (err) => {
+      console.error('Erro ao ler biosite settings:', err);
+    });
+    return () => unsub();
+  }, [orgId]);
+
+  // Escuta Configurações de Fidelidade
+  useEffect(() => {
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setFidelityActive(data.active || false);
+        setFidelityGoal(data.goal || 10);
+        setFidelityReward(data.reward || '');
+      }
+    }, (err) => {
+      console.error('Erro ao ler fidelity settings:', err);
+    });
+    return () => unsub();
+  }, [orgId]);
+
   // Escuta Inventário
   useEffect(() => {
     if (!orgId) return;
@@ -441,6 +500,76 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       console.error(e);
       toast.error('Erro ao salvar configurações.');
     }
+  };
+
+  // Salvar apenas Mini-Site (Bio)
+  const handleSaveBioSite = async () => {
+    if (!orgId) return;
+    try {
+      const docRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
+      const dataToSave = {
+        title: bioTitle,
+        description: bioDescription,
+        avatarUrl: bioAvatarUrl,
+        links: bioLinks,
+        showBooking: bioShowBooking
+      };
+      await setDoc(docRef, dataToSave, { merge: true });
+      toast.success('Configurações do Mini-Site salvas com sucesso!');
+      setIsEditingBio(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao salvar configurações do Mini-Site.');
+    }
+  };
+
+  // Salvar apenas Fidelidade
+  const handleSaveFidelity = async () => {
+    if (!orgId) return;
+    try {
+      const docRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+      const dataToSave = {
+        active: fidelityActive,
+        goal: Number(fidelityGoal),
+        reward: fidelityReward
+      };
+      await setDoc(docRef, dataToSave, { merge: true });
+      toast.success('Configurações do Clube de Fidelidade salvas!');
+      setIsEditingFidelity(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao salvar Clube de Fidelidade.');
+    }
+  };
+
+  // Adicionar Link na Lista Temporária da Bio
+  const handleAddBioLink = () => {
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) {
+      toast.error('Informe o rótulo e a URL do link.');
+      return;
+    }
+    // Formatar URL com http:// ou https:// se não tiver
+    let formattedUrl = newLinkUrl.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    const newLink = {
+      id: String(Date.now()),
+      label: newLinkLabel.trim(),
+      url: formattedUrl,
+      icon: newLinkIcon
+    };
+    setBioLinks([...bioLinks, newLink]);
+    setNewLinkLabel('');
+    setNewLinkUrl('');
+    setNewLinkIcon('instagram');
+    toast.success('Link adicionado à lista! Lembre-se de salvar.');
+  };
+
+  // Remover Link da Lista Temporária da Bio
+  const handleRemoveBioLink = (linkId: string) => {
+    setBioLinks(bioLinks.filter(link => link.id !== linkId));
+    toast.success('Link removido da lista! Lembre-se de salvar.');
   };
 
   // Gera os slots disponíveis para uma data
@@ -1537,6 +1666,392 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="w-full h-[1px] bg-white/15 my-6" />
+
+          {/* Seção 4: Configuração do Mini-Site (Link da Bio) */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Globe size={14} className="text-primary-400" />
+                  Mini-Site / Link da Bio
+                </h3>
+                <p className="text-xs text-gray-400">Configure sua página de links públicos e de agendamento online externo.</p>
+              </div>
+              
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const bioUrl = `${window.location.origin}/bio/${orgId}`;
+                    navigator.clipboard.writeText(bioUrl);
+                    toast.success('Link do Mini-Site copiado para a área de transferência!');
+                  }}
+                  className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Copy size={12} />
+                  <span>Copiar Link</span>
+                </button>
+                <a
+                  href={`/bio/${orgId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Eye size={12} />
+                  <span>Visualizar</span>
+                </a>
+                
+                {!isEditingBio ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBioBackup({
+                        title: bioTitle,
+                        description: bioDescription,
+                        avatarUrl: bioAvatarUrl,
+                        links: JSON.parse(JSON.stringify(bioLinks)),
+                        showBooking: bioShowBooking
+                      });
+                      setIsEditingBio(true);
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-500/50 hover:bg-primary-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                  >
+                    <Edit2 size={12} />
+                    <span>Editar Bio</span>
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveBioSite}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Check size={12} />
+                      <span>Salvar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBioTitle(bioBackup.title);
+                        setBioDescription(bioBackup.description);
+                        setBioAvatarUrl(bioBackup.avatarUrl);
+                        setBioLinks(bioBackup.links);
+                        setBioShowBooking(bioBackup.showBooking);
+                        setIsEditingBio(false);
+                      }}
+                      className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {isEditingBio ? (
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Título da Bio / Nome da Empresa</label>
+                      <input
+                        type="text"
+                        value={bioTitle}
+                        onChange={(e) => setBioTitle(e.target.value)}
+                        placeholder="Ex: Barbearia do Zé"
+                        className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição Curta</label>
+                      <textarea
+                        value={bioDescription}
+                        onChange={(e) => setBioDescription(e.target.value)}
+                        placeholder="Escreva uma breve apresentação..."
+                        rows={3}
+                        className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">URL do Logotipo / Avatar (Imagem Quadrada)</label>
+                      <input
+                        type="text"
+                        value={bioAvatarUrl}
+                        onChange={(e) => setBioAvatarUrl(e.target.value)}
+                        placeholder="https://exemplo.com/sua-logo.png"
+                        className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-3 pt-2">
+                      <input
+                        type="checkbox"
+                        id="bioShowBooking"
+                        checked={bioShowBooking}
+                        onChange={(e) => setBioShowBooking(e.target.checked)}
+                        className="w-4 h-4 rounded border-white/10 text-primary-500 bg-black/40 focus:ring-primary-500 focus:ring-offset-black"
+                      />
+                      <label htmlFor="bioShowBooking" className="text-xs font-bold text-white cursor-pointer select-none">
+                        Exibir Botão de Agendamento Online Público
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-white/10 pt-4 space-y-4">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Link size={12} className="text-primary-400" />
+                    Gerenciar Links da Bio
+                  </h4>
+
+                  {/* Form para adicionar novo link */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <div className="space-y-1 md:col-span-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Ícone do Link</label>
+                      <CustomSelect
+                        value={newLinkIcon}
+                        onChange={(val) => setNewLinkIcon(val as string)}
+                        options={[
+                          { value: 'instagram', label: 'Instagram' },
+                          { value: 'whatsapp', label: 'WhatsApp' },
+                          { value: 'facebook', label: 'Facebook' },
+                          { value: 'youtube', label: 'YouTube' },
+                          { value: 'website', label: 'Site / Outro' }
+                        ]}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Rótulo / Texto do Botão</label>
+                      <input
+                        type="text"
+                        value={newLinkLabel}
+                        onChange={(e) => setNewLinkLabel(e.target.value)}
+                        placeholder="Ex: Nosso Portfólio"
+                        className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-1.5">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">URL de Destino</label>
+                      <input
+                        type="text"
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        placeholder="Ex: instagram.com/sua-barbearia"
+                        className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddBioLink}
+                      className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer h-[38px]"
+                    >
+                      <Plus size={12} />
+                      <span>Adicionar</span>
+                    </button>
+                  </div>
+
+                  {/* Listagem de Links atuais */}
+                  <div className="space-y-2 max-w-xl">
+                    {bioLinks.length === 0 ? (
+                      <p className="text-xs text-gray-500 italic">Nenhum link adicionado ainda.</p>
+                    ) : (
+                      bioLinks.map((link, idx) => {
+                        const iconMap: Record<string, React.ReactNode> = {
+                          instagram: <Instagram size={14} className="text-pink-400" />,
+                          whatsapp: <Phone size={14} className="text-emerald-400" />,
+                          facebook: <Facebook size={14} className="text-blue-400" />,
+                          youtube: <Youtube size={14} className="text-red-400" />,
+                          website: <Globe size={14} className="text-gray-400" />
+                        };
+
+                        return (
+                          <div key={link.id || idx} className="flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded-xl gap-3">
+                            <div className="flex items-center gap-2">
+                              {iconMap[link.icon] || <Globe size={14} />}
+                              <span className="text-xs font-bold text-white">{link.label}</span>
+                              <span className="text-[10px] text-gray-500 truncate max-w-xs">({link.url})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBioLink(link.id)}
+                              className="p-1 hover:bg-white/5 rounded-lg text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-black/20 border border-white/5 p-5 rounded-2xl flex flex-col items-center text-center space-y-3">
+                  <div className="w-16 h-16 bg-white/5 rounded-full overflow-hidden border border-white/10 flex items-center justify-center">
+                    {bioAvatarUrl ? (
+                      <img src={bioAvatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Globe size={28} className="text-gray-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{bioTitle || 'Sem Título da Bio'}</h4>
+                    <p className="text-xs text-gray-500 mt-1">{bioDescription || 'Configure uma breve descrição nas configurações do Mini-Site.'}</p>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 bg-black/20 border border-white/5 p-5 rounded-2xl space-y-3">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Links Ativos ({bioLinks.length})</span>
+                  <div className="space-y-2">
+                    {bioLinks.map((link, idx) => (
+                      <div key={link.id || idx} className="flex items-center gap-2 text-xs text-gray-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                        <span className="font-bold">{link.label}:</span>
+                        <span className="text-gray-500 truncate">{link.url}</span>
+                      </div>
+                    ))}
+                    {bioShowBooking && (
+                      <div className="flex items-center gap-2 text-xs text-primary-400 font-bold">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-400" />
+                        <span>Agendamento Online Público Ativado</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="w-full h-[1px] bg-white/15 my-6" />
+
+          {/* Seção 5: Configuração do Clube de Fidelidade Digital */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Award size={16} className="text-primary-400" />
+                  Clube de Fidelidade Digital
+                </h3>
+                <p className="text-xs text-gray-400">Ative e configure o cartão fidelidade para gamificar a experiência do cliente final.</p>
+              </div>
+
+              {!isEditingFidelity ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFidelityBackup({
+                      active: fidelityActive,
+                      goal: fidelityGoal,
+                      reward: fidelityReward
+                    });
+                    setIsEditingFidelity(true);
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-500/50 hover:bg-primary-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                >
+                  <Edit2 size={12} />
+                  <span>Editar Fidelidade</span>
+                </button>
+              ) : (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSaveFidelity}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Check size={12} />
+                    <span>Salvar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFidelityActive(fidelityBackup.active);
+                      setFidelityGoal(fidelityBackup.goal);
+                      setFidelityReward(fidelityBackup.reward);
+                      setIsEditingFidelity(false);
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isEditingFidelity ? (
+              <div className="p-6 bg-black/40 border border-white/10 rounded-2xl space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="fidelityActive"
+                    checked={fidelityActive}
+                    onChange={(e) => setFidelityActive(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/10 text-primary-500 bg-black/40 focus:ring-primary-500 focus:ring-offset-black"
+                  />
+                  <label htmlFor="fidelityActive" className="text-xs font-bold text-white cursor-pointer select-none">
+                    Ativar Clube de Fidelidade Digital
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Meta de Atendimentos Concluídos</label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="50"
+                      value={fidelityGoal}
+                      disabled={!fidelityActive}
+                      onChange={(e) => setFidelityGoal(Number(e.target.value))}
+                      placeholder="Ex: 10"
+                      className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 disabled:opacity-30"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição do Prêmio</label>
+                    <input
+                      type="text"
+                      value={fidelityReward}
+                      disabled={!fidelityActive}
+                      onChange={(e) => setFidelityReward(e.target.value)}
+                      placeholder="Ex: Corte de Cabelo Grátis"
+                      className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 disabled:opacity-30"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-black/20 border border-white/5 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${fidelityActive ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-white/5 border border-white/10 text-gray-500'}`}>
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      Status: {fidelityActive ? 'Ativo' : 'Desativado'}
+                    </span>
+                    {fidelityActive && (
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        Meta: {fidelityGoal} atendimentos para ganhar "{fidelityReward}".
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {fidelityActive && (
+                  <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/25 rounded-lg text-[10px] text-amber-400 font-bold uppercase tracking-wider self-start md:self-auto">
+                    Campanha Ativa
+                  </div>
+                )}
               </div>
             )}
           </div>

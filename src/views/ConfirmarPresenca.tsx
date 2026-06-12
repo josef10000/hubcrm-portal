@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2, Star, Gift } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { db } from '../lib/firebase';
+import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
 export default function ConfirmarPresenca() {
   const [searchParams] = useSearchParams();
@@ -14,6 +16,11 @@ export default function ConfirmarPresenca() {
   const [actionLoading, setActionLoading] = useState(false);
   const [successStatus, setSuccessStatus] = useState<'confirmed' | 'cancelled' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados do Clube de Fidelidade
+  const [fidelityConfig, setFidelityConfig] = useState<any>(null);
+  const [fidelityLoading, setFidelityLoading] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
 
   const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
 
@@ -50,6 +57,39 @@ export default function ConfirmarPresenca() {
 
     fetchAppointment();
   }, [orgId, appointmentId, clientId, crmApiUrl]);
+
+  // Carrega configurações de fidelidade e histórico do cliente
+  useEffect(() => {
+    if (!orgId || !appointment || !appointment.clientPhone) return;
+
+    const loadFidelity = async () => {
+      setFidelityLoading(true);
+      try {
+        const fidelityRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+        const fidelitySnap = await getDoc(fidelityRef);
+        if (fidelitySnap.exists() && fidelitySnap.data().active) {
+          const config = fidelitySnap.data();
+          setFidelityConfig(config);
+
+          // Busca agendamentos completed do mesmo telefone
+          const apptsRef = collection(db, 'organizations', orgId, 'appointments');
+          const q = query(
+            apptsRef, 
+            where('clientPhone', '==', appointment.clientPhone),
+            where('status', '==', 'completed')
+          );
+          const snap = await getDocs(q);
+          setCompletedCount(snap.size);
+        }
+      } catch (e) {
+        console.error('Erro ao buscar fidelidade do cliente:', e);
+      } finally {
+        setFidelityLoading(false);
+      }
+    };
+
+    loadFidelity();
+  }, [orgId, appointment]);
 
   const handleConfirm = async (confirm: boolean) => {
     const targetStatus = confirm ? 'confirmed' : 'cancelled';
@@ -255,6 +295,53 @@ export default function ConfirmarPresenca() {
                   Obrigado por confirmar! Sua vaga está oficialmente reservada para o dia <span className="text-white font-bold">{appointment?.date ? new Date(appointment.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span> às <span className="text-white font-bold">{appointment?.time}</span>.
                 </p>
               </div>
+
+              {/* Cartão Fidelidade Digital */}
+              {fidelityConfig && (
+                <div className="bg-gradient-to-br from-amber-500/10 to-indigo-600/5 border border-white/10 rounded-3xl p-5 text-center space-y-4 shadow-xl">
+                  <div className="flex items-center justify-center gap-2">
+                    <Gift className="text-amber-400 w-5 h-5" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Cartão Fidelidade</h3>
+                  </div>
+
+                  <p className="text-[11px] text-gray-400">
+                    Acumule <span className="text-white font-bold">{fidelityConfig.goal}</span> atendimentos concluídos e ganhe: <span className="text-amber-400 font-bold">{fidelityConfig.reward}</span>
+                  </p>
+
+                  {/* Grid de Carimbos */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 py-2">
+                    {Array.from({ length: fidelityConfig.goal }).map((_, i) => {
+                      const isStamped = i < completedCount;
+                      return (
+                        <div
+                          key={i}
+                          className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold transition-all ${
+                            isStamped
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-md shadow-amber-500/10 animate-in zoom-in-75 duration-300'
+                              : 'bg-black/40 border-white/10 text-gray-600 border-dashed'
+                          }`}
+                        >
+                          {isStamped ? (
+                            <Star size={16} className="text-amber-400 fill-amber-400" />
+                          ) : (
+                            <span>{i + 1}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {completedCount >= fidelityConfig.goal ? (
+                    <div className="bg-amber-500/20 border border-amber-500/30 p-3 rounded-xl text-xs text-amber-300 font-bold leading-relaxed animate-pulse">
+                      🎉 Parabéns! Você completou seu cartão fidelidade e ganhou: {fidelityConfig.reward}. Resgate agora mesmo com o estabelecimento!
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-gray-500 italic">
+                      Você possui {completedCount} {completedCount === 1 ? 'carimbo' : 'carimbos'}. Faltam {fidelityConfig.goal - completedCount} para ganhar!
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="bg-black/30 border border-white/5 rounded-2xl p-4 text-[11px] text-gray-500 text-left space-y-1">
                 <p className="font-bold text-gray-400 mb-1">Informações importantes:</p>
