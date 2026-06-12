@@ -6,47 +6,53 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 
 ---
 
-## 🚀 Principais Recursos e Módulos
+## 🚀 Principais Recursos
 
-### 1. 📊 Módulo "Meu Negócio"
-*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais, cálculo financeiro em tempo real do **Valor de Patrimônio Ativo** (Quantidade × Custo Unitário), filtro rápido para itens com estoque crítico, e **Linha do Tempo de Histórico de Movimentações** (entradas, saídas e consumo de insumos por atendimento) sincronizada com Firestore.
-*   **Calculadora de Orçamentos (`PortalCalculator.tsx`):** Simulador de precificação baseado em custos de materiais e horas de serviço.
-*   **Performance Financeira (`PortalCRMFinance.tsx`):** Análise de lucro líquido real e margem por projeto com base em insumos e despesas extras.
-*   **Fechamento do Mês (PDF Executivo A4) [NOVO]:** Geração automática de um relatório financeiro executivo em formato folha A4 pronto para impressão física ou salvamento em PDF, contendo receita total, despesa total, lucro líquido, margem de lucro, ticket médio e lista de transações do período, ocultando os componentes do portal na impressão (`print:hidden`).
+### 1. 📊 Módulo "Meu Negócio" (`PortalManagement.tsx`)
+*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais, cálculo financeiro em tempo real do **Valor de Patrimônio Ativo** (Quantidade × Custo Unitário), filtro rápido para itens com estoque crítico, e **Linha do Tempo de Histórico de Movimentações** (entradas, saídas e consumo de insumos por agendamento concluído) sincronizada com Firestore.
+*   **Calculadora de Orçamentos (`PortalCalculator.tsx`):** Simulador de precificação dinâmico baseado em custos de materiais e horas de trabalho estimadas.
+*   **Performance Financeira (`PortalCRMFinance.tsx`):** Análise de lucro líquido real, receitas, despesas extras, conciliação direta de transações e margem operacional por projeto.
+*   **Fechamento do Mês (PDF Executivo A4):** Relatório de fechamento estético executivo otimizado para salvamento em PDF ou impressão física no formato padrão A4, ocultando os elementos do portal na impressão (`print:hidden`).
 
-### 2. 📅 Agenda e Atendimentos
-*   Exibição reativa de compromissos futuros.
-*   **Slots de Horários Inteligentes [NOVO]:** O campo de horário ao agendar agora é dinâmico, calculando slots livres (ex: a cada 30 min) baseado no expediente comercial configurável de cada dia da semana e ocultando horários com conflito já marcados.
-*   **Bloqueio Rápido de Horários [NOVO]:** Atalho nativo para bloquear slots na timeline ("Horário Bloqueado"), impedindo agendamentos públicos nesse horário.
-*   **Indicador de Fidelidade [NOVO]:** Badge visual no agendamento da timeline mostrando a contagem acumulada de atendimentos concluídos com sucesso do respectivo cliente.
-*   **Baixa Automática no Estoque [NOVO]:** Ao concluir um atendimento, os materiais e quantidades vinculados ao serviço são debitados do estoque físico automaticamente com gravação do respectivo log de movimentação de consumo.
-*   **Personalização de Rótulos Dinâmicos [NOVO]:** O operador pode personalizar as nomenclaturas singular/plural (ex: "Agendamento" -> "Proposta", "Sessão", "Contrato") nas configurações da agenda. Essas alterações são refletidas de forma dinâmica por todo o portal e no Dashboard.
-*   **Painel de Confirmações Pendentes [NOVO]:** Exibição de compromissos futuros com status criados/pendentes diretamente no Dashboard, contendo botão rápido de disparo de WhatsApp que atualiza o status do agendamento para pendente e abre o aplicativo de mensagens.
-*   **Confirmação via WhatsApp:** Integração de templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com suporte a tags dinâmicas como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
-*   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Página pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar presença ou cancelar. Conta agora com exibição da logo personalizada do estabelecimento (vinda do CRM) ou fallback automático para o logotipo oficial do **Hub Symples** se nenhuma imagem for cadastrada.
-*   **Clube de Fidelidade Digital [NOVO]:** Widget interativo integrado à página de confirmação de presença. Se ativado nas configurações da organização, exibe um cartão de carimbos virtual baseado nos atendimentos concluídos (`completed`) do cliente no Firestore, incentivando a fidelização.
-*   **Faturamento Automático:** Ao finalizar o atendimento na linha do tempo, o sistema atualiza o status do pagamento para pago (`paid`), integrando instantaneamente o ganho no painel do CRM Financeiro.
+### 2. 📅 Agenda e Atendimentos (`PortalAgenda.tsx`)
+*   **Timeline Interativa:** Exibição reativa de compromissos futuros do estabelecimento.
+*   **Slots de Horários Inteligentes:** Geração de slots de atendimento dinâmicos baseados no expediente e intervalo comercial definidos nas configurações, filtrando conflitos em tempo real.
+*   **Bloqueio Rápido de Horários:** Atalho para bloquear slots na timeline ("Horário Bloqueado"), impedindo novas reservas no respectivo intervalo.
+*   **Indicador de Fidelidade:** Badge que exibe estrelas acumuladas de clientes fiéis baseadas nos atendimentos com status `completed` no Firestore.
+*   **Baixa Automática no Estoque:** Débito automático de materiais do estoque físico e registro de log ao marcar atendimentos como concluídos.
+*   **Personalização de Rótulos Dinâmicos:** Nomenclaturas singular/plural customizáveis (ex: "Agendamento" -> "Proposta", "Sessão") aplicadas dinamicamente em toda a interface do portal.
+*   **Confirmação via WhatsApp:** Templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com tags como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
+*   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Rota pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar ou cancelar compromissos, exibindo a logo personalizada da empresa ou o fallback padrão.
+*   **Clube de Fidelidade Digital:** Cartão de carimbos gamificado de fidelização na tela de confirmação de presença (editável nas configurações de fidelidade da organização).
+*   **Faturamento Automático:** Integração onde a conclusão de um atendimento na timeline gera e consolida automaticamente a receita no painel do CRM Financeiro.
 
-### 3. 💳 Faturamento (Faturas Hub)
-*   Visualização e acompanhamento de faturas geradas no Asaas via API integrada segura.
-*   Status de pagamento e datas de vencimento em dia.
+### 3. 💳 Faturamento e Faturas (`PortalFinance.tsx`)
+*   **Integração Asaas:** Acompanhamento e visualização de faturas e cobranças geradas pelo estabelecimento integrado via API.
+*   **Controle Financeiro:** Detalhamento do status de pagamento, datas de vencimento, links diretos de faturamento e extrato de transações pendentes ou concluídas.
 
-### 4. 💬 Atendimento & Chamados
-*   Central de suporte para abertura e acompanhamento de chamados.
+### 4. 🛍️ Marketplace de Serviços (`PortalServices.tsx`)
+*   **Vitrine de Ofertas:** Espaço para divulgação de planos, pacotes e serviços de valor agregado adicionais para contratação.
+*   **Destaques de Serviços:** Exibição detalhada com descrição, preço de investimento e selos de segurança.
+*   **Contratação Direta:** Botões para contratação rápida integrados via WhatsApp com mensagem de solicitação pré-formatada.
 
-### 5. 👤 Área de Perfil e Conta
-*   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de foto de perfil (avatar) integrada ao Cloudinary, atualização de nome/razão social e WhatsApp de contato protegidos por modo de leitura controlada (bloqueio de inputs e botões de Salvar/Cancelar) e sincronizados em tempo real de forma segura com o CRM administrativo via API.
-*   **Segurança de Acesso:** Redefinição de senha segura integrada ao Firebase Auth com envio de e-mail de redefinição.
+### 5. 📂 Documentos e Assinatura Digital (`PortalDocuments.tsx`)
+*   **Central de Arquivos:** Visualização e download de contratos, laudos e arquivos anexados ao cadastro do cliente pelo painel administrativo.
+*   **Assinatura Digital de Contratos:** Assinatura digital eletrônica integrada com coleta automática de IP do signatário, User Agent do navegador e registro de logs de auditoria no Firestore.
 
-### 6. 🚀 Hub de Crescimento & Rotas Públicas (`PortalGrowthHub.tsx`)
-*   **Menu Lateral Integrado (Submenu Sanfona):** Navegação expandida na sidebar que divide o hub em 4 telas focadas e independentes (Cofre da Marca, Templates Rápidos, Arsenal de Vendas e Treinamentos) no desktop.
-*   **Cofre da Marca:** Visualização centralizada de múltiplos logotipos da empresa do cliente (com suporte a nomes customizados como SVG, PNG transparente e download individual), paleta de cores institucional com opção de cópia rápida do código HEX, tipografia oficial recomendada e múltiplos links e templates customizados.
-*   **Mini-Site Público (Link da Bio - `/bio/:orgId`) [NOVO]:** Página pública responsiva premium com design de vidro fosco (*glassmorphism*), exibindo a foto do perfil do negócio, links personalizados, redes sociais e botão de agendamento online. Editável e ativável através de aba específica em "Configurações da Agenda".
-*   **Agendamento Online Público (`/agendar/:orgId`) [NOVO]:** Rota de captação externa onde o cliente final seleciona o serviço disponível, escolhe data/horário livre (com validação dinâmica de expediente e conflitos na agenda em tempo real) e realiza a pré-reserva, enviando uma mensagem pré-formatada via WhatsApp para validação/confirmação.
-*   **Reativação de Clientes Inativos (LTV) [NOVO]:** Módulo no Dashboard que monitora a base de dados de clientes e lista de forma inteligente aqueles sem agendamentos há mais de 30 dias, fornecendo botões rápidos para contato via WhatsApp com mensagem personalizada contendo o Link da Bio.
-*   **Templates Rápidos:** Acesso a modelos de design personalizados e ativos com detecção e classificação inteligente de links (exibindo badges e botões dedicados de marcas conhecidas como Canva, Trello e Google Drive).
-*   **Arsenal de Vendas:** Roteiros comerciais e scripts de abordagem comercial com atalho de cópia rápida para o clipboard e feedback em toast.
-*   **Treinamentos (Player Inteligente em Lightbox):** Grid de videoaulas otimizado com extração dinâmica de thumbnails do YouTube (sem carregar iframes pesados em lote) e reprodução fluida em Modal/Lightbox dedicado com efeito desfocado (*backdrop-blur*).
+### 6. 💬 Atendimento & Central de Suporte (`PortalSupport.tsx`)
+*   **Chamados de Suporte:** Abertura e acompanhamento de chamados categorizados por assunto e urgência.
+*   **Histórico de Interações:** Chat dinâmico de conversação e indicação visual imediata na sidebar para novas respostas de administradores.
+
+### 7. 👤 Perfil, Autenticação e Ativação
+*   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de avatar integrado com Cloudinary, nome social e WhatsApp com controle de edição (backup local e modo leitura estática).
+*   **Ativação de Conta (`PortalActivation.tsx`):** Fluxo para ativação de novos portais integrando códigos gerados pelo CRM administrativo com credenciais do Firebase Auth.
+*   **Segurança de Acesso:** Login robusto (`PortalLogin.tsx`) integrado ao Firebase Auth com proteção de rotas e recuperação de senha.
+
+### 8. 🚀 Hub de Crescimento & Rotas Públicas (`PortalGrowthHub.tsx`)
+*   **Mini-Site Público (Bio-Link - `/bio/:orgId`):** Página de links estilo *glassmorphism* contendo logotipos, paleta de cores institucional, links de redes sociais e atalho para o agendamento online público.
+*   **Agendamento Online Público (`/agendar/:orgId`):** Fluxo de reserva externa onde clientes selecionam serviços, data/hora e solicitam pré-reservas gerando mensagens diretas no WhatsApp para confirmação e validação do estabelecimento.
+*   **Reativação de Clientes Inativos (LTV):** Análise na Dashboard (`PortalHome.tsx`) que detecta clientes inativos há mais de 30 dias com gatilhos rápidos para reativação por WhatsApp.
+*   **Arsenal de Vendas e Templates:** Cofre de ativos de marca, scripts de vendas com cópia instantânea e vídeos de treinamento em Lightbox com reprodução fluida e efeito desfocado (*backdrop-blur*).
 
 ---
 
