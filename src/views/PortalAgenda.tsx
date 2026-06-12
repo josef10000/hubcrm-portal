@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
-  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles
+  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Offer, Client } from '../types';
 import { toast } from 'sonner';
@@ -24,6 +24,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [timelineView, setTimelineView] = useState<'daily' | 'monthly'>('daily');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const [appointments, setAppointments] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -394,6 +396,43 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
     setStockAlerts(alerts);
   }, [appointments, services, inventory]);
+
+  // Funções Auxiliares para a Visão Mensal da Agenda
+  const weekDaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const generateCalendarDays = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    const daysArray: { dateStr: string; dayNum: number; isPadding: boolean }[] = [];
+    
+    for (let i = 0; i < firstDayIndex; i++) {
+      daysArray.push({ dateStr: '', dayNum: 0, isPadding: true });
+    }
+    
+    for (let day = 1; day <= totalDays; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      daysArray.push({ dateStr, dayNum: day, isPadding: false });
+    }
+    
+    return daysArray;
+  };
+
+  const getAppointmentsForDay = (dateStr: string) => {
+    return appointments.filter(app => app.date === dateStr && app.status !== 'cancelled');
+  };
+
+  const getDayStats = (dateStr: string) => {
+    const dayAppts = getAppointmentsForDay(dateStr);
+    return {
+      total: dayAppts.length,
+      confirmed: dayAppts.filter(app => app.status === 'confirmed').length,
+      pending: dayAppts.filter(app => app.status === 'pending').length,
+      scheduled: dayAppts.filter(app => app.status === 'scheduled' || !app.status || app.status === 'confirmed_by_client').length
+    };
+  };
 
   // Ações de CRUD de Serviços
   const handleSaveService = async (e: React.FormEvent) => {
@@ -877,35 +916,83 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       {/* ABA 1: LINHA DO TEMPO */}
       {subTab === 'timeline' && (
         <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <CalendarIcon className="text-primary-400" size={20} />
-                {labelSingular === 'Proposta' ? 'Painel de Propostas' : 'Agenda Diária'}
+                {timelineView === 'monthly' ? 'Agenda Mensal' : (labelSingular === 'Proposta' ? 'Painel de Propostas' : 'Agenda Diária')}
               </h2>
-              <p className="text-xs text-gray-400">Gerencie os horários marcados para os(as) {labelPlural.toLowerCase()}.</p>
+              <p className="text-xs text-gray-400">
+                {timelineView === 'monthly' ? 'Visualize e navegue por todos os agendamentos do mês.' : `Gerencie os horários marcados para os(as) ${labelPlural.toLowerCase()}.`}
+              </p>
             </div>
             
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="flex-1 sm:flex-initial px-4 py-2.5 bg-black/40 border border-white/15 hover:border-white/30 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all font-bold w-full"
-              />
+            <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap sm:flex-nowrap">
+              {/* Toggle Diária/Mensal */}
+              <div className="flex bg-black/40 border border-white/10 rounded-xl p-0.5 shrink-0">
+                <button
+                  onClick={() => setTimelineView('daily')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    timelineView === 'daily' 
+                      ? 'bg-primary-500 text-white shadow-md' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Diária
+                </button>
+                <button
+                  onClick={() => setTimelineView('monthly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    timelineView === 'monthly' 
+                      ? 'bg-primary-500 text-white shadow-md' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Mensal
+                </button>
+              </div>
+
+              {timelineView === 'daily' ? (
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 bg-black/40 border border-white/15 hover:border-white/30 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all font-bold w-full sm:w-auto"
+                />
+              ) : (
+                <div className="flex items-center justify-between gap-2 bg-black/40 border border-white/15 rounded-xl px-2 py-1 flex-1 sm:flex-initial h-[46px] min-w-[170px]">
+                  <button
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                    className="p-1.5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-xs font-bold text-white min-w-[90px] text-center select-none uppercase tracking-wider">
+                    {calendarMonth.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                    className="p-1.5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all cursor-pointer"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+              
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0 h-[46px]"
               >
                 <Plus size={16} />
                 <span>{labelSingular === 'Proposta' ? 'Criar Proposta' : 'Agendar'}</span>
               </button>
+              
               <button
                 onClick={handleOpenBlockModal}
-                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer h-[46px]"
               >
                 <AlertTriangle size={16} />
-                <span>Bloquear Horário</span>
+                <span>Bloquear</span>
               </button>
             </div>
           </div>
@@ -998,7 +1085,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             </div>
           )}
 
-          {appointmentsToday.length === 0 ? (
+          {timelineView === 'daily' ? (
+            appointmentsToday.length === 0 ? (
             <div className="py-20 text-center bg-black/20 rounded-2xl border border-white/5">
               <CalendarIcon size={48} className="mx-auto mb-4 text-gray-600" />
               <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Nenhum(a) {labelSingular} Hoje</p>
@@ -1140,6 +1228,123 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          )
+          ) : (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-white/5">
+                {weekDaysShort.map((day) => (
+                  <div key={day} className="py-2">{day}</div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-2">
+                {generateCalendarDays().map((cell, index) => {
+                  if (cell.isPadding) {
+                    return (
+                      <div 
+                        key={`pad-${index}`} 
+                        className="aspect-[4/3] md:aspect-video bg-white/[0.01] border border-white/[0.02] rounded-xl opacity-30" 
+                      />
+                    );
+                  }
+
+                  const stats = getDayStats(cell.dateStr);
+                  const isToday = cell.dateStr === new Date().toISOString().split('T')[0];
+                  const isSelected = cell.dateStr === selectedDate;
+                  
+                  return (
+                    <button
+                      key={cell.dateStr}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate(cell.dateStr);
+                        setTimelineView('daily');
+                      }}
+                      className={`aspect-[4/3] md:aspect-video p-2 rounded-xl border flex flex-col justify-between transition-all text-left relative overflow-hidden group cursor-pointer ${
+                        isSelected 
+                          ? 'bg-primary-500/10 border-primary-500/40 shadow-[0_0_15px_rgba(249,115,22,0.1)]' 
+                          : isToday
+                            ? 'bg-white/5 border-primary-400/30'
+                            : 'bg-black/20 hover:bg-white/[0.04] border-white/5 hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs md:text-sm font-black ${
+                          isSelected 
+                            ? 'text-primary-400 font-black' 
+                            : isToday
+                              ? 'text-primary-300 font-bold'
+                              : 'text-gray-300 group-hover:text-white'
+                        }`}>
+                          {cell.dayNum}
+                        </span>
+                        {isToday && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-primary-400 px-1.5 py-0.5 rounded bg-primary-500/10 border border-primary-500/20">
+                            Hoje
+                          </span>
+                        )}
+                      </div>
+
+                      {stats.total > 0 ? (
+                        <div className="space-y-1 mt-auto">
+                          <div className="hidden md:flex flex-wrap gap-1">
+                            {stats.confirmed > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                {stats.confirmed} C
+                              </span>
+                            )}
+                            {stats.pending > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                                {stats.pending} P
+                              </span>
+                            )}
+                            {stats.scheduled > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                {stats.scheduled} A
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex md:hidden items-center gap-1 mt-1 justify-center">
+                            {Array.from({ length: Math.min(stats.total, 4) }).map((_, i) => {
+                              let colorClass = 'bg-primary-500';
+                              if (i < stats.pending) colorClass = 'bg-amber-500 animate-pulse';
+                              else if (i < stats.pending + stats.confirmed) colorClass = 'bg-emerald-500';
+                              else colorClass = 'bg-blue-500';
+                              return (
+                                <span key={i} className={`w-1.5 h-1.5 rounded-full ${colorClass}`} />
+                              );
+                            })}
+                            {stats.total > 4 && (
+                              <span className="text-[8px] font-bold text-gray-500">+{stats.total - 4}</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-600 font-semibold italic mt-auto hidden md:inline">
+                          Livre
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-white/5 text-[11px] text-gray-400 justify-end">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Confirmado (C)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Pendente (P)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  Agendado (A)
+                </span>
+              </div>
             </div>
           )}
         </div>

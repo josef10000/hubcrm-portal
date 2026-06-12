@@ -137,3 +137,13 @@
     color: #ffffff !important;
   }
 }
+
+@media print {
+  nav, aside, header {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}

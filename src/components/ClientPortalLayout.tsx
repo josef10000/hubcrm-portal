@@ -657,7 +657,7 @@ export default function ClientPortalLayout() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-2">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-2 print:hidden">
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'support'].includes(item.id)).map((item) => (
           <button
             key={item.id}

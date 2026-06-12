@@ -15,7 +15,7 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Fechamento do Mês (PDF Executivo A4):** Relatório de fechamento estético executivo otimizado para salvamento em PDF ou impressão física no formato padrão A4, ocultando os elementos do portal na impressão (`print:hidden`).
 
 ### 2. 📅 Agenda e Atendimentos (`PortalAgenda.tsx`)
-*   **Timeline Interativa:** Exibição reativa de compromissos futuros do estabelecimento.
+*   **Timeline Interativa & Visão Mensal:** Exibição reativa de compromissos com alternância dinâmica entre a Visão Diária (Timeline) e a Visão Mensal (calendário completo com contagem de agendamentos e indicadores coloridos de status: pendente, confirmado ou agendado).
 *   **Slots de Horários Inteligentes:** Geração de slots de atendimento dinâmicos baseados no expediente e intervalo comercial definidos nas configurações, filtrando conflitos em tempo real.
 *   **Bloqueio Rápido de Horários:** Atalho para bloquear slots na timeline ("Horário Bloqueado"), impedindo novas reservas no respectivo intervalo.
 *   **Indicador de Fidelidade:** Badge que exibe estrelas acumuladas de clientes fiéis baseadas nos atendimentos com status `completed` no Firestore.
