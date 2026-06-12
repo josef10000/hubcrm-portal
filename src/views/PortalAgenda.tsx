@@ -723,6 +723,16 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   };
 
   const appointmentsToday = appointments.filter(app => app.date === selectedDate);
+  const todayStrPending = new Date().toISOString().split('T')[0];
+  const pendingPublicAppointments = appointments.filter((app: any) => 
+    app.origin === 'public_link' && 
+    app.status === 'pending' && 
+    app.date >= todayStrPending
+  ).sort((a: any, b: any) => {
+    const dateDiff = a.date.localeCompare(b.date);
+    if (dateDiff !== 0) return dateDiff;
+    return a.time.localeCompare(b.time);
+  });
   const isBlocking = newClientName === 'Horário Bloqueado' && newClientPhone === '000000000';
   const labelSingular = expediente?.appointmentLabelSingular || 'Agendamento';
   const labelPlural = expediente?.appointmentLabelPlural || 'Agendamentos';
@@ -901,6 +911,92 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           </div>
 
           <div className="w-full h-[1px] bg-white/15" />
+
+          {/* Solicitações Pendentes do Link Público */}
+          {pendingPublicAppointments.length > 0 && (
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">
+                  Solicitações Online Pendentes ({pendingPublicAppointments.length})
+                </h3>
+                <Globe size={14} className="text-amber-500/60 ml-auto" />
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Estas solicitações foram feitas pelo link público de agendamento e aguardam sua confirmação.
+              </p>
+              <div className="space-y-3">
+                {pendingPublicAppointments.map((app: any) => {
+                  const dateFormatted = new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  return (
+                    <div key={app.id} className="bg-black/20 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-bold text-white">{app.clientName}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                            PENDENTE
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon size={11} className="text-gray-500" />
+                            {dateFormatted}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} className="text-gray-500" />
+                            {app.time}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Scissors size={11} className="text-gray-500" />
+                            {app.serviceName}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign size={11} className="text-gray-500" />
+                            R$ {app.price?.toFixed(2).replace('.', ',')}
+                          </span>
+                          {app.clientPhone && (
+                            <span className="flex items-center gap-1">
+                              <Phone size={11} className="text-gray-500" />
+                              {app.clientPhone}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            handleUpdateAppointmentStatus(app.id, 'confirmed');
+                            toast.success(`${labelSingular} de ${app.clientName} confirmado!`);
+                          }}
+                          className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer border-0"
+                        >
+                          <Check size={14} />
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleUpdateAppointmentStatus(app.id, 'cancelled');
+                            toast.info(`Solicitação de ${app.clientName} recusada.`);
+                          }}
+                          className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <X size={14} />
+                          Recusar
+                        </button>
+                        <button
+                          onClick={() => setSelectedDate(app.date)}
+                          className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Ver na timeline"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {appointmentsToday.length === 0 ? (
             <div className="py-20 text-center bg-black/20 rounded-2xl border border-white/5">
