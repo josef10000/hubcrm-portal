@@ -558,6 +558,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   const appointmentsToday = appointments.filter(app => app.date === selectedDate);
   const isBlocking = newClientName === 'Horário Bloqueado' && newClientPhone === '000000000';
+  const labelSingular = expediente?.appointmentLabelSingular || 'Agendamento';
+  const labelPlural = expediente?.appointmentLabelPlural || 'Agendamentos';
 
   return (
     <div className="space-y-6">
@@ -566,10 +568,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         <div className="bg-amber-500/10 border border-amber-500/35 p-5 rounded-2xl text-amber-200 flex flex-col gap-2 animate-in fade-in duration-300">
           <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            Alerta de Insumos Insuficientes para Agendamentos Futuros
+            Alerta de Insumos Insuficientes para {labelPlural} Futuros
           </div>
           <p className="text-[11px] text-gray-400">
-            Com base nos agendamentos futuros confirmados, os seguintes materiais no seu estoque ficarão negativos:
+            Com base nos {labelPlural.toLowerCase()} futuros confirmados, os seguintes materiais no seu estoque ficarão negativos:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
             {stockAlerts.map(alert => (
@@ -703,9 +705,9 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <CalendarIcon className="text-primary-400" size={20} />
-                Agenda Diária
+                {labelSingular === 'Proposta' ? 'Painel de Propostas' : 'Agenda Diária'}
               </h2>
-              <p className="text-xs text-gray-400">Gerencie os horários marcados pelos clientes do seu site e WhatsApp.</p>
+              <p className="text-xs text-gray-400">Gerencie os horários marcados para os(as) {labelPlural.toLowerCase()}.</p>
             </div>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -720,7 +722,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0"
               >
                 <Plus size={16} />
-                <span>Agendar</span>
+                <span>{labelSingular === 'Proposta' ? 'Criar Proposta' : 'Agendar'}</span>
               </button>
               <button
                 onClick={handleOpenBlockModal}
@@ -737,8 +739,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           {appointmentsToday.length === 0 ? (
             <div className="py-20 text-center bg-black/20 rounded-2xl border border-white/5">
               <CalendarIcon size={48} className="mx-auto mb-4 text-gray-600" />
-              <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Nenhum Agendamento Hoje</p>
-              <p className="text-xs text-gray-500 mt-1">Sua agenda de {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} está livre.</p>
+              <p className="text-sm font-semibold text-gray-400 uppercase tracking-widest">Nenhum(a) {labelSingular} Hoje</p>
+              <p className="text-xs text-gray-500 mt-1">Seu painel de {labelPlural.toLowerCase()} de {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')} está livre.</p>
             </div>
           ) : (
             <div className="relative border-l-2 border-primary-500/20 ml-2 pl-4 sm:ml-4 sm:pl-8 space-y-8 py-2">
@@ -1159,18 +1161,42 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
           <div className="w-full h-[1px] bg-white/15" />
 
-          <div className="space-y-2 max-w-xs">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Intervalo entre Agendamentos</label>
-            <select
-              value={expediente.slotIntervalMinutes}
-              onChange={(e) => setExpediente({ ...expediente, slotIntervalMinutes: Number(e.target.value) })}
-              className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all"
-            >
-              <option value={15}>15 minutos</option>
-              <option value={30}>30 minutos</option>
-              <option value={45}>45 minutos</option>
-              <option value={60}>60 minutos</option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Intervalo entre {labelPlural}</label>
+              <select
+                value={expediente.slotIntervalMinutes}
+                onChange={(e) => setExpediente({ ...expediente, slotIntervalMinutes: Number(e.target.value) })}
+                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all"
+              >
+                <option value={15}>15 minutos</option>
+                <option value={30}>30 minutos</option>
+                <option value={45}>45 minutos</option>
+                <option value={60}>60 minutos</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Singular (ex: Proposta)</label>
+              <input
+                type="text"
+                placeholder="Ex: Agendamento, Proposta..."
+                value={expediente.appointmentLabelSingular || ''}
+                onChange={(e) => setExpediente({ ...expediente, appointmentLabelSingular: e.target.value })}
+                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Plural (ex: Propostas)</label>
+              <input
+                type="text"
+                placeholder="Ex: Agendamentos, Propostas..."
+                value={expediente.appointmentLabelPlural || ''}
+                onChange={(e) => setExpediente({ ...expediente, appointmentLabelPlural: e.target.value })}
+                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
+              />
+            </div>
           </div>
 
           <div className="w-full h-[1px] bg-white/15 my-6" />
@@ -1385,13 +1411,13 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             <div className="mb-6">
               <h3 className="text-xl font-bold text-white mb-1">
                 {editingAppointmentId 
-                  ? (isBlocking ? 'Editar Bloqueio' : 'Editar Agendamento') 
-                  : (isBlocking ? 'Bloquear Horário' : 'Novo Agendamento')}
+                  ? (isBlocking ? 'Editar Bloqueio' : `Editar ${labelSingular}`) 
+                  : (isBlocking ? 'Bloquear Horário' : `Novo(a) ${labelSingular}`)}
               </h3>
               <p className="text-xs text-gray-400">
                 {isBlocking 
                   ? 'Indisponibilize um slot específico do seu expediente para outros agendamentos.'
-                  : (editingAppointmentId ? 'Ajuste os dados do agendamento do cliente.' : 'Preencha os dados do cliente e selecione o serviço para registrar na agenda.')}
+                  : (editingAppointmentId ? `Ajuste os dados salvos do(a) ${labelSingular.toLowerCase()}.` : `Preencha os dados do cliente e selecione o serviço para registrar o(a) ${labelSingular.toLowerCase()}.`)}
               </p>
             </div>
 
@@ -1533,7 +1559,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   ) : (
                     <>
                       <Check size={14} />
-                      <span>{editingAppointmentId ? 'Salvar Alterações' : (isBlocking ? 'Confirmar Bloqueio' : 'Agendar Cliente')}</span>
+                      <span>{editingAppointmentId ? 'Salvar Alterações' : (isBlocking ? 'Confirmar Bloqueio' : (labelSingular === 'Proposta' ? 'Criar Proposta' : 'Agendar Cliente'))}</span>
                     </>
                   )}
                 </button>

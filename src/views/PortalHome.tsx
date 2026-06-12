@@ -14,10 +14,11 @@ import {
   Plus,
   CalendarPlus,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Phone
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
 
 interface PortalHomeProps {
@@ -30,7 +31,20 @@ interface PortalHomeProps {
 export default function PortalHome({ client, announcement, setActiveTab, supportRequests }: PortalHomeProps) {
   const { orgId } = useParams<{ orgId: string }>();
   const [appointmentsToday, setAppointmentsToday] = useState<any[]>([]);
+  const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
+  const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([
+    {
+      id: 'local',
+      title: 'Atendimento no Local',
+      text: 'Olá, {nome}! Confirmando seu agendamento de {servico} para o dia {data} às {hora}. Valor: R$ {valor}. Para confirmar ou reagendar seu horário, clique no link: {link}. Te aguardamos!'
+    }
+  ]);
+  const [expediente, setExpediente] = useState<any>({});
   const [loadingApps, setLoadingApps] = useState(true);
+
+  // Rótulos Dinâmicos
+  const labelSingular = expediente?.appointmentLabelSingular || 'Agendamento';
+  const labelPlural = expediente?.appointmentLabelPlural || 'Agendamentos';
 
   // Calcula Progresso do Projeto
   const completedStages = client.stages?.filter((s: any) => s.completed).length || 0;
@@ -48,7 +62,23 @@ export default function PortalHome({ client, announcement, setActiveTab, support
     month: 'long'
   });
 
-  // Escuta os compromissos de hoje reativamente
+  // Escuta Configuração de Expediente
+  useEffect(() => {
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+    const unsub = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setExpediente(data);
+        if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
+          setWhatsappTemplates(data.whatsappTemplates);
+        }
+      }
+    });
+    return () => unsub();
+  }, [orgId]);
+
+  // Escuta os compromissos reativamente
   useEffect(() => {
     if (!orgId) return;
     const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
@@ -58,19 +88,66 @@ export default function PortalHome({ client, announcement, setActiveTab, support
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Filtra os agendamentos para o dia de hoje que estão confirmados
-      const filtered = list.filter((app: any) => 
+      const filteredToday = list.filter((app: any) => 
         app.date === todayStr && 
         app.status === 'confirmed'
       );
+      filteredToday.sort((a: any, b: any) => a.time.localeCompare(b.time));
+      setAppointmentsToday(filteredToday);
+
+      // Filtra compromissos futuros com status 'created' ou 'pending' (para disparar confirmação)
+      const filteredPending = list.filter((app: any) => 
+        app.date >= todayStr && 
+        app.status !== 'completed' &&
+        app.status !== 'cancelled' &&
+        app.status !== 'confirmed' &&
+        app.serviceId !== 'bloqueio'
+      );
+      filteredPending.sort((a: any, b: any) => {
+        const dateDiff = a.date.localeCompare(b.date);
+        if (dateDiff !== 0) return dateDiff;
+        return a.time.localeCompare(b.time);
+      });
+      setPendingAppointments(filteredPending);
       
-      // Ordena por horário
-      filtered.sort((a: any, b: any) => a.time.localeCompare(b.time));
-      setAppointmentsToday(filtered);
       setLoadingApps(false);
     });
 
     return () => unsub();
   }, [orgId]);
+
+  const renderWhatsAppText = (templateText: string, app: any) => {
+    if (!app) return '';
+    const linkPublico = `https://portalhub.hubsymples.com.br/confirmar-presenca?id=${app.id}&orgId=${orgId}&clientId=${client.id}`;
+    const dataFormatada = app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+    
+    return templateText
+      .replace(/{nome}/g, app.clientName || '')
+      .replace(/{servico}/g, app.serviceName || '')
+      .replace(/{data}/g, dataFormatada)
+      .replace(/{hora}/g, app.time || '')
+      .replace(/{valor}/g, app.price ? app.price.toFixed(2).replace('.', ',') : '0,00')
+      .replace(/{link}/g, linkPublico);
+  };
+
+  const handleSendWhatsAppMessage = async (app: any) => {
+    if (!app || !orgId) return;
+
+    const template = whatsappTemplates[0]; // Usa o primeiro template cadastrado (padrão)
+    const text = renderWhatsAppText(template.text, app);
+    const phone = app.clientPhone.replace(/\D/g, '');
+
+    try {
+      await updateDoc(doc(db, 'organizations', orgId, 'appointments', app.id), {
+        status: 'pending'
+      });
+    } catch (err) {
+      console.error('Erro ao atualizar status do agendamento para pendente:', err);
+    }
+
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
 
   const getAppStatusBadge = (status: string) => {
     switch (status) {
@@ -138,8 +215,8 @@ export default function PortalHome({ client, announcement, setActiveTab, support
               <Calendar size={22} />
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Agenda de Hoje</p>
-              <p className="text-2xl font-black text-white">{loadingApps ? '...' : `${appointmentsToday.length} compromissos`}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{labelSingular} de Hoje</p>
+              <p className="text-2xl font-black text-white">{loadingApps ? '...' : `${appointmentsToday.length} ${appointmentsToday.length === 1 ? labelSingular.toLowerCase() : labelPlural.toLowerCase()}`}</p>
             </div>
           </div>
           <ChevronRight size={18} className="text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -274,7 +351,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
                 className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group transition-all"
               >
                 <CalendarPlus size={20} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Novo Agendamento</span>
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Novo(a) {labelSingular}</span>
               </button>
 
               <button 
@@ -305,66 +382,132 @@ export default function PortalHome({ client, announcement, setActiveTab, support
         </div>
       </div>
 
-      {/* Seção Agenda de Hoje */}
-      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-        <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
-          <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
-            <Calendar size={16} className="text-primary-400" />
-            Atendimentos Marcados para Hoje
-          </h4>
-          <button 
-            onClick={() => setActiveTab('agenda')}
-            className="text-xs text-primary-400 hover:text-primary-300 font-bold flex items-center gap-1 group transition-colors"
-          >
-            Ver Agenda Completa
-            <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
+      {/* Seções de Agenda de Hoje & Pendentes de Confirmação */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         
-        <div className="divide-y divide-white/5 p-2">
-          {loadingApps ? (
-            <div className="p-12 text-center text-gray-500 italic text-sm">Buscando compromissos de hoje...</div>
-          ) : appointmentsToday.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar size={32} className="mx-auto text-gray-600 mb-4 opacity-50" />
-              <p className="text-gray-500 text-sm">Nenhum atendimento agendado para o dia de hoje.</p>
+        {/* Seção Agenda de Hoje */}
+        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
+                <Calendar size={16} className="text-primary-400" />
+                {labelPlural} de Hoje
+              </h4>
               <button 
                 onClick={() => setActiveTab('agenda')}
-                className="mt-4 px-5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white rounded-xl transition-all"
+                className="text-xs text-primary-400 hover:text-primary-300 font-bold flex items-center gap-1 group whitespace-nowrap transition-colors"
               >
-                Agendar Novo Compromisso
+                Ver {labelPlural}
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-              {appointmentsToday.map((app) => {
-                const badge = getAppStatusBadge(app.status);
-                return (
-                  <div 
-                    key={app.id}
-                    className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:bg-white/10 transition-all"
+            
+            <div className="divide-y divide-white/5 p-2">
+              {loadingApps ? (
+                <div className="p-12 text-center text-gray-500 italic text-sm">Buscando {labelPlural.toLowerCase()} de hoje...</div>
+              ) : appointmentsToday.length === 0 ? (
+                <div className="p-12 text-center py-16">
+                  <Calendar size={32} className="mx-auto text-gray-600 mb-4 opacity-50" />
+                  <p className="text-gray-500 text-sm">Nenhum(a) {labelSingular.toLowerCase()} agendado(a) para hoje.</p>
+                  <button 
+                    onClick={() => setActiveTab('agenda')}
+                    className="mt-4 px-5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white rounded-xl transition-all"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
-                        <Clock size={18} />
+                    Novo(a) {labelSingular}
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
+                  {appointmentsToday.map((app) => {
+                    const badge = getAppStatusBadge(app.status);
+                    return (
+                      <div 
+                        key={app.id}
+                        className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:bg-white/10 transition-all gap-4"
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0">
+                            <Clock size={18} />
+                          </div>
+                          <div className="min-w-0 font-medium">
+                            <h5 className="font-bold text-white text-sm truncate">{app.serviceName}</h5>
+                            <p className="text-[10px] text-gray-500 mt-0.5 truncate">Cliente: {app.clientName}</p>
+                          </div>
+                        </div>
+                        <div className="text-right flex flex-col items-end gap-2 shrink-0">
+                          <span className="text-xs font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">{app.time}</span>
+                          <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="font-bold text-white text-sm">{app.serviceName}</h5>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Cliente: {app.clientName}</p>
-                      </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-2">
-                      <span className="text-xs font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">{app.time}</span>
-                      <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.color}`}>
-                        {badge.label}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Seção Pendentes de Confirmação */}
+        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
+              <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
+                <Phone size={16} className="text-amber-400" />
+                Confirmar {labelPlural}
+              </h4>
+            </div>
+            
+            <div className="divide-y divide-white/5 p-2">
+              {loadingApps ? (
+                <div className="p-12 text-center text-gray-500 italic text-sm">Buscando pendências...</div>
+              ) : pendingAppointments.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center py-16">
+                  <CheckCircle size={32} className="mx-auto text-emerald-500 mb-4 opacity-50" />
+                  <p className="text-gray-500 text-sm">Tudo em dia! Nenhuma pendência de confirmação.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 p-4 max-h-[380px] overflow-y-auto custom-scrollbar">
+                  {pendingAppointments.map((app) => {
+                    const badge = getAppStatusBadge(app.status);
+                    const appDateFormatted = app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+                    return (
+                      <div 
+                        key={app.id}
+                        className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:bg-white/10 transition-all gap-4"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button 
+                            onClick={() => handleSendWhatsAppMessage(app)}
+                            title="Enviar lembrete de confirmação via WhatsApp"
+                            className="w-10 h-10 shrink-0 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 hover:text-emerald-300 transition-all hover:scale-105"
+                          >
+                            <Phone size={18} />
+                          </button>
+                          <div className="min-w-0 font-medium">
+                            <h5 className="font-bold text-white text-sm truncate">{app.serviceName}</h5>
+                            <p className="text-[10px] text-gray-500 mt-0.5 truncate">Cliente: {app.clientName}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right flex flex-col items-end gap-2 shrink-0">
+                          <span className="text-xs font-bold text-white bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                            {appDateFormatted} às {app.time}
+                          </span>
+                          <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badge.bg} ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
