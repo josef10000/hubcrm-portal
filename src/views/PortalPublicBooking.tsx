@@ -14,9 +14,12 @@ import {
   AlertTriangle, 
   ShoppingBag, 
   Sparkles, 
-  DollarSign 
+  DollarSign,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import CustomSelect from '../components/CustomSelect';
 
 export default function PortalPublicBooking() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -45,6 +48,10 @@ export default function PortalPublicBooking() {
   // Estado de Sucesso Final
   const [successBooking, setSuccessBooking] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estados do Calendário Mensal
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [monthAppointments, setMonthAppointments] = useState<any[]>([]);
 
   // 1. Carrega dados básicos (Organização, Serviços e Expediente)
   useEffect(() => {
@@ -102,6 +109,38 @@ export default function PortalPublicBooking() {
 
     loadData();
   }, [orgId]);
+
+  // Carrega todos os agendamentos do mês atual para calcular a disponibilidade de cada dia de forma eficiente
+  useEffect(() => {
+    if (!orgId) return;
+    
+    const fetchMonthAppointments = async () => {
+      try {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth(); // 0-indexed
+        
+        // Formata limites: YYYY-MM-DD
+        const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        
+        const apptsRef = collection(db, 'organizations', orgId, 'appointments');
+        const q = query(
+          apptsRef,
+          where('date', '>=', startOfMonth),
+          where('date', '<=', endOfMonth),
+          where('status', '!=', 'cancelled')
+        );
+        const snap = await getDocs(q);
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setMonthAppointments(list);
+      } catch (e) {
+        console.error('Erro ao buscar agendamentos do mês:', e);
+      }
+    };
+
+    fetchMonthAppointments();
+  }, [currentMonth, orgId]);
 
   // 2. Sempre que a data escolhida mudar, busca os agendamentos desse dia para descobrir horários ocupados
   useEffect(() => {
@@ -189,6 +228,89 @@ export default function PortalPublicBooking() {
 
     setAvailableSlots(slots);
   }, [selectedDate, expediente, bookedTimes]);
+
+  // Dias da semana e funções auxiliares para o calendário
+  const weekDaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const generateMonthDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    const daysArray: { dateStr: string; dayNum: number; isPadding: boolean }[] = [];
+    
+    for (let i = 0; i < firstDayIndex; i++) {
+      daysArray.push({ dateStr: '', dayNum: 0, isPadding: true });
+    }
+    
+    for (let day = 1; day <= totalDays; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      daysArray.push({ dateStr, dayNum: day, isPadding: false });
+    }
+    
+    return daysArray;
+  };
+
+  const getDayAvailability = (dateStr: string) => {
+    if (!dateStr || !expediente || !expediente.businessHours) return 'unavailable';
+    
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    if (dateStr < todayStr) return 'unavailable';
+    
+    const dateObj = new Date(dateStr + 'T12:00:00');
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayKey = weekdays[dateObj.getDay()];
+    const dayConfig = expediente.businessHours[dayKey];
+    
+    if (!dayConfig || !dayConfig.active) return 'unavailable';
+    
+    const { open, close } = dayConfig;
+    const interval = expediente.slotIntervalMinutes || 30;
+    
+    const [startHour, startMin] = open.split(':').map(Number);
+    const [endHour, endMin] = close.split(':').map(Number);
+    
+    let current = new Date();
+    current.setHours(startHour, startMin, 0, 0);
+    const endLimit = new Date();
+    endLimit.setHours(endHour, endMin, 0, 0);
+    
+    let totalSlotsCount = 0;
+    const slotsList: string[] = [];
+    while (current < endLimit) {
+      const timeStr = current.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      
+      let isPast = false;
+      if (dateStr === todayStr) {
+        const now = new Date();
+        const slotTimeObj = new Date();
+        const [h, m] = timeStr.split(':').map(Number);
+        slotTimeObj.setHours(h, m, 0, 0);
+        if (slotTimeObj <= now) {
+          isPast = true;
+        }
+      }
+      
+      if (!isPast) {
+        totalSlotsCount++;
+        slotsList.push(timeStr);
+      }
+      current.setMinutes(current.getMinutes() + interval);
+    }
+    
+    if (totalSlotsCount === 0) return 'unavailable';
+    
+    const bookedForDay = monthAppointments
+      .filter((app: any) => app.date === dateStr)
+      .map((app: any) => app.time);
+      
+    const freeSlots = slotsList.filter(t => !bookedForDay.includes(t)).length;
+    
+    if (freeSlots === 0) return 'unavailable';
+    if (freeSlots <= 3) return 'low';
+    return 'high';
+  };
 
   // Enviar pedido de agendamento
   const handleSubmitBooking = async (e: React.FormEvent) => {
@@ -382,64 +504,127 @@ export default function PortalPublicBooking() {
         </div>
 
         <form onSubmit={handleSubmitBooking} className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 md:p-8 space-y-6 shadow-2xl">
-          
           {/* Passo 1: Escolha do Serviço */}
-          <div className="space-y-3">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Passo 1: Selecione o Serviço</span>
-            <div className="grid grid-cols-1 gap-3 max-h-56 overflow-y-auto custom-scrollbar pr-1">
-              {services.length === 0 ? (
-                <p className="text-xs text-gray-500 italic py-2">Nenhum serviço disponível no momento.</p>
-              ) : (
-                services.map((srv) => (
-                  <button
-                    key={srv.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedService(srv);
-                      setSelectedTime(''); // reseta horário caso mude o serviço
-                    }}
-                    className={`p-4 border rounded-2xl flex items-center justify-between text-left gap-3 transition-all cursor-pointer ${
-                      selectedService?.id === srv.id 
-                        ? 'bg-primary-500/10 border-primary-500' 
-                        : 'bg-black/20 border-white/5 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${selectedService?.id === srv.id ? 'bg-primary-500/20 text-primary-400' : 'bg-white/5 text-gray-400'}`}>
-                        <ShoppingBag size={16} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">{srv.name}</span>
-                        <span className="text-[10px] text-gray-500">{srv.durationMinutes} minutos de duração</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-emerald-400">
-                        R$ {srv.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Passo 1: Selecione o Serviço</label>
+            {services.length === 0 ? (
+              <p className="text-xs text-gray-500 italic py-2">Nenhum serviço disponível no momento.</p>
+            ) : (
+              <CustomSelect
+                value={selectedService?.id || ''}
+                onChange={(val) => {
+                  const srv = services.find(s => s.id === val);
+                  setSelectedService(srv || null);
+                  setSelectedTime(''); // reseta horário caso mude o serviço
+                }}
+                options={services.map(srv => ({
+                  value: srv.id,
+                  label: `${srv.name} - R$ ${srv.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${srv.durationMinutes} min)`
+                }))}
+                placeholder="Escolha o serviço desejado"
+              />
+            )}
           </div>
 
           {/* Passo 2: Escolha de Data */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Passo 2: Escolha a Data</label>
-            <div className="relative">
-              <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-              <input
-                type="date"
-                min={new Date().toISOString().split('T')[0]}
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setSelectedTime(''); // Reseta o horário
-                }}
-                className="w-full pl-12 pr-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all cursor-pointer"
-                required
-              />
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Passo 2: Escolha a Data no Calendário</span>
+            
+            <div className="p-4 bg-black/20 border border-white/5 rounded-2xl space-y-4">
+              {/* Header do Calendário: Mês, Ano e Setas */}
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+                    setCurrentMonth(prev);
+                  }}
+                  className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border-0"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  {currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                </span>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+                    setCurrentMonth(next);
+                  }}
+                  className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border-0"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+              
+              {/* Grid dos Dias */}
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {/* Dias da Semana */}
+                {weekDaysShort.map(day => (
+                  <span key={day} className="text-[9px] font-black text-gray-500 uppercase tracking-wider py-1">{day}</span>
+                ))}
+                
+                {/* Dias do Mês */}
+                {generateMonthDays().map((day, idx) => {
+                  if (day.isPadding) {
+                    return <div key={`padding-${idx}`} className="p-2" />;
+                  }
+                  
+                  const status = getDayAvailability(day.dateStr);
+                  const isSelected = selectedDate === day.dateStr;
+                  
+                  let btnClass = '';
+                  let disabled = false;
+                  
+                  if (status === 'unavailable') {
+                    btnClass = 'text-gray-600 bg-white/[0.01] cursor-not-allowed opacity-30';
+                    disabled = true;
+                  } else if (isSelected) {
+                    btnClass = 'bg-primary-500 text-white font-black shadow-lg shadow-primary-500/20 scale-105';
+                  } else if (status === 'low') {
+                    btnClass = 'border border-amber-500/30 text-amber-400 bg-amber-500/5 hover:bg-amber-500/15';
+                  } else {
+                    btnClass = 'border border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15';
+                  }
+                  
+                  return (
+                    <button
+                      key={day.dateStr}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        setSelectedDate(day.dateStr);
+                        setSelectedTime(''); // reseta horário
+                      }}
+                      className={`p-2 rounded-xl text-xs font-bold transition-all relative cursor-pointer border-0 ${btnClass}`}
+                    >
+                      {day.dayNum}
+                      {!isSelected && status !== 'unavailable' && (
+                        <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${status === 'low' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Legenda */}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/5 pt-3 text-[10px] text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>Vagas livres</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span>Quase cheio</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-gray-600 opacity-30" />
+                  <span>Sem vagas / Fechado</span>
+                </div>
+              </div>
             </div>
           </div>
 
