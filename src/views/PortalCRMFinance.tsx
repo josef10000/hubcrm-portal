@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, doc, onSnapshot, updateDoc, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
 import { 
-  DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Phone, Filter, Plus, Trash2, Edit3, TrendingDown, X, ChevronDown
+  DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Phone, Filter, Plus, Trash2, Edit3, TrendingDown, X, ChevronDown, ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
@@ -45,6 +45,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
+  const [clientName, setClientName] = useState('');
   
   // Controle de abas e filtros
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'last_month' | 'all'>('month');
@@ -191,6 +192,19 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
     });
     return () => unsub();
   }, [orgId]);
+
+  // Escuta os dados do cliente para obter o nome para o fechamento executivo
+  useEffect(() => {
+    if (!orgId || !clientId) return;
+    const clientRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    const unsub = onSnapshot(clientRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setClientName(data.name || '');
+      }
+    });
+    return () => unsub();
+  }, [orgId, clientId]);
 
   // Obtém as datas limites (Início e Fim) do período selecionado
   const getPeriodBounds = (): { start: Date; end: Date } => {
@@ -1563,7 +1577,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                   </span>
                 </div>
                 <div className="text-left sm:text-right">
-                  <h2 className="text-sm font-black text-black uppercase">{client.name}</h2>
+                  <h2 className="text-sm font-black text-black uppercase">{clientName || 'Portal Hub'}</h2>
                   <span className="text-[10px] text-gray-500 block">Gestão Simplificada no Portal Hub</span>
                 </div>
               </div>
