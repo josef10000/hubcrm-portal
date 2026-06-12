@@ -106,7 +106,7 @@ export default function PortalGrowthHub({
   };
 
   // Identifica se o vídeo é do YouTube e obtém o ID do embed
-  const getYouTubeEmbedUrl = (url: string) => {
+  const getYouTubeEmbedUrl = (url?: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -116,7 +116,7 @@ export default function PortalGrowthHub({
     return null;
   };
 
-  const getYouTubeId = (url: string) => {
+  const getYouTubeId = (url?: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -126,7 +126,7 @@ export default function PortalGrowthHub({
     return null;
   };
 
-  const getYouTubeThumbnail = (url: string) => {
+  const getYouTubeThumbnail = (url?: string) => {
     const id = getYouTubeId(url);
     if (id) {
       return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
