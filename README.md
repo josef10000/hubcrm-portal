@@ -9,14 +9,18 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 ## 🚀 Principais Recursos e Módulos
 
 ### 1. 📊 Módulo "Meu Negócio"
-*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais.
+*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais, cálculo financeiro em tempo real do **Valor de Patrimônio Ativo** (Quantidade × Custo Unitário), filtro rápido para itens com estoque crítico, e **Linha do Tempo de Histórico de Movimentações** (entradas, saídas e consumo de insumos por atendimento) sincronizada com Firestore.
 *   **Calculadora de Orçamentos (`PortalCalculator.tsx`):** Simulador de precificação baseado em custos de materiais e horas de serviço.
 *   **Performance Financeira (`PortalCRMFinance.tsx`):** Análise de lucro líquido real e margem por projeto com base em insumos e despesas extras.
 
 ### 2. 📅 Agenda e Atendimentos
 *   Exibição reativa de compromissos futuros.
+*   **Slots de Horários Inteligentes [NOVO]:** O campo de horário ao agendar agora é dinâmico, calculando slots livres (ex: a cada 30 min) baseado no expediente comercial configurável de cada dia da semana e ocultando horários com conflito já marcados.
+*   **Bloqueio Rápido de Horários [NOVO]:** Atalho nativo para bloquear slots na timeline ("Horário Bloqueado"), impedindo agendamentos públicos nesse horário.
+*   **Indicador de Fidelidade [NOVO]:** Badge visual no agendamento da timeline mostrando a contagem acumulada de atendimentos concluídos com sucesso do respectivo cliente.
+*   **Baixa Automática no Estoque [NOVO]:** Ao concluir um atendimento, os materiais e quantidades vinculados ao serviço são debitados do estoque físico automaticamente com gravação do respectivo log de movimentação de consumo.
 *   Alertas preventivos integrados ao estoque se o consumo de insumos dos agendamentos futuros confirmados exceder o estoque físico atual.
-*   **Confirmação via WhatsApp [NOVO]:** Integração de templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com suporte a tags dinâmicas como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
+*   **Confirmação via WhatsApp:** Integração de templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com suporte a tags dinâmicas como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
 *   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Página pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar presença ou cancelar. Conta agora com exibição da logo personalizada do estabelecimento (vinda do CRM) ou fallback automático para o logotipo oficial do **Hub Symples** se nenhuma imagem for cadastrada.
 *   **Faturamento Automático:** Ao finalizar o atendimento na linha do tempo, o sistema atualiza o status do pagamento para pago (`paid`), integrando instantaneamente o ganho no painel do CRM Financeiro.
 

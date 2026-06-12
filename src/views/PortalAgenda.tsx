@@ -146,6 +146,17 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setNewPaymentStatus('unpaid');
   };
 
+  const handleOpenBlockModal = () => {
+    setNewClientName('Horário Bloqueado');
+    setNewClientPhone('000000000');
+    setNewClientEmail('');
+    setNewServiceId('bloqueio');
+    setNewPrice('0');
+    setNewPaymentStatus('paid');
+    setNewTime('');
+    setIsModalOpen(true);
+  };
+
   const handleEditAppointment = (app: any) => {
     setEditingAppointmentId(app.id);
     setNewClientName(app.clientName);
@@ -171,15 +182,20 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   const handleSaveAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClientName.trim() || !newClientPhone.trim() || !newTime || !newServiceId || !orgId) {
+    const isBlocking = newClientName === "Horário Bloqueado" && newClientPhone === "000000000";
+
+    if (!newClientName.trim() || !newClientPhone.trim() || !newTime || (!isBlocking && !newServiceId) || !orgId) {
       toast.error('Preencha os campos obrigatórios.');
       return;
     }
 
-    const selectedSrv = services.find(s => s.id === newServiceId);
-    if (!selectedSrv) {
-      toast.error('Selecione um serviço válido.');
-      return;
+    let selectedSrv: any = null;
+    if (!isBlocking) {
+      selectedSrv = services.find(s => s.id === newServiceId);
+      if (!selectedSrv) {
+        toast.error('Selecione um serviço válido.');
+        return;
+      }
     }
 
     setIsSubmittingAppointment(true);
@@ -188,31 +204,31 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         clientName: newClientName.trim(),
         clientPhone: newClientPhone.trim(),
         clientEmail: newClientEmail.trim(),
-        serviceId: newServiceId,
-        serviceName: selectedSrv.name,
+        serviceId: isBlocking ? "bloqueio" : newServiceId,
+        serviceName: isBlocking ? "Bloqueio de Horário" : selectedSrv.name,
         date: newDate,
         time: newTime,
-        price: Number(newPrice.replace(',', '.')),
-        paymentStatus: newPaymentStatus,
+        price: isBlocking ? 0 : Number(newPrice.replace(',', '.')),
+        paymentStatus: isBlocking ? "paid" : newPaymentStatus,
         updatedAt: serverTimestamp()
       };
 
       if (editingAppointmentId) {
         await updateDoc(doc(db, 'organizations', orgId, 'appointments', editingAppointmentId), payload);
-        toast.success('Agendamento atualizado com sucesso!');
+        toast.success(isBlocking ? 'Bloqueio atualizado com sucesso!' : 'Agendamento atualizado com sucesso!');
       } else {
         await addDoc(collection(db, 'organizations', orgId, 'appointments'), {
           ...payload,
-          status: 'created',
+          status: isBlocking ? 'confirmed' : 'created',
           createdAt: serverTimestamp()
         });
-        toast.success('Agendamento realizado com sucesso!');
+        toast.success(isBlocking ? 'Horário bloqueado com sucesso!' : 'Agendamento realizado com sucesso!');
       }
 
       closeAppointmentModal();
     } catch (err) {
       console.error(err);
-      toast.error(editingAppointmentId ? 'Erro ao atualizar o agendamento.' : 'Erro ao realizar o agendamento.');
+      toast.error(editingAppointmentId ? 'Erro ao atualizar.' : 'Erro ao realizar a operação.');
     } finally {
       setIsSubmittingAppointment(false);
     }
@@ -390,6 +406,48 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     }
   };
 
+  // Gera os slots disponíveis para uma data
+  const getAvailableTimeSlots = (dateStr: string) => {
+    if (!dateStr || !expediente || !expediente.businessHours) return [];
+
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dateObj = new Date(dateStr + 'T12:00:00');
+    const dayKey = weekdays[dateObj.getDay()];
+    
+    const dayConfig = expediente.businessHours[dayKey];
+    if (!dayConfig || !dayConfig.active || !dayConfig.open || !dayConfig.close) {
+      return [];
+    }
+
+    const parseTimeToMinutes = (timeStr: string) => {
+      const [hh, mm] = timeStr.split(':').map(Number);
+      return hh * 60 + mm;
+    };
+
+    const openMinutes = parseTimeToMinutes(dayConfig.open);
+    const closeMinutes = parseTimeToMinutes(dayConfig.close);
+    const interval = expediente.slotIntervalMinutes || 30;
+
+    const allSlots: string[] = [];
+    let current = openMinutes;
+    while (current < closeMinutes) {
+      const hh = Math.floor(current / 60).toString().padStart(2, '0');
+      const mm = (current % 60).toString().padStart(2, '0');
+      allSlots.push(`${hh}:${mm}`);
+      current += interval;
+    }
+
+    return allSlots.filter(slot => {
+      const hasConflict = appointments.some(app => {
+        if (app.status === 'cancelled') return false;
+        if (editingAppointmentId && app.id === editingAppointmentId) return false;
+        return app.date === dateStr && app.time === slot;
+      });
+
+      return !hasConflict;
+    });
+  };
+
   // Ações de Agendamento (Mudar Status)
   const handleUpdateAppointmentStatus = async (appId: string, status: 'confirmed' | 'cancelled' | 'completed') => {
     try {
@@ -397,13 +455,48 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       if (status === 'completed') {
         updatePayload.paymentStatus = 'paid';
       }
+
       await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), updatePayload);
+
+      // Baixa Automática no Estoque se o agendamento foi concluído
+      if (status === 'completed') {
+        const app = appointments.find(a => a.id === appId);
+        if (app && app.serviceId) {
+          const srv = services.find(s => s.id === app.serviceId);
+          if (srv && srv.materials && Array.isArray(srv.materials) && srv.materials.length > 0) {
+            const promises = srv.materials.map(async (m: any) => {
+              const invItem = inventory.find(i => i.id === m.itemId);
+              if (invItem) {
+                const newQty = Math.max(0, invItem.quantity - m.quantity);
+                // Atualiza o estoque físico
+                await updateDoc(doc(db, 'organizations', orgId, 'inventory', m.itemId), {
+                  quantity: newQty,
+                  updatedAt: serverTimestamp()
+                });
+                // Registra o log de movimentação de saída
+                await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+                  itemId: m.itemId,
+                  itemName: invItem.name,
+                  type: 'saida',
+                  quantity: m.quantity,
+                  date: serverTimestamp(),
+                  description: `Consumo automático no atendimento de ${app.clientName} (${srv.name})`
+                });
+              }
+            });
+            await Promise.all(promises);
+            toast.info("Insumos baixados no estoque automaticamente!");
+          }
+        }
+      }
+
       toast.success(
         status === 'confirmed' ? 'Status atualizado para: Confirmado' :
         status === 'cancelled' ? 'Status atualizado para: Cancelado' :
         'Agendamento concluído e enviado ao Financeiro!'
       );
     } catch (e) {
+      console.error(e);
       toast.error('Erro ao atualizar agendamento.');
     }
   };
@@ -453,7 +546,18 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     window.open(url, '_blank');
   };
 
+  const getClientFidelityCount = (phone: string) => {
+    if (!phone || phone === "000000000") return 0;
+    const cleanPhone = phone.replace(/\D/g, '');
+    return appointments.filter(app => 
+      app.status === 'completed' && 
+      app.clientPhone && 
+      app.clientPhone.replace(/\D/g, '') === cleanPhone
+    ).length;
+  };
+
   const appointmentsToday = appointments.filter(app => app.date === selectedDate);
+  const isBlocking = newClientName === 'Horário Bloqueado' && newClientPhone === '000000000';
 
   return (
     <div className="space-y-6">
@@ -613,10 +717,17 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               />
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer"
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0"
               >
                 <Plus size={16} />
                 <span>Agendar</span>
+              </button>
+              <button
+                onClick={handleOpenBlockModal}
+                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+              >
+                <AlertTriangle size={16} />
+                <span>Bloquear Horário</span>
               </button>
             </div>
           </div>
@@ -634,93 +745,119 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               {appointmentsToday.map((app) => (
                 <div key={app.id} className="relative group">
                   <div className={`absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
+                    app.serviceId === 'bloqueio' ? 'bg-rose-500/50 shadow-none' :
                     app.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                     app.status === 'cancelled' ? 'bg-rose-500' : 
                     app.status === 'pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 
                     'bg-primary-500 animate-pulse'
                   }`} />
 
-                  <div className="bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className={`bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                    app.serviceId === 'bloqueio' ? 'opacity-80 border-rose-500/10 hover:border-rose-500/20 bg-rose-500/[0.02]' : ''
+                  }`}>
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="text-sm font-black text-primary-400 font-mono flex items-center gap-1.5 bg-primary-500/10 px-2.5 py-1 rounded-lg">
                           <Clock size={12} />
                           {app.time}
                         </span>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                          app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                        }`}>
-                          {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
-                        </span>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                          app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                          app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
-                          app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
-                          app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                          'bg-sky-500/20 text-sky-400 border-sky-500/30'
-                        }`}>
-                          {app.status === 'completed' ? 'CONCLUÍDO' :
-                           app.status === 'cancelled' ? 'CANCELADO' :
-                           app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
-                           app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
-                        </span>
+                        {app.serviceId === 'bloqueio' ? (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-rose-500/20 text-rose-400 border-rose-500/30">
+                            BLOQUEADO
+                          </span>
+                        ) : (
+                          <>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                              app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                              app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
+                              app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                              app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                              'bg-sky-500/20 text-sky-400 border-sky-500/30'
+                            }`}>
+                              {app.status === 'completed' ? 'CONCLUÍDO' :
+                               app.status === 'cancelled' ? 'CANCELADO' :
+                               app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
+                               app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
+                            </span>
+                            {(() => {
+                              const fidelityCount = getClientFidelityCount(app.clientPhone);
+                              if (fidelityCount > 0) {
+                                return (
+                                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
+                                    ★ Cliente Fiel ({fidelityCount} {fidelityCount === 1 ? 'atendimento' : 'atendimentos'})
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </>
+                        )}
                       </div>
                       <h3 className="text-base font-bold text-white">{app.clientName}</h3>
-                      <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                        <Scissors size={12} className="text-gray-600" />
-                        Serviço: <span className="text-white font-medium">{app.serviceName}</span> &bull; 
-                        <DollarSign size={12} className="text-gray-600 ml-1" /> Valor: <span className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
-                      </p>
+                      {app.serviceId !== 'bloqueio' && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                          <Scissors size={12} className="text-gray-600" />
+                          Serviço: <span className="text-white font-medium">{app.serviceName}</span> &bull; 
+                          <DollarSign size={12} className="text-gray-600 ml-1" /> Valor: <span className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
                       {/* Botões de Ação Principais */}
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
-                          <button
-                            onClick={() => handleOpenWhatsAppModal(app)}
-                            className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
-                          >
-                            <Phone size={14} />
-                            Enviar Confirmação
-                          </button>
-                        )}
-                        
-                        {app.status !== 'completed' && app.status !== 'cancelled' && (
-                          <>
+                      {app.serviceId !== 'bloqueio' && (
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                          {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
                             <button
-                              onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
-                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5 cursor-pointer"
+                              onClick={() => handleOpenWhatsAppModal(app)}
+                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
                             >
-                              <Check size={14} />
-                              Finalizar
+                              <Phone size={14} />
+                              Enviar Confirmação
                             </button>
-                            <button
-                              onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
-                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <X size={14} />
-                              Cancelar
-                            </button>
-                          </>
-                        )}
-                        {app.status === 'completed' && (
-                          <span className="flex-1 sm:flex-initial justify-center text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
-                            <Check size={14} /> Concluído
-                          </span>
-                        )}
-                        {app.status === 'cancelled' && (
-                          <span className="flex-1 sm:flex-initial justify-center text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
-                            <X size={14} /> Cancelado
-                          </span>
-                        )}
-                      </div>
+                          )}
+                          
+                          {app.status !== 'completed' && app.status !== 'cancelled' && (
+                            <>
+                              <button
+                                onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
+                                className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5 cursor-pointer border-0"
+                              >
+                                <Check size={14} />
+                                Finalizar
+                              </button>
+                              <button
+                                onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
+                                className="flex-1 sm:flex-initial justify-center p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                              >
+                                <X size={14} />
+                                Cancelar
+                              </button>
+                            </>
+                          )}
+                          {app.status === 'completed' && (
+                            <span className="flex-1 sm:flex-initial justify-center text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
+                              <Check size={14} /> Concluído
+                            </span>
+                          )}
+                          {app.status === 'cancelled' && (
+                            <span className="flex-1 sm:flex-initial justify-center text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
+                              <X size={14} /> Cancelado
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Botões de Ação Utilitários */}
                       <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2 sm:pt-0 sm:border-0 w-full sm:w-auto shrink-0">
                         <button
                           onClick={() => handleEditAppointment(app)}
-                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center"
+                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
                           title="Editar agendamento"
                         >
                           <Edit2 size={13} className="mr-1 sm:mr-0" />
@@ -728,7 +865,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                         </button>
                         <button
                           onClick={() => handleDeleteAppointment(app.id)}
-                          className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center"
+                          className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
                           title="Excluir agendamento"
                         >
                           <Trash2 size={13} className="mr-1 sm:mr-0" />
@@ -1240,23 +1377,27 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
             <button
               onClick={closeAppointmentModal}
-              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
             >
               <X size={20} />
             </button>
 
             <div className="mb-6">
               <h3 className="text-xl font-bold text-white mb-1">
-                {editingAppointmentId ? 'Editar Agendamento' : 'Novo Agendamento'}
+                {editingAppointmentId 
+                  ? (isBlocking ? 'Editar Bloqueio' : 'Editar Agendamento') 
+                  : (isBlocking ? 'Bloquear Horário' : 'Novo Agendamento')}
               </h3>
               <p className="text-xs text-gray-400">
-                {editingAppointmentId ? 'Ajuste os dados do agendamento do cliente.' : 'Preencha os dados do cliente e selecione o serviço para registrar na agenda.'}
+                {isBlocking 
+                  ? 'Indisponibilize um slot específico do seu expediente para outros agendamentos.'
+                  : (editingAppointmentId ? 'Ajuste os dados do agendamento do cliente.' : 'Preencha os dados do cliente e selecione o serviço para registrar na agenda.')}
               </p>
             </div>
 
             <form onSubmit={handleSaveAppointment} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Cliente</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Cliente / Identificador</label>
                 <input
                   type="text"
                   value={newClientName}
@@ -1264,47 +1405,62 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   placeholder="Ex: João Silva"
                   className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
                   required
+                  disabled={isBlocking}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {!isBlocking && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">WhatsApp / Tel</label>
+                    <input
+                      type="text"
+                      value={newClientPhone}
+                      onChange={(e) => setNewClientPhone(e.target.value)}
+                      placeholder="5511999999999"
+                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">E-mail (Opcional)</label>
+                    <input
+                      type="email"
+                      value={newClientEmail}
+                      onChange={(e) => setNewClientEmail(e.target.value)}
+                      placeholder="exemplo@email.com"
+                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {isBlocking ? (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">WhatsApp / Tel</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipo de Bloqueio</label>
                   <input
                     type="text"
-                    value={newClientPhone}
-                    onChange={(e) => setNewClientPhone(e.target.value)}
-                    placeholder="5511999999999"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
-                    required
+                    value="Bloqueio de Horário"
+                    disabled
+                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-gray-500 rounded-xl text-sm outline-none font-bold"
                   />
                 </div>
+              ) : (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">E-mail (Opcional)</label>
-                  <input
-                    type="email"
-                    value={newClientEmail}
-                    onChange={(e) => setNewClientEmail(e.target.value)}
-                    placeholder="exemplo@email.com"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
-                  />
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
+                  <select
+                    value={newServiceId}
+                    onChange={(e) => handleServiceChange(e.target.value)}
+                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
+                    required
+                  >
+                    <option value="" className="bg-[#050505] text-gray-500">Selecione um serviço...</option>
+                    {services.map(s => (
+                      <option key={s.id} value={s.id} className="bg-[#050505]">{s.name} (R$ {s.price})</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
-                <select
-                  value={newServiceId}
-                  onChange={(e) => handleServiceChange(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                  required
-                >
-                  <option value="" className="bg-[#050505] text-gray-500">Selecione um serviço...</option>
-                  {services.map(s => (
-                    <option key={s.id} value={s.id} className="bg-[#050505]">{s.name} (R$ {s.price})</option>
-                  ))}
-                </select>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -1319,46 +1475,55 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
-                  <input
-                    type="time"
+                  <select
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
                     className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-mono"
                     required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor Cobrado (R$)</label>
-                  <input
-                    type="text"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    placeholder="Ex: 150,00"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status do Pagamento</label>
-                  <select
-                    value={newPaymentStatus}
-                    onChange={(e) => setNewPaymentStatus(e.target.value as 'unpaid' | 'paid')}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
                   >
-                    <option value="unpaid" className="bg-[#050505] text-amber-400">PENDENTE</option>
-                    <option value="paid" className="bg-[#050505] text-emerald-400">PAGO</option>
+                    <option value="" className="bg-[#050505] text-gray-500">Selecione...</option>
+                    {newDate && getAvailableTimeSlots(newDate).map(slot => (
+                      <option key={slot} value={slot} className="bg-[#050505]">{slot}</option>
+                    ))}
+                    {editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate).includes(newTime) && (
+                      <option value={newTime} className="bg-[#050505]">{newTime} (Atual)</option>
+                    )}
                   </select>
                 </div>
               </div>
+
+              {!isBlocking && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor Cobrado (R$)</label>
+                    <input
+                      type="text"
+                      value={newPrice}
+                      onChange={(e) => setNewPrice(e.target.value)}
+                      placeholder="Ex: 150,00"
+                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status do Pagamento</label>
+                    <select
+                      value={newPaymentStatus}
+                      onChange={(e) => setNewPaymentStatus(e.target.value as 'unpaid' | 'paid')}
+                      className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
+                    >
+                      <option value="unpaid" className="bg-[#050505] text-amber-400">PENDENTE</option>
+                      <option value="paid" className="bg-[#050505] text-emerald-400">PAGO</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
                   disabled={isSubmittingAppointment}
-                  className="flex-1 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2 cursor-pointer border-0"
                 >
                   {isSubmittingAppointment ? (
                     <>
@@ -1368,14 +1533,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   ) : (
                     <>
                       <Check size={14} />
-                      <span>{editingAppointmentId ? 'Salvar Alterações' : 'Agendar Cliente'}</span>
+                      <span>{editingAppointmentId ? 'Salvar Alterações' : (isBlocking ? 'Confirmar Bloqueio' : 'Agendar Cliente')}</span>
                     </>
                   )}
                 </button>
                 <button
                   type="button"
                   onClick={closeAppointmentModal}
-                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
                 >
                   Cancelar
                 </button>
