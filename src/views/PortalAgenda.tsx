@@ -60,11 +60,17 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [activeAppointmentForWhatsApp, setActiveAppointmentForWhatsApp] = useState<any>(null);
   
-  // Estados para CRUD de templates em settings
+  // Estados para CRUD de templates in settings
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateTitle, setTemplateTitle] = useState('');
   const [templateText, setTemplateText] = useState('');
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
+
+  // Estados para edição independente de seções no expediente
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [hoursBackup, setHoursBackup] = useState<any>(null);
+  const [isEditingNomenclature, setIsEditingNomenclature] = useState(false);
+  const [nomenclatureBackup, setNomenclatureBackup] = useState<any>(null);
 
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
@@ -392,16 +398,46 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     });
   };
 
-  // Salvar Regras de Expediente
-  const handleSaveExpediente = async () => {
+  // Salvar apenas os Horários de Atendimento (Expediente Comercial)
+  const handleSaveHours = async () => {
     if (!orgId) return;
     try {
-      await setDoc(doc(db, 'organizations', orgId, 'settings', 'scheduling'), {
-        ...expediente,
-        whatsappTemplates: whatsappTemplates
-      }, { merge: true });
-      toast.success('Configurações de expediente e templates salvas!');
+      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const dataToSave = {
+        businessHours: expediente.businessHours || {}
+      };
+      try {
+        await updateDoc(docRef, dataToSave);
+      } catch (err) {
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
+      toast.success('Horários de expediente salvos com sucesso!');
+      setIsEditingHours(false);
     } catch (e) {
+      console.error(e);
+      toast.error('Erro ao salvar horários de expediente.');
+    }
+  };
+
+  // Salvar apenas as Regras e Nomenclaturas
+  const handleSaveNomenclature = async () => {
+    if (!orgId) return;
+    try {
+      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const dataToSave = {
+        slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
+        appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
+        appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos'
+      };
+      try {
+        await updateDoc(docRef, dataToSave);
+      } catch (err) {
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
+      toast.success('Configurações de regras e nomenclaturas salvas!');
+      setIsEditingNomenclature(false);
+    } catch (e) {
+      console.error(e);
       toast.error('Erro ao salvar configurações.');
     }
   };
@@ -1088,114 +1124,216 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       {/* ABA 3: EXPEDIENTE COMERCIAL */}
       {subTab === 'settings' && (
         <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Settings className="text-primary-400" size={20} />
-              Expediente Comercial
-            </h2>
-            <p className="text-xs text-gray-400">Configure os horários em que seu estabelecimento está aberto e aceita novos agendamentos.</p>
-          </div>
-
-          <div className="w-full h-[1px] bg-white/15" />
-
-          <div className="space-y-3 max-w-xl">
-            {Object.keys(expediente.businessHours || {}).map((day) => {
-              const dayConfig = expediente.businessHours[day];
-              const translate: Record<string, string> = {
-                monday: 'Segunda-feira',
-                tuesday: 'Terça-feira',
-                wednesday: 'Quarta-feira',
-                thursday: 'Quinta-feira',
-                friday: 'Sexta-feira',
-                saturday: 'Sábado',
-                sunday: 'Domingo'
-              };
-
-              return (
-                <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl gap-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={dayConfig.active}
-                      onChange={(e) => {
-                        const newConfig = { ...expediente };
-                        newConfig.businessHours[day].active = e.target.checked;
-                        setExpediente(newConfig);
-                      }}
-                      className="w-4 h-4 rounded border-white/10 text-primary-500 bg-black/40 focus:ring-primary-500 focus:ring-offset-black"
-                    />
-                    <span className="text-xs font-bold text-white w-28">{translate[day] || day}</span>
-                  </div>
-
-                  {dayConfig.active ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        value={dayConfig.open}
-                        onChange={(e) => {
-                          const newConfig = { ...expediente };
-                          newConfig.businessHours[day].open = e.target.value;
-                          setExpediente(newConfig);
-                        }}
-                        className="px-3 py-1.5 bg-black/40 border border-white/10 text-white rounded-lg text-xs outline-none font-mono"
-                      />
-                      <span className="text-xs text-gray-500">às</span>
-                      <input
-                        type="time"
-                        value={dayConfig.close}
-                        onChange={(e) => {
-                          const newConfig = { ...expediente };
-                          newConfig.businessHours[day].close = e.target.value;
-                          setExpediente(newConfig);
-                        }}
-                        className="px-3 py-1.5 bg-black/40 border border-white/10 text-white rounded-lg text-xs outline-none font-mono"
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-500 italic">Fechado / Sem expediente</span>
-                  )}
+          
+          {/* Seção 1: Horários de Atendimento */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Settings className="text-primary-400" size={20} />
+                  Expediente Comercial
+                </h2>
+                <p className="text-xs text-gray-400">Configure os horários em que seu estabelecimento está aberto e aceita novos agendamentos.</p>
+              </div>
+              {!isEditingHours ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHoursBackup(JSON.parse(JSON.stringify(expediente.businessHours || {})));
+                    setIsEditingHours(true);
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-500/50 hover:bg-primary-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                >
+                  <Edit2 size={12} />
+                  <span>Editar Horários</span>
+                </button>
+              ) : (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSaveHours}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Check size={12} />
+                    <span>Salvar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpediente({ ...expediente, businessHours: hoursBackup });
+                      setIsEditingHours(false);
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            <div className="w-full h-[1px] bg-white/15" />
+
+            <div className="space-y-3 max-w-xl">
+              {Object.keys(expediente.businessHours || {}).map((day) => {
+                const dayConfig = expediente.businessHours[day];
+                const translate: Record<string, string> = {
+                  monday: 'Segunda-feira',
+                  tuesday: 'Terça-feira',
+                  wednesday: 'Quarta-feira',
+                  thursday: 'Quinta-feira',
+                  friday: 'Sexta-feira',
+                  saturday: 'Sábado',
+                  sunday: 'Domingo'
+                };
+
+                return (
+                  <div key={day} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-2xl gap-3 transition-colors ${dayConfig.active ? 'bg-black/20 border-white/5' : 'bg-black/10 border-white/5 opacity-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={dayConfig.active}
+                        disabled={!isEditingHours}
+                        onChange={(e) => {
+                          const newConfig = { ...expediente };
+                          newConfig.businessHours[day].active = e.target.checked;
+                          setExpediente(newConfig);
+                        }}
+                        className="w-4 h-4 rounded border-white/10 text-primary-500 bg-black/40 focus:ring-primary-500 focus:ring-offset-black disabled:opacity-50"
+                      />
+                      <span className="text-xs font-bold text-white w-28">{translate[day] || day}</span>
+                    </div>
+
+                    {dayConfig.active ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={dayConfig.open}
+                          disabled={!isEditingHours}
+                          onChange={(e) => {
+                            const newConfig = { ...expediente };
+                            newConfig.businessHours[day].open = e.target.value;
+                            setExpediente(newConfig);
+                          }}
+                          className="px-3 py-1.5 bg-black/40 border border-white/10 text-white rounded-lg text-xs outline-none font-mono disabled:opacity-50"
+                        />
+                        <span className="text-xs text-gray-500">às</span>
+                        <input
+                          type="time"
+                          value={dayConfig.close}
+                          disabled={!isEditingHours}
+                          onChange={(e) => {
+                            const newConfig = { ...expediente };
+                            newConfig.businessHours[day].close = e.target.value;
+                            setExpediente(newConfig);
+                          }}
+                          className="px-3 py-1.5 bg-black/40 border border-white/10 text-white rounded-lg text-xs outline-none font-mono disabled:opacity-50"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-500 italic">Fechado / Sem expediente</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="w-full h-[1px] bg-white/15" />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Intervalo entre {labelPlural}</label>
-              <select
-                value={expediente.slotIntervalMinutes}
-                onChange={(e) => setExpediente({ ...expediente, slotIntervalMinutes: Number(e.target.value) })}
-                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all"
-              >
-                <option value={15}>15 minutos</option>
-                <option value={30}>30 minutos</option>
-                <option value={45}>45 minutos</option>
-                <option value={60}>60 minutos</option>
-              </select>
+          {/* Seção 2: Regras e Nomenclatura */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Scissors className="text-primary-400" size={16} />
+                  Regras e Nomenclatura
+                </h3>
+                <p className="text-xs text-gray-400">Defina o intervalo entre slots de horários e as nomenclaturas singular/plural usadas no portal.</p>
+              </div>
+              {!isEditingNomenclature ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNomenclatureBackup({
+                      slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
+                      appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
+                      appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos'
+                    });
+                    setIsEditingNomenclature(true);
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-500/50 hover:bg-primary-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                >
+                  <Edit2 size={12} />
+                  <span>Editar Configurações</span>
+                </button>
+              ) : (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSaveNomenclature}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Check size={12} />
+                    <span>Salvar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpediente({
+                        ...expediente,
+                        slotIntervalMinutes: nomenclatureBackup.slotIntervalMinutes,
+                        appointmentLabelSingular: nomenclatureBackup.appointmentLabelSingular,
+                        appointmentLabelPlural: nomenclatureBackup.appointmentLabelPlural
+                      });
+                      setIsEditingNomenclature(false);
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Singular (ex: Proposta)</label>
-              <input
-                type="text"
-                placeholder="Ex: Agendamento, Proposta..."
-                value={expediente.appointmentLabelSingular || ''}
-                onChange={(e) => setExpediente({ ...expediente, appointmentLabelSingular: e.target.value })}
-                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Intervalo entre {labelPlural}</label>
+                <select
+                  value={expediente.slotIntervalMinutes || 30}
+                  disabled={!isEditingNomenclature}
+                  onChange={(e) => setExpediente({ ...expediente, slotIntervalMinutes: Number(e.target.value) })}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all disabled:opacity-50"
+                >
+                  <option value={15}>15 minutos</option>
+                  <option value={30}>30 minutos</option>
+                  <option value={45}>45 minutos</option>
+                  <option value={60}>60 minutos</option>
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Plural (ex: Propostas)</label>
-              <input
-                type="text"
-                placeholder="Ex: Agendamentos, Propostas..."
-                value={expediente.appointmentLabelPlural || ''}
-                onChange={(e) => setExpediente({ ...expediente, appointmentLabelPlural: e.target.value })}
-                className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
-              />
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Singular (ex: Proposta)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Agendamento, Proposta..."
+                  value={expediente.appointmentLabelSingular || ''}
+                  disabled={!isEditingNomenclature}
+                  onChange={(e) => setExpediente({ ...expediente, appointmentLabelSingular: e.target.value })}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Rótulo Plural (ex: Propostas)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Agendamentos, Propostas..."
+                  value={expediente.appointmentLabelPlural || ''}
+                  disabled={!isEditingNomenclature}
+                  onChange={(e) => setExpediente({ ...expediente, appointmentLabelPlural: e.target.value })}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50"
+                />
+              </div>
             </div>
           </div>
 
@@ -1282,7 +1420,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!templateTitle.trim() || !templateText.trim()) {
                         toast.error('Preencha o título e o texto do template.');
                         return;
@@ -1306,12 +1444,21 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                         });
                       }
 
+                      if (orgId) {
+                        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+                        try {
+                          await updateDoc(docRef, { whatsappTemplates: currentTemplates });
+                        } catch (err) {
+                          await setDoc(docRef, { whatsappTemplates: currentTemplates }, { merge: true });
+                        }
+                      }
+
                       setWhatsappTemplates(currentTemplates);
                       setTemplateTitle('');
                       setTemplateText('');
                       setEditingTemplateId(null);
                       setIsAddingTemplate(false);
-                      toast.success(editingTemplateId ? 'Template atualizado!' : 'Template criado! Salve as configurações para gravar.');
+                      toast.success(editingTemplateId ? 'Template atualizado e salvo com sucesso!' : 'Template criado e salvo com sucesso!');
                     }}
                     className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
                   >
@@ -1368,9 +1515,18 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                       {tpl.id !== 'local' && tpl.id !== 'domicilio' && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setWhatsappTemplates(whatsappTemplates.filter(t => t.id !== tpl.id));
-                            toast.info('Template removido da lista. Clique em Salvar Expediente para confirmar.');
+                          onClick={async () => {
+                            const updatedTemplates = whatsappTemplates.filter(t => t.id !== tpl.id);
+                            if (orgId) {
+                              const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+                              try {
+                                await updateDoc(docRef, { whatsappTemplates: updatedTemplates });
+                              } catch (err) {
+                                await setDoc(docRef, { whatsappTemplates: updatedTemplates }, { merge: true });
+                              }
+                            }
+                            setWhatsappTemplates(updatedTemplates);
+                            toast.success('Template excluído e removido com sucesso!');
                           }}
                           className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer"
                         >
@@ -1385,15 +1541,6 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             )}
           </div>
 
-          <div className="w-full h-[1px] bg-white/15 my-4" />
-
-          <button
-            onClick={handleSaveExpediente}
-            className="px-6 py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center gap-1.5 cursor-pointer"
-          >
-            <Check size={14} />
-            Salvar Expediente
-          </button>
         </div>
       )}
 
