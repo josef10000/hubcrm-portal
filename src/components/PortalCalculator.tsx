@@ -7,6 +7,7 @@ import {
   Coins, Hourglass, Plus, Trash2, Save, RotateCcw, Calculator, Percent
 } from 'lucide-react';
 import { toast } from 'sonner';
+import CustomSelect from './CustomSelect';
 import {
   calculateMaterialsCost,
   calculateLaborCost,
@@ -170,18 +171,15 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
           <div className="flex flex-col sm:flex-row gap-3 items-end mb-6">
             <div className="flex-1 w-full">
               <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Insumo</label>
-              <select
+              <CustomSelect
                 value={currentMaterialId}
-                onChange={(e) => setCurrentMaterialId(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary-500 text-sm text-white font-bold"
-              >
-                <option value="" className="bg-[#111] text-gray-400">Selecione um insumo...</option>
-                {inventory.map(item => (
-                  <option key={item.id} value={item.id} className="bg-[#111]">
-                    {item.name} (R$ {item.costPerUnit.toLocaleString('pt-BR')}/{item.unit})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCurrentMaterialId(val)}
+                placeholder="Selecione um insumo..."
+                options={inventory.map(item => ({
+                  value: item.id,
+                  label: `${item.name} (R$ ${item.costPerUnit.toLocaleString('pt-BR')}/${item.unit})`
+                }))}
+              />
             </div>
             
             <div className="w-full sm:w-32">

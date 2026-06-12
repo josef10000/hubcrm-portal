@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from './ConfirmModal';
+import CustomSelect from './CustomSelect';
 
 interface PortalInventoryProps {
   orgId: string;
@@ -401,7 +402,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openEditModal(item)}
-                      className="p-2 hover:bg-blue-500/10 text-gray-400 hover:text-blue-400 border border-white/10 hover:border-blue-500/30 rounded-xl transition-all border-0 bg-transparent"
+                      className="p-2 hover:bg-primary-500/10 text-gray-400 hover:text-primary-400 border border-white/10 hover:border-primary-500/30 rounded-xl transition-all border-0 bg-transparent cursor-pointer"
                       title="Editar"
                     >
                       <Edit2 size={14} />
@@ -519,17 +520,17 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">Unidade *</label>
-                  <select 
+                  <CustomSelect 
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 outline-none focus:border-primary-500 text-sm text-white font-bold"
-                  >
-                    <option value="g" className="bg-[#111]">g (gramas)</option>
-                    <option value="kg" className="bg-[#111]">kg (quilos)</option>
-                    <option value="L" className="bg-[#111]">L (litros)</option>
-                    <option value="un" className="bg-[#111]">un (unidades)</option>
-                    <option value="m" className="bg-[#111]">m (metros)</option>
-                  </select>
+                    onChange={(val) => setUnit(val)}
+                    options={[
+                      { value: 'g', label: 'g (gramas)' },
+                      { value: 'kg', label: 'kg (quilos)' },
+                      { value: 'L', label: 'L (litros)' },
+                      { value: 'un', label: 'un (unidades)' },
+                      { value: 'm', label: 'm (metros)' }
+                    ]}
+                  />
                 </div>
               </div>
 

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import CustomSelect from '../components/CustomSelect';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -943,18 +944,18 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Duração (minutos)</label>
-                  <select
+                  <CustomSelect
                     value={serviceDuration}
-                    onChange={(e) => setServiceDuration(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all"
-                  >
-                    <option value={15}>15 min</option>
-                    <option value={30}>30 min</option>
-                    <option value={45}>45 min</option>
-                    <option value={60}>60 min</option>
-                    <option value={90}>90 min</option>
-                    <option value={120}>120 min</option>
-                  </select>
+                    onChange={(val) => setServiceDuration(Number(val))}
+                    options={[
+                      { value: 15, label: '15 min' },
+                      { value: 30, label: '30 min' },
+                      { value: 45, label: '45 min' },
+                      { value: 60, label: '60 min' },
+                      { value: 90, label: '90 min' },
+                      { value: 120, label: '120 min' }
+                    ]}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Preço (R$)</label>
@@ -974,16 +975,15 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
-                    <select
+                    <CustomSelect
                       value={currentSelectedMaterialId}
-                      onChange={(e) => setCurrentSelectedMaterialId(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/10 hover:border-white/20 text-white rounded-lg text-xs outline-none transition-all focus:border-primary-500 font-bold"
-                    >
-                      <option value="" className="bg-[#050505] text-gray-500">Selecionar material...</option>
-                      {inventory.map(item => (
-                        <option key={item.id} value={item.id} className="bg-[#050505]">{item.name} ({item.unit})</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setCurrentSelectedMaterialId(val)}
+                      placeholder="Selecionar material..."
+                      options={inventory.map(item => ({
+                        value: item.id,
+                        label: `${item.name} (${item.unit})`
+                      }))}
+                    />
                   </div>
                   <div className="w-20">
                     <input
@@ -1298,17 +1298,17 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Intervalo entre {labelPlural}</label>
-                <select
+                <CustomSelect
                   value={expediente.slotIntervalMinutes || 30}
                   disabled={!isEditingNomenclature}
-                  onChange={(e) => setExpediente({ ...expediente, slotIntervalMinutes: Number(e.target.value) })}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all disabled:opacity-50"
-                >
-                  <option value={15}>15 minutos</option>
-                  <option value={30}>30 minutos</option>
-                  <option value={45}>45 minutos</option>
-                  <option value={60}>60 minutos</option>
-                </select>
+                  onChange={(val) => setExpediente({ ...expediente, slotIntervalMinutes: Number(val) })}
+                  options={[
+                    { value: 15, label: '15 minutos' },
+                    { value: 30, label: '30 minutos' },
+                    { value: 45, label: '45 minutos' },
+                    { value: 60, label: '60 minutos' }
+                  ]}
+                />
               </div>
 
               <div className="space-y-2">
@@ -1621,17 +1621,15 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               ) : (
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
-                  <select
+                  <CustomSelect
                     value={newServiceId}
-                    onChange={(e) => handleServiceChange(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                    required
-                  >
-                    <option value="" className="bg-[#050505] text-gray-500">Selecione um serviço...</option>
-                    {services.map(s => (
-                      <option key={s.id} value={s.id} className="bg-[#050505]">{s.name} (R$ {s.price})</option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleServiceChange(val)}
+                    placeholder="Selecione um serviço..."
+                    options={services.map(s => ({
+                      value: s.id,
+                      label: `${s.name} (R$ ${s.price})`
+                    }))}
+                  />
                 </div>
               )}
 
@@ -1648,20 +1646,17 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
-                  <select
+                  <CustomSelect
                     value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-mono"
-                    required
-                  >
-                    <option value="" className="bg-[#050505] text-gray-500">Selecione...</option>
-                    {newDate && getAvailableTimeSlots(newDate).map(slot => (
-                      <option key={slot} value={slot} className="bg-[#050505]">{slot}</option>
-                    ))}
-                    {editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate).includes(newTime) && (
-                      <option value={newTime} className="bg-[#050505]">{newTime} (Atual)</option>
-                    )}
-                  </select>
+                    onChange={(val) => setNewTime(val)}
+                    placeholder="Selecione o horário..."
+                    options={[
+                      ...(newDate ? getAvailableTimeSlots(newDate).map(slot => ({ value: slot, label: slot })) : []),
+                      ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate).includes(newTime) 
+                        ? [{ value: newTime, label: `${newTime} (Atual)` }] 
+                        : [])
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -1680,14 +1675,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status do Pagamento</label>
-                    <select
+                    <CustomSelect
                       value={newPaymentStatus}
-                      onChange={(e) => setNewPaymentStatus(e.target.value as 'unpaid' | 'paid')}
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                    >
-                      <option value="unpaid" className="bg-[#050505] text-amber-400">PENDENTE</option>
-                      <option value="paid" className="bg-[#050505] text-emerald-400">PAGO</option>
-                    </select>
+                      onChange={(val) => setNewPaymentStatus(val as 'unpaid' | 'paid')}
+                      options={[
+                        { value: 'unpaid', label: 'PENDENTE' },
+                        { value: 'paid', label: 'PAGO' }
+                      ]}
+                    />
                   </div>
                 </div>
               )}
@@ -1745,17 +1740,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Template da Mensagem</label>
-                <select
+                <CustomSelect
                   value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                >
-                  {whatsappTemplates.map(t => (
-                    <option key={t.id} value={t.id} className="bg-[#050505] text-white">
-                      {t.title || t.id}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedTemplateId(val)}
+                  options={whatsappTemplates.map(t => ({
+                    value: t.id,
+                    label: t.title || t.id
+                  }))}
+                />
               </div>
 
               <div className="space-y-1">

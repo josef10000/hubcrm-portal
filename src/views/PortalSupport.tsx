@@ -22,6 +22,7 @@ import { useParams } from 'react-router-dom';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { toast } from 'sonner';
 import { SupportTicket } from '../types';
+import CustomSelect from '../components/CustomSelect';
 
 interface PortalSupportProps {
   client: any;
@@ -295,28 +296,15 @@ export default function PortalSupport({ client, requests, onViewTicket }: Portal
               <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div>
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Selecione o Assunto</label>
-                  <div className="relative">
-                    <select
-                      required
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled className="bg-[#0f0f0f] text-gray-500">Escolha o motivo do contato...</option>
-                      {categories.map((cat) => (
-                        <option 
-                          key={cat.id} 
-                          value={cat.id} 
-                          className="bg-[#0f0f0f] text-white py-2"
-                        >
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                      <ChevronRight size={16} className="rotate-90" />
-                    </div>
-                  </div>
+                  <CustomSelect
+                    value={category}
+                    onChange={(val) => setCategory(val)}
+                    placeholder="Escolha o motivo do contato..."
+                    options={categories.map(cat => ({
+                      value: cat.id,
+                      label: cat.label
+                    }))}
+                  />
                 </div>
 
                 <div>

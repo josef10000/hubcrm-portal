@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
+import CustomSelect from '../components/CustomSelect';
 
 interface PortalCRMFinanceProps {
   orgId: string;
@@ -1238,52 +1239,44 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 </div>
 
                 {/* Categoria */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
-                  <select
+                  <CustomSelect
                     value={expenseCategory}
-                    onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                    required
-                  >
-                    <option value="Aluguel" className="bg-[#050505]">Aluguel</option>
-                    <option value="Maquinário" className="bg-[#050505]">Maquinário</option>
-                    <option value="Ferramentas" className="bg-[#050505]">Ferramentas</option>
-                    <option value="Insumos" className="bg-[#050505]">Insumos</option>
-                    <option value="Outros" className="bg-[#050505]">Outros</option>
-                  </select>
-                </div>
+                    onChange={(val) => setExpenseCategory(val)}
+                    options={[
+                      { value: 'Aluguel', label: 'Aluguel' },
+                      { value: 'Maquinário', label: 'Maquinário' },
+                      { value: 'Ferramentas', label: 'Ferramentas' },
+                      { value: 'Insumos', label: 'Insumos' },
+                      { value: 'Outros', label: 'Outros' }
+                    ]}
+                  />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 {/* Tipo de Gasto */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
-                  <select
+                  <CustomSelect
                     value={expenseType}
-                    onChange={(e) => setExpenseType(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                    required
-                  >
-                    <option value="pontual" className="bg-[#050505]">Gasto Pontual (Único)</option>
-                    <option value="fixo" className="bg-[#050505]">Fixo Mensal (Recorrente)</option>
-                  </select>
+                    onChange={(val) => setExpenseType(val as any)}
+                    options={[
+                      { value: 'pontual', label: 'Gasto Pontual (Único)' },
+                      { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
+                    ]}
+                  />
                 </div>
 
                 {/* Situação */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
-                  <select
+                  <CustomSelect
                     value={expenseStatus}
-                    onChange={(e) => setExpenseStatus(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                    required
-                  >
-                    <option value="paid" className="bg-[#050505]">Pago</option>
-                    <option value="unpaid" className="bg-[#050505]">Pendente</option>
-                  </select>
+                    onChange={(val) => setExpenseStatus(val as any)}
+                    options={[
+                      { value: 'paid', label: 'Pago' },
+                      { value: 'unpaid', label: 'Pendente' }
+                    ]}
+                  />
                 </div>
-              </div>
 
               {/* Data (Original de Lançamento ou de início do Gasto Fixo) */}
               <div className="space-y-1">
@@ -1307,18 +1300,15 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               {/* Vincular a Agendamento (Projeto) */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vincular a Agendamento (Opcional)</label>
-                <select
+                <CustomSelect
                   value={expenseAppointmentId}
-                  onChange={(e) => setExpenseAppointmentId(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                >
-                  <option value="" className="bg-[#050505] text-gray-500">Nenhum (Gasto Geral)</option>
-                  {appointments.map(app => (
-                    <option key={app.id} value={app.id} className="bg-[#050505]">
-                      {app.clientName} - {app.serviceName} ({app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setExpenseAppointmentId(val)}
+                  placeholder="Nenhum (Gasto Geral)"
+                  options={appointments.map(app => ({
+                    value: app.id,
+                    label: `${app.clientName} - ${app.serviceName} (${app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''})`
+                  }))}
+                />
               </div>
 
               {/* Botões de Ação */}
@@ -1404,49 +1394,44 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 {/* Categoria */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
-                  <select
+                  <CustomSelect
                     value={revenueCategory}
-                    onChange={(e) => setRevenueCategory(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                    required
-                  >
-                    <option value="Mensalidade" className="bg-[#050505]">Mensalidade</option>
-                    <option value="Venda de Produto" className="bg-[#050505]">Venda de Produto</option>
-                    <option value="Serviço Adicional" className="bg-[#050505]">Serviço Adicional</option>
-                    <option value="Outros" className="bg-[#050505]">Outros</option>
-                  </select>
+                    onChange={(val) => setRevenueCategory(val)}
+                    options={[
+                      { value: 'Mensalidade', label: 'Mensalidade' },
+                      { value: 'Venda de Produto', label: 'Venda de Produto' },
+                      { value: 'Serviço Adicional', label: 'Serviço Adicional' },
+                      { value: 'Outros', label: 'Outros' }
+                    ]}
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 {/* Tipo de Receita */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
-                  <select
+                  <CustomSelect
                     value={revenueType}
-                    onChange={(e) => setRevenueType(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                    required
-                  >
-                    <option value="pontual" className="bg-[#050505]">Receita Pontual (Único)</option>
-                    <option value="fixo" className="bg-[#050505]">Fixo Mensal (Recorrente)</option>
-                  </select>
+                    onChange={(val) => setRevenueType(val as any)}
+                    options={[
+                      { value: 'pontual', label: 'Receita Pontual (Único)' },
+                      { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
+                    ]}
+                  />
                 </div>
 
                 {/* Situação */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
-                  <select
+                  <CustomSelect
                     value={revenueStatus}
-                    onChange={(e) => setRevenueStatus(e.target.value as any)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
-                    required
-                  >
-                    <option value="paid" className="bg-[#050505]">Pago</option>
-                    <option value="unpaid" className="bg-[#050505]">Pendente</option>
-                  </select>
+                    onChange={(val) => setRevenueStatus(val as any)}
+                    options={[
+                      { value: 'paid', label: 'Pago' },
+                      { value: 'unpaid', label: 'Pendente' }
+                    ]}
+                  />
                 </div>
-              </div>
 
               {/* Data */}
               <div className="space-y-1">
