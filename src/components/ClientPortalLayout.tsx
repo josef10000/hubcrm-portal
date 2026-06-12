@@ -535,7 +535,7 @@ export default function ClientPortalLayout() {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl transition-all text-xs font-bold uppercase tracking-wider"
               >
                 <LogOut size={14} />
-                Sair da Área Restrita
+                Sair
               </button>
             )}
           </div>

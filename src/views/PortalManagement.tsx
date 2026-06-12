@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Calculator, Briefcase } from 'lucide-react';
+import { Package, Calculator, Briefcase, ChevronDown } from 'lucide-react';
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
 
@@ -11,6 +11,7 @@ interface PortalManagementProps {
 
 export default function PortalManagement({ orgId, clientId }: PortalManagementProps) {
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'calculator'>('inventory');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const subTabs = [
     { id: 'inventory', label: 'Estoque de Insumos', icon: Package },
@@ -34,8 +35,69 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
         </div>
       </div>
 
-      {/* Sub Tabs Navigation */}
-      <div className="flex border-b border-white/10 gap-2 md:gap-4 overflow-x-auto pb-px scrollbar-none">
+      {/* Seletor Mobile (Dropdown Customizado) */}
+      <div className="relative block md:hidden w-full mb-6 z-20">
+        <button
+          type="button"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
+        >
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
+            {(() => {
+              if (activeSubTab === 'inventory') return <Package size={18} />;
+              return <Calculator size={18} />;
+            })()}
+          </div>
+          <span>
+            {activeSubTab === 'inventory' ? 'Estoque de Insumos' : 'Calculadora de Orçamentos'}
+          </span>
+          <ChevronDown 
+            size={16} 
+            className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <>
+            <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsDropdownOpen(false)} />
+            <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('inventory');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                  activeSubTab === 'inventory' 
+                    ? 'bg-primary-500/15 text-primary-400 font-black' 
+                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                }`}
+              >
+                <Package size={16} className={activeSubTab === 'inventory' ? 'text-primary-400' : 'text-gray-500'} />
+                Estoque de Insumos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('calculator');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                  activeSubTab === 'calculator' 
+                    ? 'bg-primary-500/15 text-primary-400 font-black' 
+                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                }`}
+              >
+                <Calculator size={16} className={activeSubTab === 'calculator' ? 'text-primary-400' : 'text-gray-500'} />
+                Calculadora de Orçamentos
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Sub Tabs Navigation (Desktop) */}
+      <div className="hidden md:flex border-b border-white/10 gap-2 md:gap-4 overflow-x-auto pb-px scrollbar-none">
         {subTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
