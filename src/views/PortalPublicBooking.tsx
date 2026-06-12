@@ -52,6 +52,7 @@ export default function PortalPublicBooking() {
   // Estados do Calendário Mensal
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthAppointments, setMonthAppointments] = useState<any[]>([]);
+  const [detectedClientId, setDetectedClientId] = useState<string | null>(null);
 
   // 1. Carrega dados básicos (Organização, Serviços e Expediente)
   useEffect(() => {
@@ -98,6 +99,14 @@ export default function PortalPublicBooking() {
             },
             slotIntervalMinutes: 30
           });
+        }
+
+        // Busca o clientId associado a esta organização (primeiro cliente da subcoleção)
+        const clientsRef = collection(db, 'organizations', orgId, 'clients');
+        const clientsSnap = await getDocs(clientsRef);
+        if (!clientsSnap.empty) {
+          const firstClientDoc = clientsSnap.docs[0];
+          setDetectedClientId(firstClientDoc.id);
         }
       } catch (err: any) {
         console.error(err);
@@ -346,7 +355,8 @@ export default function PortalPublicBooking() {
         time: selectedTime,
         status: 'pending',
         origin: 'public_link',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        clientId: detectedClientId || ''
       };
 
       const docRef = await addDoc(collection(db, 'organizations', orgId, 'appointments'), payload);
