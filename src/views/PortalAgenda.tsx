@@ -837,9 +837,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           }
         }
       }
+    }
 
-      toast.success(
-        status === 'confirmed' ? 'Status atualizado para: Confirmado' :
+    toast.success(
+      status === 'confirmed' ? 'Status atualizado para: Confirmado' :
         status === 'cancelled' ? 'Status atualizado para: Cancelado' :
         'Agendamento concluído e enviado ao Financeiro!'
       );
