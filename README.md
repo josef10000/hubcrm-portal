@@ -11,10 +11,13 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 ### 1. 📊 Módulo "Meu Negócio" (`PortalManagement.tsx`)
 *   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais, cálculo financeiro em tempo real do **Valor de Patrimônio Ativo** (Quantidade × Custo Unitário), filtro rápido para itens com estoque crítico, e **Linha do Tempo de Histórico de Movimentações** (entradas, saídas e consumo de insumos por agendamento concluído) sincronizada com Firestore.
 *   **Calculadora de Orçamentos (`PortalCalculator.tsx`):** Simulador de precificação dinâmico baseado em custos de materiais e horas de trabalho estimadas.
-*   **Performance Financeira (`PortalCRMFinance.tsx`):** Análise de lucro líquido real, receitas, despesas extras, conciliação direta de transações e margem operacional por projeto.
+*   **Performance Financeira & Analytics (`PortalCRMFinance.tsx`):** Análise de lucro líquido real, receitas e despesas extras. Inclui **gráficos analíticos dinâmicos puros em SVG** (Evolução do fluxo de caixa de receitas vs despesas e distribuição de gastos por categorias em gráfico Donut).
+*   **Projeção de Caixa e Simulador de Break-Even:** Previsão de faturamento baseada nos próximos 15 e 30 dias de agendamentos confirmados e calculadora simuladora reativa de ponto de equilíbrio contra metas de custos fixos reais.
 *   **Fechamento do Mês (PDF Executivo A4):** Relatório de fechamento estético executivo otimizado para salvamento em PDF ou impressão física no formato padrão A4, ocultando os elementos do portal na impressão (`print:hidden`).
 
 ### 2. 📅 Agenda e Atendimentos (`PortalAgenda.tsx`)
+*   **Módulo Administrativo de Pacotes de Sessões:** Cadastro, controle e listagem de pacotes e sessões ativas dos clientes do estabelecimento (ex: 10 sessões). Permite ajustes manuais reativos de créditos e monitoramento de progresso de uso.
+*   **Dedução de Créditos Automatizada:** O sistema debita de forma autônoma 1 sessão do pacote do cliente e registra a movimentação no histórico de visitas quando o atendimento correspondente é finalizado como concluído (`completed`).
 *   **Timeline Interativa & Visão Mensal:** Exibição reativa de compromissos com alternância dinâmica entre a Visão Diária (Timeline) e a Visão Mensal (calendário completo com contagem de agendamentos e indicadores coloridos de status: pendente, confirmado ou agendado).
 *   **Slots de Horários Inteligentes:** Geração de slots de atendimento dinâmicos baseados no expediente e intervalo comercial definidos nas configurações, filtrando conflitos em tempo real.
 *   **Bloqueio Rápido de Horários:** Atalho para bloquear slots na timeline ("Horário Bloqueado"), impedindo novas reservas no respectivo intervalo.
@@ -50,7 +53,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 
 ### 8. 🚀 Hub de Crescimento & Rotas Públicas (`PortalGrowthHub.tsx`)
 *   **Mini-Site Público (Bio-Link - `/bio/:orgId`):** Página de links estilo *glassmorphism* contendo logotipos, paleta de cores institucional, links de redes sociais e atalho para o agendamento online público.
-*   **Agendamento Online Público (`/agendar/:orgId`):** Fluxo de reserva externa onde clientes selecionam serviços, data/hora e solicitam pré-reservas gerando mensagens diretas no WhatsApp para confirmação e validação do estabelecimento.
+*   **Consulta Pública de Saldos & Fidelidade:** Botão e modal *glassmorphism* na Bio onde o cliente final, digitando apenas o seu WhatsApp (de forma segura, sem expor dados pessoais), consulta seus pacotes de crédito e os carimbos acumulados do cartão fidelidade em tempo real.
+*   **Agendamento Online Público (`/agendar/:orgId`):** Fluxo de reserva externa onde clientes selecionam serviços, data/hora e solicitam pré-reservas. Possui **detecção automática de créditos ativos**, permitindo agendar debitando diretamente de pacotes de crédito do cliente.
 *   **Reativação de Clientes Inativos (LTV):** Análise na Dashboard (`PortalHome.tsx`) que detecta clientes inativos há mais de 30 dias com gatilhos rápidos para reativação por WhatsApp.
 *   **Arsenal de Vendas e Templates:** Cofre de ativos de marca, scripts de vendas com cópia instantânea e vídeos de treinamento em Lightbox com reprodução fluida e efeito desfocado (*backdrop-blur*).
 

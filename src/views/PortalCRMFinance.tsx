@@ -81,6 +81,10 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   const [savingRevenue, setSavingRevenue] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
+  // Estados para simulação de Break-Even (Calculadora)
+  const [customFixedCost, setCustomFixedCost] = useState<string>('');
+  const [customServicePrice, setCustomServicePrice] = useState<string>('');
+
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -390,6 +394,29 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   // Lucro Líquido = Receitas Recebidas (Efetivadas) - Despesas Totais projetadas no período
   const lucroLiquido = totalPago - totalExpenses;
 
+  const totalFixedExpenses = expenses
+    .filter(e => e.type === 'fixo')
+    .reduce((acc, e) => {
+      const occurrences = countFixedOccurrences(e.date, periodStart, periodEnd);
+      return acc + (e.value * occurrences);
+    }, 0);
+
+  useEffect(() => {
+    if (totalFixedExpenses > 0) {
+      setCustomFixedCost(Math.round(totalFixedExpenses).toString());
+    } else {
+      setCustomFixedCost('');
+    }
+  }, [totalFixedExpenses]);
+
+  useEffect(() => {
+    if (ticketMedio > 0) {
+      setCustomServicePrice(Math.round(ticketMedio).toString());
+    } else {
+      setCustomServicePrice('');
+    }
+  }, [ticketMedio]);
+
   // Alteração de status de pagamento do agendamento
   const handleTogglePaymentStatus = async (appId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'paid' ? 'unpaid' : 'paid';
@@ -662,6 +689,269 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
     return true;
   });
 
+  // Lógica dos Gráficos SVG e Análise
+  
+  // 1. Projeção de Caixa Baseada em Agendamentos Confirmados Futuros (Próximos 15/30 dias)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const futureAppointments = appointments.filter(app => 
+    app.date >= todayStr && 
+    app.status !== 'cancelled'
+  );
+
+  const next15DaysLimit = new Date();
+  next15DaysLimit.setDate(next15DaysLimit.getDate() + 15);
+  const next15DaysLimitStr = next15DaysLimit.toISOString().split('T')[0];
+
+  const next30DaysLimit = new Date();
+  next30DaysLimit.setDate(next30DaysLimit.getDate() + 30);
+  const next30DaysLimitStr = next30DaysLimit.toISOString().split('T')[0];
+
+  const proj15Dias = futureAppointments
+    .filter(app => app.date <= next15DaysLimitStr)
+    .reduce((acc, app) => acc + (app.price || 0), 0);
+
+  const proj30Dias = futureAppointments
+    .filter(app => app.date <= next30DaysLimitStr)
+    .reduce((acc, app) => acc + (app.price || 0), 0);
+
+  // 2. Gráfico Donut de Despesas por Categoria
+  const expensesByCategory: Record<string, number> = {};
+  filteredExpenses.forEach(exp => {
+    const val = exp.type === 'fixo'
+      ? exp.value * countFixedOccurrences(exp.date, periodStart, periodEnd)
+      : exp.value;
+    expensesByCategory[exp.category || 'Outros'] = (expensesByCategory[exp.category || 'Outros'] || 0) + val;
+  });
+
+  const categoryData = Object.entries(expensesByCategory)
+    .map(([category, value]) => ({ category, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // 3. Simulação Break-Even
+  const fixedCostVal = parseFloat(customFixedCost) || totalFixedExpenses || 0;
+  const servicePriceVal = parseFloat(customServicePrice) || ticketMedio || 50;
+  const breakEvenServicesNeeded = servicePriceVal > 0 ? Math.ceil(fixedCostVal / servicePriceVal) : 0;
+  
+  const totalFaturamentoProjetado = totalProjetado;
+  const breakEvenProgress = fixedCostVal > 0 ? Math.min((totalFaturamentoProjetado / fixedCostVal) * 100, 100) : 100;
+  const isBreakEvenReached = totalFaturamentoProjetado >= fixedCostVal;
+
+  // 4. Gráfico de Linha/Área de Evolução (Faturamento vs Despesas)
+  const renderEvolutionChart = () => {
+    const maxPoints = 10;
+    const dates = Array.from(new Set([
+      ...appointmentsFiltered.map(a => a.date),
+      ...revenues.filter(r => {
+        if (r.type === 'fixo') return countFixedOccurrences(r.date, periodStart, periodEnd) > 0;
+        return isDateInPeriod(r.date);
+      }).map(r => r.date),
+      ...expenses.filter(e => {
+        if (e.type === 'fixo') return countFixedOccurrences(e.date, periodStart, periodEnd) > 0;
+        return isDateInPeriod(e.date);
+      }).map(e => e.date)
+    ])).sort();
+
+    let displayedDates = dates;
+    if (dates.length > maxPoints) {
+      const step = Math.ceil(dates.length / maxPoints);
+      displayedDates = dates.filter((_, idx) => idx % step === 0).slice(0, maxPoints);
+    }
+
+    const chartPoints = displayedDates.map(date => {
+      const dayAppointmentsVal = appointmentsFiltered
+        .filter(a => a.date === date)
+        .reduce((acc, a) => acc + (a.price || 0), 0);
+      const dayManualRevenuesVal = revenues
+        .filter(r => {
+          if (r.type === 'fixo') return countFixedOccurrences(r.date, new Date(date + 'T00:00:00'), new Date(date + 'T23:59:59')) > 0;
+          return r.date === date;
+        })
+        .reduce((acc, r) => acc + r.value, 0);
+      
+      const dayRevenues = dayAppointmentsVal + dayManualRevenuesVal;
+
+      const dayExpenses = expenses
+        .filter(e => {
+          if (e.type === 'fixo') return countFixedOccurrences(e.date, new Date(date + 'T00:00:00'), new Date(date + 'T23:59:59')) > 0;
+          return e.date === date;
+        })
+        .reduce((acc, e) => acc + e.value, 0);
+
+      return {
+        label: date.split('-').reverse().slice(0, 2).join('/'),
+        revenue: dayRevenues,
+        expense: dayExpenses
+      };
+    });
+
+    if (chartPoints.length === 0) {
+      return (
+        <div className="h-44 flex items-center justify-center text-xs text-gray-500 italic bg-black/20 rounded-2xl border border-white/5 w-full">
+          Sem movimentações no período para gerar o gráfico.
+        </div>
+      );
+    }
+
+    const maxVal = Math.max(
+      ...chartPoints.map(d => Math.max(d.revenue, d.expense)),
+      100
+    );
+
+    const width = 500;
+    const height = 150;
+    const paddingX = 40;
+    const paddingY = 20;
+
+    const pointsRev: string[] = [];
+    const pointsExp: string[] = [];
+
+    chartPoints.forEach((d, idx) => {
+      const x = paddingX + (idx / (chartPoints.length - 1 || 1)) * (width - paddingX * 2);
+      const yRev = height - paddingY - (d.revenue / maxVal) * (height - paddingY * 2);
+      const yExp = height - paddingY - (d.expense / maxVal) * (height - paddingY * 2);
+
+      pointsRev.push(`${x},${yRev}`);
+      pointsExp.push(`${x},${yExp}`);
+    });
+
+    const pathRev = `M ${pointsRev.join(' L ')}`;
+    const pathExp = `M ${pointsExp.join(' L ')}`;
+
+    const areaRev = `${pathRev} L ${paddingX + (width - paddingX * 2)},${height - paddingY} L ${paddingX},${height - paddingY} Z`;
+    const areaExp = `${pathExp} L ${paddingX + (width - paddingX * 2)},${height - paddingY} L ${paddingX},${height - paddingY} Z`;
+
+    return (
+      <div className="w-full overflow-x-auto custom-scrollbar">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[360px] h-auto overflow-visible">
+          <defs>
+            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+            </linearGradient>
+            <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
+              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0}/>
+            </linearGradient>
+          </defs>
+
+          {/* Linhas de Grade */}
+          <line x1={paddingX} y1={paddingY} x2={width - paddingX} y2={paddingY} stroke="white" strokeOpacity={0.03} strokeDasharray="3 3" />
+          <line x1={paddingX} y1={height / 2} x2={width - paddingX} y2={height / 2} stroke="white" strokeOpacity={0.03} strokeDasharray="3 3" />
+          <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="white" strokeOpacity={0.03} strokeDasharray="3 3" />
+
+          {/* Áreas preenchidas */}
+          {chartPoints.length > 1 && (
+            <>
+              <path d={areaRev} fill="url(#colorRev)" />
+              <path d={areaExp} fill="url(#colorExp)" />
+            </>
+          )}
+
+          {/* Linhas */}
+          <path d={pathRev} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathExp} fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Pontos */}
+          {chartPoints.map((d, idx) => {
+            const x = paddingX + (idx / (chartPoints.length - 1 || 1)) * (width - paddingX * 2);
+            const yRev = height - paddingY - (d.revenue / maxVal) * (height - paddingY * 2);
+            const yExp = height - paddingY - (d.expense / maxVal) * (height - paddingY * 2);
+
+            return (
+              <g key={idx}>
+                {d.revenue > 0 && <circle cx={x} cy={yRev} r="3" fill="#10b981" stroke="#050505" strokeWidth="1" />}
+                {d.expense > 0 && <circle cx={x} cy={yExp} r="3" fill="#f43f5e" stroke="#050505" strokeWidth="1" />}
+              </g>
+            );
+          })}
+
+          {/* Rótulos Eixo X */}
+          {chartPoints.map((d, idx) => {
+            const x = paddingX + (idx / (chartPoints.length - 1 || 1)) * (width - paddingX * 2);
+            if (chartPoints.length > 5 && idx % 2 !== 0) return null;
+            return (
+              <text key={idx} x={x} y={height - 3} fill="#4b5563" fontSize="8" fontWeight="bold" textAnchor="middle">
+                {d.label}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  };
+
+  const renderDonutChart = () => {
+    if (totalExpenses === 0) {
+      return (
+        <div className="h-44 flex items-center justify-center text-xs text-gray-500 italic bg-black/20 rounded-2xl border border-white/5 w-full">
+          Sem despesas no período para exibir categorias.
+        </div>
+      );
+    }
+
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#eab308', '#a855f7', '#6b7280'];
+    let accumulatedPercent = 0;
+
+    return (
+      <div className="flex items-center justify-between gap-4 h-full">
+        {/* Donut */}
+        <div className="relative w-24 h-24 shrink-0">
+          <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+            <circle cx="50" cy="50" r="38" fill="transparent" stroke="white" strokeOpacity={0.03} strokeWidth="10" />
+            {categoryData.map((cat, idx) => {
+              const percent = cat.value / totalExpenses;
+              const strokeLength = percent * 238.76;
+              const strokeOffset = 238.76 - (percent * 238.76);
+              const rotation = (accumulatedPercent * 360) - 90;
+              accumulatedPercent += percent;
+
+              return (
+                <circle
+                  key={idx}
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="transparent"
+                  stroke={colors[idx % colors.length]}
+                  strokeWidth="11"
+                  strokeDasharray={`${strokeLength} 238.76`}
+                  strokeDashoffset={strokeOffset}
+                  transform={`rotate(${rotation} 50 50)`}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none">Total</span>
+            <span className="text-[10px] font-black text-white mt-0.5 leading-none">
+              R$ {Math.round(totalExpenses)}
+            </span>
+          </div>
+        </div>
+
+        {/* Legendas */}
+        <div className="flex-1 space-y-1.5 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+          {categoryData.slice(0, 4).map((cat, idx) => {
+            const pct = Math.round((cat.value / totalExpenses) * 100);
+            return (
+              <div key={idx} className="flex justify-between items-center text-[10px] text-gray-400">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[idx % colors.length] }} />
+                  <span className="truncate font-semibold text-[9px]">{cat.category}</span>
+                </div>
+                <span className="text-white font-black pl-1">{pct}%</span>
+              </div>
+            );
+          })}
+          {categoryData.length > 4 && (
+            <p className="text-[8px] text-gray-500 font-bold uppercase text-right italic">+ {categoryData.length - 4} cat.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Abas de Filtro de Período Temporal com botão de Fechamento */}
@@ -755,6 +1045,135 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
           </p>
           <p className="text-[10px] text-gray-500 mt-1 italic">Entradas (pagas) menos despesas</p>
         </div>
+      </div>
+
+      {/* Dashboard Analítico & Projeções */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
+        
+        {/* Bloco 1: Gráficos de Evolução SVG */}
+        <div className="lg:col-span-2 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Gráfico de Evolução */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wider">
+                  <TrendingUp className="text-primary-400 w-4.5 h-4.5" />
+                  Evolução do Fluxo
+                </h3>
+                <p className="text-[10px] text-gray-400">Receitas (<span className="text-emerald-400 font-bold">Verde</span>) vs Despesas (<span className="text-red-400 font-bold">Vermelho</span>) no período</p>
+              </div>
+              {renderEvolutionChart()}
+            </div>
+
+            {/* Gráfico de Categorias */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wider">
+                  <Filter className="text-indigo-400 w-4.5 h-4.5" />
+                  Distribuição de Despesas
+                </h3>
+                <p className="text-[10px] text-gray-400">Distribuição percentual por categorias cadastradas</p>
+              </div>
+              {renderDonutChart()}
+            </div>
+
+          </div>
+        </div>
+
+        {/* Bloco 2: Projeção de Caixa & Calculadora Break-Even */}
+        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between space-y-6">
+          {/* Projeção de Caixa */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xs font-black text-white flex items-center gap-2 uppercase tracking-wider">
+                <TrendingUp className="text-primary-400 w-4.5 h-4.5" />
+                Projeção de Caixa
+              </h3>
+              <p className="text-[10px] text-gray-400">Previsão baseada em agendamentos futuros confirmados</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-black/30 border border-white/5 p-3 rounded-2xl">
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Próximos 15 dias</span>
+                <span className="text-sm font-black text-white font-mono mt-1 block">
+                  R$ {proj15Dias.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="bg-black/30 border border-white/5 p-3 rounded-2xl">
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Próximos 30 dias</span>
+                <span className="text-sm font-black text-indigo-400 font-mono mt-1 block">
+                  R$ {proj30Dias.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Calculadora de Break-Even */}
+          <div className="space-y-4 pt-4 border-t border-white/5 flex-1 flex flex-col justify-between">
+            <div className="space-y-1">
+              <h3 className="text-xs font-black text-white flex items-center gap-2 uppercase tracking-wider">
+                <AlertCircle className="text-amber-400 w-4.5 h-4.5" />
+                Simulador Ponto de Equilíbrio
+              </h3>
+              <p className="text-[10px] text-gray-400">Calcule e monitore a meta mínima para cobrir custos fixos</p>
+            </div>
+
+            {/* Inputs de Simulação */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-gray-500 uppercase tracking-wider block">Custo Fixo (R$)</label>
+                <input
+                  type="number"
+                  value={customFixedCost}
+                  onChange={(e) => setCustomFixedCost(e.target.value)}
+                  placeholder="Ex: 2500"
+                  className="w-full px-3 py-2 bg-black/40 border border-white/10 focus:border-indigo-500 text-white rounded-xl text-xs outline-none transition-all font-bold font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[8px] font-black text-gray-500 uppercase tracking-wider block">Preço Serviço (R$)</label>
+                <input
+                  type="number"
+                  value={customServicePrice}
+                  onChange={(e) => setCustomServicePrice(e.target.value)}
+                  placeholder="Ex: 80"
+                  className="w-full px-3 py-2 bg-black/40 border border-white/10 focus:border-indigo-500 text-white rounded-xl text-xs outline-none transition-all font-bold font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Resultado do Break-Even */}
+            <div className="bg-black/30 border border-white/5 rounded-2xl p-3.5 space-y-3 mt-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400 font-medium">Meta de Atendimentos:</span>
+                <span className="text-white font-black">{breakEvenServicesNeeded} serviços</span>
+              </div>
+              <div className="space-y-1">
+                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${isBreakEvenReached ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                    style={{ width: `${breakEvenProgress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[9px] font-bold">
+                  <span className="text-gray-500">Alcançado: {Math.round(breakEvenProgress)}%</span>
+                  <span className="text-gray-400">Custo Fixo: R$ {Math.round(fixedCostVal)}</span>
+                </div>
+              </div>
+              {isBreakEvenReached ? (
+                <p className="text-[10px] text-emerald-400 font-bold text-center italic bg-emerald-500/5 p-1 rounded-lg border border-emerald-500/10">
+                  🎉 Parabéns! Ponto de equilíbrio superado!
+                </p>
+              ) : (
+                <p className="text-[10px] text-amber-400 font-semibold text-center italic bg-amber-500/5 p-1 rounded-lg border border-amber-500/10">
+                  Falta R$ {Math.round(fixedCostVal - totalFaturamentoProjetado)} para cobrir os custos.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Seção Principal Contábil */}

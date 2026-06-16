@@ -33,6 +33,12 @@ export default function PortalPublicBooking() {
   const [services, setServices] = useState<any[]>([]);
   const [expediente, setExpediente] = useState<any>(null);
 
+  // Estados de verificação de pacotes do cliente final
+  const [activePackages, setActivePackages] = useState<any[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [usePackageCredit, setUsePackageCredit] = useState(false);
+  const [checkingPackages, setCheckingPackages] = useState(false);
+
   // Estados do Formulário de Agendamento
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -238,6 +244,61 @@ export default function PortalPublicBooking() {
     setAvailableSlots(slots);
   }, [selectedDate, expediente, bookedTimes]);
 
+  // Busca pacotes ativos do cliente para o serviço selecionado ao digitar o telefone
+  useEffect(() => {
+    if (!clientPhone || !selectedService || !orgId || !expediente?.packagesActive) {
+      setActivePackages([]);
+      setSelectedPackageId(null);
+      setUsePackageCredit(false);
+      return;
+    }
+
+    const cleanedPhone = clientPhone.replace(/\D/g, '');
+    if (cleanedPhone.length < 10) {
+      setActivePackages([]);
+      setSelectedPackageId(null);
+      setUsePackageCredit(false);
+      return;
+    }
+
+    const checkClientPackages = async () => {
+      setCheckingPackages(true);
+      try {
+        const packagesRef = collection(db, 'organizations', orgId, 'client_packages');
+        const q = query(
+          packagesRef,
+          where('clientPhone', '==', cleanedPhone),
+          where('serviceId', '==', selectedService.id),
+          where('status', '==', 'active')
+        );
+        const snap = await getDocs(q);
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter((p: any) => p.usedSessions < p.totalSessions);
+        
+        setActivePackages(list);
+        if (list.length > 0) {
+          setSelectedPackageId(list[0].id);
+          setUsePackageCredit(true); // Seleciona por padrão
+        } else {
+          setSelectedPackageId(null);
+          setUsePackageCredit(false);
+        }
+      } catch (e) {
+        console.error('Erro ao verificar pacotes do cliente:', e);
+      } finally {
+        setCheckingPackages(false);
+      }
+    };
+
+    // Debounce leve para evitar requisições a cada dígito
+    const delayDebounce = setTimeout(() => {
+      checkClientPackages();
+    }, 600);
+
+    return () => clearTimeout(delayDebounce);
+  }, [clientPhone, selectedService, orgId, expediente?.packagesActive]);
+
   // Dias da semana e funções auxiliares para o calendário
   const weekDaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -345,12 +406,12 @@ export default function PortalPublicBooking() {
 
     setIsSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
         serviceId: selectedService.id,
         serviceName: selectedService.name,
-        price: selectedService.price,
+        price: usePackageCredit ? 0 : selectedService.price,
         date: selectedDate,
         time: selectedTime,
         status: 'pending',
@@ -358,6 +419,11 @@ export default function PortalPublicBooking() {
         createdAt: serverTimestamp(),
         clientId: detectedClientId || ''
       };
+
+      if (usePackageCredit && selectedPackageId) {
+        payload.paymentMethod = 'pacote';
+        payload.packageId = selectedPackageId;
+      }
 
       const docRef = await addDoc(collection(db, 'organizations', orgId, 'appointments'), payload);
       
@@ -455,7 +521,9 @@ export default function PortalPublicBooking() {
             <div className="flex justify-between items-center text-xs pt-2.5 border-t border-white/5">
               <span className="text-gray-500 font-bold uppercase tracking-wider">Investimento</span>
               <span className="text-emerald-400 font-black">
-                R$ {successBooking.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {successBooking.paymentMethod === 'pacote' 
+                  ? 'Pago via Pacote (Saldo)' 
+                  : `R$ ${successBooking.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               </span>
             </div>
           </div>
@@ -708,6 +776,39 @@ export default function PortalPublicBooking() {
                     />
                   </div>
                 </div>
+
+                {checkingPackages && (
+                  <p className="text-[10px] text-gray-500 animate-pulse pt-1">Verificando créditos de pacotes...</p>
+                )}
+
+                {!checkingPackages && activePackages.length > 0 && (
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-3 animate-in fade-in duration-300 mt-2">
+                    <div className="flex items-start gap-2.5">
+                      <Sparkles className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5 animate-pulse" />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-white">Crédito Disponível!</p>
+                        <p className="text-[10px] text-gray-400 leading-relaxed">
+                          Você possui pacotes de crédito ativos para este serviço.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-black/40 p-3 rounded-xl border border-white/5 justify-between">
+                      <div className="text-left">
+                        <span className="text-[9px] text-gray-400 block font-medium">Usar saldo do pacote?</span>
+                        <span className="text-xs font-bold text-white">
+                          Saldo restante: {activePackages[0].totalSessions - activePackages[0].usedSessions} sessões
+                        </span>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        checked={usePackageCredit}
+                        onChange={(e) => setUsePackageCredit(e.target.checked)}
+                        className="w-4.5 h-4.5 rounded bg-black/40 border-white/10 text-primary-500 focus:ring-primary-500 focus:ring-offset-black cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

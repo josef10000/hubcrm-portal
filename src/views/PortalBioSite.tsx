@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { 
   Instagram, 
   Phone, 
@@ -11,7 +11,12 @@ import {
   Calendar, 
   ChevronRight, 
   Loader2, 
-  AlertTriangle 
+  AlertTriangle,
+  Search,
+  Award,
+  Sparkles,
+  X,
+  Gift
 } from 'lucide-react';
 
 export default function PortalBioSite() {
@@ -22,6 +27,13 @@ export default function PortalBioSite() {
   const [error, setError] = useState<string | null>(null);
   const [bioData, setBioData] = useState<any>(null);
   const [orgData, setOrgData] = useState<any>(null);
+  const [schedulingConfig, setSchedulingConfig] = useState<any>(null);
+  const [fidelityConfig, setFidelityConfig] = useState<any>(null);
+  
+  const [isQueryModalOpen, setIsQueryModalOpen] = useState(false);
+  const [searchPhone, setSearchPhone] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
 
   useEffect(() => {
     if (!orgId) {
@@ -32,20 +44,17 @@ export default function PortalBioSite() {
 
     const fetchData = async () => {
       try {
-        // Carrega dados da Org para pegar nome padrão e logo
         const orgRef = doc(db, 'organizations', orgId);
         const orgSnap = await getDoc(orgRef);
         if (orgSnap.exists()) {
           setOrgData(orgSnap.data());
         }
 
-        // Carrega as configurações da bio
         const bioRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
         const bioSnap = await getDoc(bioRef);
         if (bioSnap.exists()) {
           setBioData(bioSnap.data());
         } else {
-          // Se não existir, define um fallback com base na organização
           setBioData({
             title: orgSnap.exists() ? orgSnap.data().name : 'Nosso Negócio',
             description: 'Seja bem-vindo à nossa página pública. Veja nossos links e faça um agendamento online.',
@@ -53,6 +62,18 @@ export default function PortalBioSite() {
             links: [],
             showBooking: true
           });
+        }
+
+        const schedRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const schedSnap = await getDoc(schedRef);
+        if (schedSnap.exists()) {
+          setSchedulingConfig(schedSnap.data());
+        }
+
+        const fidelityRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+        const fidelitySnap = await getDoc(fidelityRef);
+        if (fidelitySnap.exists()) {
+          setFidelityConfig(fidelitySnap.data());
         }
       } catch (err: any) {
         console.error('Erro ao buscar dados do Mini-Site:', err);
@@ -64,6 +85,46 @@ export default function PortalBioSite() {
 
     fetchData();
   }, [orgId]);
+
+  const handleSearchCredits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchPhone.trim() || !orgId) return;
+
+    setIsSearching(true);
+    try {
+      const cleanedPhone = searchPhone.replace(/\D/g, '');
+      
+      const packagesRef = collection(db, 'organizations', orgId, 'client_packages');
+      const qPackages = query(
+        packagesRef,
+        where('clientPhone', '==', cleanedPhone),
+        where('status', '==', 'active')
+      );
+      const snapPackages = await getDocs(qPackages);
+      const packagesList = snapPackages.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      let completedFidelityCount = 0;
+      if (fidelityConfig?.active) {
+        const apptsRef = collection(db, 'organizations', orgId, 'appointments');
+        const qFidelity = query(
+          apptsRef,
+          where('clientPhone', '==', cleanedPhone),
+          where('status', '==', 'completed')
+        );
+        const snapFidelity = await getDocs(qFidelity);
+        completedFidelityCount = snapFidelity.size;
+      }
+
+      setSearchResults({
+        packages: packagesList,
+        completedFidelityCount
+      });
+    } catch (err) {
+      console.error('Erro ao buscar saldos:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -98,6 +159,20 @@ export default function PortalBioSite() {
     facebook: <Facebook className="w-5 h-5 text-blue-400" />,
     youtube: <Youtube className="w-5 h-5 text-red-400" />,
     website: <Globe className="w-5 h-5 text-gray-300" />
+  };
+
+  const formatInputPhone = (val: string) => {
+    const digits = val.replace(/\D/g, '');
+    if (digits.length <= 10) {
+      return digits
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    } else {
+      return digits
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2')
+        .substring(0, 15);
+    }
   };
 
   return (
@@ -148,6 +223,29 @@ export default function PortalBioSite() {
             </button>
           )}
 
+          {/* Botão de Consulta de Saldos (Se ativo nas configs) */}
+          {((schedulingConfig?.packagesActive) || (fidelityConfig?.active)) && (
+            <button
+              onClick={() => {
+                setIsQueryModalOpen(true);
+                setSearchResults(null);
+                setSearchPhone('');
+              }}
+              className="w-full p-4.5 bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 hover:bg-white/10 text-white font-bold rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg flex items-center justify-between group cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
+                  <Search className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div className="text-left">
+                  <span className="text-sm block">Consultar Créditos & Fidelidade</span>
+                  <span className="text-[10px] text-gray-400 font-medium">Veja seus saldos e carimbos fidelidade</span>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-transform" />
+            </button>
+          )}
+
           {/* Outros Links */}
           {links.length > 0 ? (
             links.map((link: any, idx: number) => (
@@ -183,6 +281,224 @@ export default function PortalBioSite() {
         </div>
 
       </div>
+
+      {/* Modal Glassmorphism de Consulta de Saldos */}
+      {isQueryModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-[#0d0d0d]/90 border border-white/10 backdrop-blur-xl rounded-[2rem] p-6 shadow-2xl relative space-y-6 animate-in zoom-in-95 duration-300 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            
+            {/* Header do Modal */}
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <Search className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-black text-white">Minha Área de Créditos</h3>
+              </div>
+              <button
+                onClick={() => setIsQueryModalOpen(false)}
+                className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Se ainda não buscou */}
+            {!searchResults ? (
+              <form onSubmit={handleSearchCredits} className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Digite o número do seu celular com WhatsApp para consultar seus pacotes de sessões e carimbos de fidelidade ativos.
+                  </p>
+                  
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                    <input
+                      type="tel"
+                      value={searchPhone}
+                      onChange={(e) => setSearchPhone(formatInputPhone(e.target.value))}
+                      placeholder="Ex: (11) 99999-9999"
+                      className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/15 focus:border-indigo-500 text-white rounded-2xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-indigo-500 font-bold"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSearching || !searchPhone.trim()}
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-white/5 disabled:text-gray-500 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-xs"
+                >
+                  {isSearching ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4" />
+                      <span>Buscando informações...</span>
+                    </>
+                  ) : (
+                    <span>Consultar Meus Saldos</span>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Se buscou e trouxe resultados */
+              <div className="space-y-6">
+                
+                {/* Cabeçalho do Resultado */}
+                <div className="flex justify-between items-center text-xs text-gray-400 bg-white/5 border border-white/5 p-3.5 rounded-2xl">
+                  <span>Consulta para: <strong className="text-white">{searchPhone}</strong></span>
+                  <button
+                    onClick={() => setSearchResults(null)}
+                    className="text-indigo-400 hover:text-indigo-300 font-bold hover:underline cursor-pointer border-0 bg-transparent"
+                  >
+                    Mudar telefone
+                  </button>
+                </div>
+
+                {/* Exibição do Cartão Fidelidade */}
+                {fidelityConfig?.active && (
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-5 h-5 text-indigo-400" />
+                      <div>
+                        <h4 className="text-sm font-black text-white">Clube de Fidelidade</h4>
+                        <p className="text-[10px] text-gray-400">Junte carimbos e ganhe prêmios</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex justify-between items-center text-xs">
+                      <span className="text-gray-400 font-medium">Recompensa:</span>
+                      <span className="text-emerald-400 font-black uppercase tracking-wider">{fidelityConfig.reward || 'Prêmio Especial'}</span>
+                    </div>
+
+                    {/* Grid dos Carimbos */}
+                    <div className="grid grid-cols-5 gap-3 pt-2">
+                      {(() => {
+                        const goal = fidelityConfig.goal || 10;
+                        const currentPoints = searchResults.completedFidelityCount || 0;
+                        const progress = currentPoints % goal;
+                        
+                        return Array.from({ length: goal }).map((_, i) => {
+                          const isStamped = i < progress;
+                          const isLast = i === goal - 1;
+                          return (
+                            <div 
+                              key={i} 
+                              className={`aspect-square rounded-full border flex items-center justify-center relative transition-all duration-500 ${
+                                isStamped 
+                                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600 border-transparent shadow-lg shadow-indigo-500/20 text-white scale-105' 
+                                  : 'bg-black/30 border-white/10 text-gray-600'
+                              }`}
+                            >
+                              {isStamped ? (
+                                isLast ? <Gift className="w-5 h-5 animate-bounce" /> : <Sparkles className="w-4 h-4 animate-pulse" />
+                              ) : (
+                                isLast ? <Gift className="w-4 h-4 opacity-40" /> : <span className="text-[10px] font-bold font-mono">{i + 1}</span>
+                              )}
+                              {isStamped && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full border border-black animate-ping" />
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                    
+                    <p className="text-[10px] text-center text-gray-400">
+                      Você tem <strong className="text-white">{(searchResults.completedFidelityCount % (fidelityConfig.goal || 10))}</strong> de <strong className="text-white">{fidelityConfig.goal || 10}</strong> carimbos para o próximo prêmio!
+                    </p>
+                  </div>
+                )}
+
+                {/* Exibição de Pacotes de Créditos */}
+                {schedulingConfig?.packagesActive && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest block">Meus Pacotes Ativos</h4>
+                    
+                    {searchResults.packages.length === 0 ? (
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-center">
+                        <p className="text-xs text-gray-500 italic">Nenhum pacote de créditos ativo encontrado.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {searchResults.packages.map((pkg: any) => {
+                          const percent = (pkg.usedSessions / pkg.totalSessions) * 100;
+                          const remaining = pkg.totalSessions - pkg.usedSessions;
+                          return (
+                            <div key={pkg.id} className="bg-white/5 border border-white/5 rounded-2xl p-4 space-y-3">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="text-xs font-black text-white uppercase tracking-wider">{pkg.serviceName}</h4>
+                                  <p className="text-[10px] text-indigo-400 font-bold">Pacote de Crédito</p>
+                                </div>
+                                <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/10">
+                                  {remaining} sessões restantes
+                                </span>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <div className="w-full bg-black/40 h-2.5 rounded-full overflow-hidden border border-white/5">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between items-center text-[9px] text-gray-500 font-bold">
+                                  <span>Utilizadas: {pkg.usedSessions}</span>
+                                  <span>Total: {pkg.totalSessions}</span>
+                                </div>
+                              </div>
+
+                              {pkg.sessionsHistory && pkg.sessionsHistory.length > 0 && (
+                                <div className="space-y-1.5 pt-2.5 border-t border-white/5">
+                                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-wider">Últimas visitas realizadas</p>
+                                  <div className="max-h-20 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                    {pkg.sessionsHistory.slice(-3).reverse().map((h: any, i: number) => (
+                                      <div key={i} className="flex justify-between items-center text-[10px] text-gray-400 bg-black/35 px-2.5 py-1.5 rounded-lg border border-white/5">
+                                        <span>{h.date.split('-').reverse().join('/')} às {h.time}</span>
+                                        <span className="text-gray-500 font-bold text-[9px] uppercase">Prof: {h.professional}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Se não houver nada ativo em nenhuma das duas abas */}
+                {searchResults.packages.length === 0 && (!fidelityConfig?.active || searchResults.completedFidelityCount === 0) && (
+                  <div className="text-center py-8 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3">
+                    <AlertTriangle className="w-10 h-10 text-amber-500/50 mx-auto" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Nenhum crédito localizado</h4>
+                      <p className="text-[11px] text-gray-400 leading-relaxed max-w-[260px] mx-auto">
+                        Não encontramos nenhum pacote de créditos ou histórico de fidelidade ativo para o telefone informado.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Atalho Rápido para Agendamento */}
+                {showBooking && (
+                  <button
+                    onClick={() => {
+                      setIsQueryModalOpen(false);
+                      navigate(`/agendar/${orgId}`);
+                    }}
+                    className="w-full py-4 bg-gradient-to-r from-primary-500 to-indigo-600 hover:from-primary-600 hover:to-indigo-700 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-xs"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Ir para o Agendamento Online</span>
+                  </button>
+                )}
+
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -132,6 +132,15 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     }
   };
 
+  // Estados para Pacotes de Clientes
+  const [clientPackages, setClientPackages] = useState<any[]>([]);
+  const [pkgClientName, setPkgClientName] = useState('');
+  const [pkgClientPhone, setPkgClientPhone] = useState('');
+  const [pkgServiceId, setPkgServiceId] = useState('');
+  const [pkgTotalSessions, setPkgTotalSessions] = useState(10);
+  const [isSavingPackage, setIsSavingPackage] = useState(false);
+  const [isAddingPackage, setIsAddingPackage] = useState(false);
+
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [serviceDuration, setServiceDuration] = useState(30);
@@ -149,6 +158,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [newPrice, setNewPrice] = useState('');
   const [newPaymentStatus, setNewPaymentStatus] = useState<'unpaid' | 'paid'>('unpaid');
   const [isSubmittingAppointment, setIsSubmittingAppointment] = useState(false);
+  const [newPaymentMethod, setNewPaymentMethod] = useState<'dinheiro_pix_cartao' | 'pacote'>('dinheiro_pix_cartao');
+  const [selectedPackageId, setSelectedPackageId] = useState('');
 
   useEffect(() => {
     if (!editingAppointmentId) {
@@ -176,6 +187,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setNewTime('');
     setNewPrice('');
     setNewPaymentStatus('unpaid');
+    setNewPaymentMethod('dinheiro_pix_cartao');
+    setSelectedPackageId('');
   };
 
   const handleOpenBlockModal = () => {
@@ -185,6 +198,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setNewServiceId('bloqueio');
     setNewPrice('0');
     setNewPaymentStatus('paid');
+    setNewPaymentMethod('dinheiro_pix_cartao');
+    setSelectedPackageId('');
     setNewTime('');
     setIsModalOpen(true);
   };
@@ -199,6 +214,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     setNewTime(app.time);
     setNewPrice((app.price || 0).toString().replace('.', ','));
     setNewPaymentStatus(app.paymentStatus || 'unpaid');
+    setNewPaymentMethod(app.paymentMethod || 'dinheiro_pix_cartao');
+    setSelectedPackageId(app.packageId || '');
     setIsModalOpen(true);
   };
 
@@ -232,7 +249,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
     setIsSubmittingAppointment(true);
     try {
-      const payload = {
+      const payload: any = {
         clientName: newClientName.trim(),
         clientPhone: newClientPhone.trim(),
         clientEmail: newClientEmail.trim(),
@@ -240,8 +257,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         serviceName: isBlocking ? "Bloqueio de Horário" : selectedSrv.name,
         date: newDate,
         time: newTime,
-        price: isBlocking ? 0 : Number(newPrice.replace(',', '.')),
-        paymentStatus: isBlocking ? "paid" : newPaymentStatus,
+        price: isBlocking ? 0 : (newPaymentMethod === 'pacote' ? 0 : Number(newPrice.replace(',', '.'))),
+        paymentStatus: isBlocking ? "paid" : (newPaymentMethod === 'pacote' ? 'paid' : newPaymentStatus),
+        paymentMethod: isBlocking ? 'dinheiro_pix_cartao' : newPaymentMethod,
+        packageId: isBlocking ? '' : (newPaymentMethod === 'pacote' ? selectedPackageId : ''),
         updatedAt: serverTimestamp()
       };
 
@@ -349,6 +368,24 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const unsub = onSnapshot(inventoryRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setInventory(list);
+    });
+    return () => unsub();
+  }, [orgId]);
+
+  // Escuta Pacotes de Clientes
+  useEffect(() => {
+    if (!orgId) return;
+    const packagesRef = collection(db, 'organizations', orgId, 'client_packages');
+    const q = query(packagesRef, orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setClientPackages(list);
+    }, (err) => {
+      // Fallback sem ordenação caso o índice não esteja criado
+      onSnapshot(packagesRef, (snapshot) => {
+        const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        setClientPackages(list);
+      });
     });
     return () => unsub();
   }, [orgId]);
@@ -526,7 +563,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       const dataToSave = {
         slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
         appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
-        appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos'
+        appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos',
+        packagesActive: expediente.packagesActive || false
       };
       try {
         await updateDoc(docRef, dataToSave);
@@ -578,6 +616,86 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     } catch (e) {
       console.error(e);
       toast.error('Erro ao salvar Clube de Fidelidade.');
+    }
+  };
+
+  // CRUD de Pacotes de Clientes
+  const handleSavePackage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pkgClientName.trim() || !pkgClientPhone.trim() || !pkgServiceId || !orgId) {
+      toast.error('Preencha todos os campos obrigatórios do pacote.');
+      return;
+    }
+
+    setIsSavingPackage(true);
+    try {
+      const selectedService = services.find(s => s.id === pkgServiceId);
+      const serviceName = selectedService ? selectedService.name : 'Serviço';
+      
+      const cleanedPhone = pkgClientPhone.replace(/\D/g, '');
+
+      const payload = {
+        clientName: pkgClientName.trim(),
+        clientPhone: cleanedPhone,
+        serviceId: pkgServiceId,
+        serviceName: serviceName,
+        totalSessions: Number(pkgTotalSessions),
+        usedSessions: 0,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        sessionsHistory: []
+      };
+
+      await addDoc(collection(db, 'organizations', orgId, 'client_packages'), payload);
+      toast.success('Pacote cadastrado com sucesso!');
+      
+      setPkgClientName('');
+      setPkgClientPhone('');
+      setPkgServiceId('');
+      setPkgTotalSessions(10);
+      setIsAddingPackage(false);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao cadastrar pacote.');
+    } finally {
+      setIsSavingPackage(false);
+    }
+  };
+
+  const handleDeletePackage = async (packageId: string) => {
+    if (!orgId) return;
+    if (!confirm('Deseja realmente excluir este pacote? Todos os créditos restantes serão perdidos.')) return;
+    
+    try {
+      await deleteDoc(doc(db, 'organizations', orgId, 'client_packages', packageId));
+      toast.success('Pacote excluído com sucesso.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir pacote.');
+    }
+  };
+
+  const handleAdjustPackageSessions = async (packageId: string, usedAdj: number, totalAdj: number) => {
+    if (!orgId) return;
+    const pkg = clientPackages.find(p => p.id === packageId);
+    if (!pkg) return;
+
+    const newUsed = Math.max(0, pkg.usedSessions + usedAdj);
+    const newTotal = Math.max(1, pkg.totalSessions + totalAdj);
+    const newStatus = newUsed >= newTotal ? 'completed' : 'active';
+
+    try {
+      await updateDoc(doc(db, 'organizations', orgId, 'client_packages', packageId), {
+        usedSessions: newUsed,
+        totalSessions: newTotal,
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+      toast.success('Saldo do pacote ajustado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao ajustar sessões do pacote.');
     }
   };
 
@@ -663,13 +781,38 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
       await updateDoc(doc(db, 'organizations', orgId, 'appointments', appId), updatePayload);
 
-      // Baixa Automática no Estoque se o agendamento foi concluído
+      // Baixa Automática no Estoque e Débito de Pacotes se o agendamento foi concluído
       if (status === 'completed') {
         const app = appointments.find(a => a.id === appId);
-        if (app && app.serviceId) {
-          const srv = services.find(s => s.id === app.serviceId);
-          if (srv && srv.materials && Array.isArray(srv.materials) && srv.materials.length > 0) {
-            const promises = srv.materials.map(async (m: any) => {
+        if (app) {
+          // Débito automático do crédito do pacote
+          if (app.paymentMethod === 'pacote' && app.packageId) {
+            const pkgRef = doc(db, 'organizations', orgId, 'client_packages', app.packageId);
+            const pkg = clientPackages.find(p => p.id === app.packageId);
+            if (pkg) {
+              const newUsed = Math.min(pkg.totalSessions, pkg.usedSessions + 1);
+              const newStatus = newUsed >= pkg.totalSessions ? 'completed' : 'active';
+              const updatedHistory = [...(pkg.sessionsHistory || []), {
+                date: app.date,
+                time: app.time,
+                professional: 'Estabelecimento',
+                appointmentId: appId
+              }];
+
+              await updateDoc(pkgRef, {
+                usedSessions: newUsed,
+                status: newStatus,
+                sessionsHistory: updatedHistory,
+                updatedAt: serverTimestamp()
+              });
+              toast.info(`1 crédito debitado do pacote de ${pkg.clientName}!`);
+            }
+          }
+
+          if (app.serviceId) {
+            const srv = services.find(s => s.id === app.serviceId);
+            if (srv && srv.materials && Array.isArray(srv.materials) && srv.materials.length > 0) {
+              const promises = srv.materials.map(async (m: any) => {
               const invItem = inventory.find(i => i.id === m.itemId);
               if (invItem) {
                 const newQty = Math.max(0, invItem.quantity - m.quantity);
@@ -1765,6 +1908,19 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 />
               </div>
             </div>
+
+            <div className="mt-4 flex flex-wrap gap-6 max-w-2xl">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={expediente.packagesActive || false}
+                  disabled={!isEditingNomenclature}
+                  onChange={(e) => setExpediente({ ...expediente, packagesActive: e.target.checked })}
+                  className="rounded border-white/15 bg-black/40 text-primary-500 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer disabled:opacity-50"
+                />
+                <span className="text-xs font-semibold text-gray-300">Habilitar Módulo de Pacotes de Clientes</span>
+              </label>
+            </div>
           </div>
 
           <div className="w-full h-[1px] bg-white/15 my-6" />
@@ -2357,6 +2513,193 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
             )}
           </div>
 
+          {/* Seção 6: Gestão de Pacotes de Clientes */}
+          {expediente.packagesActive && (
+            <>
+              <div className="w-full h-[1px] bg-white/15 my-6" />
+              
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Scissors size={16} className="text-primary-400" />
+                      Gestão de Pacotes de Clientes
+                    </h3>
+                    <p className="text-xs text-gray-400">Gerencie os pacotes de sessões contratados pelos seus clientes e acompanhe o consumo de créditos.</p>
+                  </div>
+
+                  {!isAddingPackage && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingPackage(true)}
+                      className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border-0"
+                    >
+                      <Plus size={12} />
+                      <span>Vender/Lançar Pacote</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Formulário Novo Pacote */}
+                {isAddingPackage && (
+                  <form onSubmit={handleSavePackage} className="p-5 bg-black/40 border border-white/10 rounded-2xl space-y-4 animate-in fade-in duration-200">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-primary-400">Cadastrar Novo Pacote de Sessões</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Cliente</label>
+                        <input
+                          type="text"
+                          value={pkgClientName}
+                          onChange={(e) => setPkgClientName(e.target.value)}
+                          placeholder="Ex: Maria Silva"
+                          className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">WhatsApp do Cliente</label>
+                        <input
+                          type="text"
+                          value={pkgClientPhone}
+                          onChange={(e) => setPkgClientPhone(e.target.value)}
+                          placeholder="Ex: 11999999999"
+                          className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Serviço do Pacote</label>
+                        <CustomSelect
+                          value={pkgServiceId}
+                          onChange={(val) => setPkgServiceId(val)}
+                          options={[
+                            { value: '', label: 'Selecione um serviço...' },
+                            ...services.map(s => ({ value: s.id, label: `${s.name} (R$ ${s.price?.toFixed(2)})` }))
+                          ]}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total de Sessões</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={pkgTotalSessions}
+                          onChange={(e) => setPkgTotalSessions(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="submit"
+                        disabled={isSavingPackage}
+                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border-0 disabled:opacity-50"
+                      >
+                        <Check size={12} />
+                        <span>{isSavingPackage ? 'Salvando...' : 'Confirmar Venda'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingPackage(false)}
+                        className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Listagem de Pacotes Cadastrados */}
+                {clientPackages.length === 0 ? (
+                  <div className="p-10 text-center bg-black/20 rounded-2xl border border-white/5">
+                    <p className="text-xs text-gray-500">Nenhum pacote ativo registrado ainda.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {clientPackages.map((pkg) => {
+                      const percent = Math.min(100, (pkg.usedSessions / pkg.totalSessions) * 100);
+                      const isCompleted = pkg.status === 'completed';
+                      return (
+                        <div key={pkg.id} className="bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col justify-between gap-4">
+                          <div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-bold text-white block">{pkg.clientName}</span>
+                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                                isCompleted 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                  : 'bg-primary-500/10 text-primary-400 border-primary-500/20'
+                              }`}>
+                                {isCompleted ? 'Concluído' : 'Ativo'}
+                              </span>
+                            </div>
+                            
+                            <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-2">
+                              <Phone size={10} className="text-gray-500" />
+                              {pkg.clientPhone}
+                            </p>
+
+                            <div className="mt-3 space-y-1.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-gray-400 font-medium">{pkg.serviceName}</span>
+                                <span className="text-white font-black">{pkg.usedSessions} / {pkg.totalSessions} sessões</span>
+                              </div>
+                              <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/5">
+                                <div 
+                                  className={`h-full transition-all duration-500 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-primary-500'}`}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+                            {/* Ajuste Rápido de Créditos */}
+                            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustPackageSessions(pkg.id, -1, 0)}
+                                className="px-2.5 py-1 text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer border-0 bg-transparent"
+                                title="Deduzir 1 sessão usada"
+                              >
+                                -1
+                              </button>
+                              <span className="text-[10px] font-black px-1.5 text-gray-400 select-none">Usadas</span>
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustPackageSessions(pkg.id, 1, 0)}
+                                className="px-2.5 py-1 text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer border-0 bg-transparent"
+                                title="Adicionar 1 sessão usada"
+                              >
+                                +1
+                              </button>
+                            </div>
+
+                            {/* Excluir Pacote */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePackage(pkg.id)}
+                              className="p-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition-all cursor-pointer border-0"
+                              title="Excluir pacote"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
         </div>
       )}
 
@@ -2476,7 +2819,67 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                 </div>
               </div>
 
-              {!isBlocking && (
+              {!isBlocking && expediente.packagesActive && (
+                <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Forma de Pagamento</label>
+                    <CustomSelect
+                      value={newPaymentMethod}
+                      onChange={(val) => {
+                        setNewPaymentMethod(val as any);
+                        if (val === 'pacote') {
+                          setNewPrice('0,00');
+                        } else {
+                          if (newServiceId) {
+                            const srv = services.find(s => s.id === newServiceId);
+                            if (srv) setNewPrice(srv.price?.toString().replace('.', ',') || '');
+                          }
+                        }
+                      }}
+                      options={[
+                        { value: 'dinheiro_pix_cartao', label: 'DINHEIRO / PIX / CARTÃO' },
+                        { value: 'pacote', label: 'USAR SALDO DE PACOTE' }
+                      ]}
+                    />
+                  </div>
+
+                  {newPaymentMethod === 'pacote' && (
+                    <div className="space-y-1 animate-in fade-in duration-200">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Selecionar Pacote do Cliente</label>
+                      {(() => {
+                        const cleanedPhone = newClientPhone.replace(/\D/g, '');
+                        const activePkgs = clientPackages.filter(p => 
+                          (p.clientPhone === cleanedPhone || p.clientName.toLowerCase() === newClientName.toLowerCase().trim()) && 
+                          p.usedSessions < p.totalSessions &&
+                          p.serviceId === newServiceId
+                        );
+
+                        if (activePkgs.length === 0) {
+                          return (
+                            <p className="text-[11px] text-amber-400 font-semibold italic bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 mt-1">
+                              Nenhum pacote ativo com créditos disponível para este cliente e serviço. Lance um pacote nas configurações primeiro.
+                            </p>
+                          );
+                        }
+
+                        return (
+                          <CustomSelect
+                            value={selectedPackageId}
+                            onChange={(val) => setSelectedPackageId(val)}
+                            placeholder="Selecione o pacote..."
+                            options={activePkgs.map(p => ({
+                              value: p.id,
+                              label: `${p.clientName} - Saldo: ${p.totalSessions - p.usedSessions} sessões`
+                            }))}
+                          />
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isBlocking && newPaymentMethod !== 'pacote' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor Cobrado (R$)</label>
@@ -2485,7 +2888,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                       value={newPrice}
                       onChange={(e) => setNewPrice(e.target.value)}
                       placeholder="Ex: 150,00"
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold"
+                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold font-mono"
                       required
                     />
                   </div>
