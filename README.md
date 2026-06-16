@@ -14,19 +14,20 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Performance Financeira & Analytics (`PortalCRMFinance.tsx`):** Análise de lucro líquido real, receitas e despesas extras. Inclui **gráficos analíticos dinâmicos puros em SVG** (Evolução do fluxo de caixa de receitas vs despesas e distribuição de gastos por categorias em gráfico Donut).
 *   **Projeção de Caixa e Simulador de Break-Even:** Previsão de faturamento baseada nos próximos 15 e 30 dias de agendamentos confirmados e calculadora simuladora reativa de ponto de equilíbrio contra metas de custos fixos reais.
 *   **Fechamento do Mês (PDF Executivo A4):** Relatório de fechamento estético executivo otimizado para salvamento em PDF ou impressão física no formato padrão A4, ocultando os elementos do portal na impressão (`print:hidden`).
+*   **Gestão de Pacotes de Clientes (`PortalPackages.tsx`):** Lançamento, listagem e controle de saldo de créditos de sessões ativas dos clientes (ex: 10 sessões) com chave geral de ativação do recurso no portal.
+*   **Clube de Fidelidade Digital (`PortalFidelity.tsx`):** Ativação, parametrização de metas e descrição de prêmios do cartão fidelidade, e painel de acompanhamento em tempo real do progresso de carimbos acumulados de cada cliente.
 
 ### 2. 📅 Agenda e Atendimentos (`PortalAgenda.tsx`)
-*   **Módulo Administrativo de Pacotes de Sessões:** Cadastro, controle e listagem de pacotes e sessões ativas dos clientes do estabelecimento (ex: 10 sessões). Permite ajustes manuais reativos de créditos e monitoramento de progresso de uso.
 *   **Dedução de Créditos Automatizada:** O sistema debita de forma autônoma 1 sessão do pacote do cliente e registra a movimentação no histórico de visitas quando o atendimento correspondente é finalizado como concluído (`completed`).
 *   **Timeline Interativa & Visão Mensal:** Exibição reativa de compromissos com alternância dinâmica entre a Visão Diária (Timeline) e a Visão Mensal (calendário completo com contagem de agendamentos e indicadores coloridos de status: pendente, confirmado ou agendado).
 *   **Slots de Horários Inteligentes:** Geração de slots de atendimento dinâmicos baseados no expediente e intervalo comercial definidos nas configurações, filtrando conflitos em tempo real.
 *   **Bloqueio Rápido de Horários:** Atalho para bloquear slots na timeline ("Horário Bloqueado"), impedindo novas reservas no respectivo intervalo.
-*   **Indicador de Fidelidade:** Badge que exibe estrelas acumuladas de clientes fiéis baseadas nos atendimentos com status `completed` no Firestore.
+*   **Indicador de Fidelidade na Timeline:** Badge que exibe estrelas acumuladas de clientes fiéis baseadas nos atendimentos com status `completed` no Firestore.
 *   **Baixa Automática no Estoque:** Débito automático de materiais do estoque físico e registro de log ao marcar atendimentos como concluídos.
 *   **Personalização de Rótulos Dinâmicos:** Nomenclaturas singular/plural customizáveis (ex: "Agendamento" -> "Proposta", "Sessão") aplicadas dinamicamente em toda a interface do portal.
 *   **Confirmação via WhatsApp:** Templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com tags como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
 *   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Rota pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar ou cancelar compromissos, exibindo a logo personalizada da empresa ou o fallback padrão.
-*   **Clube de Fidelidade Digital:** Cartão de carimbos gamificado de fidelização na tela de confirmação de presença (editável nas configurações de fidelidade da organização).
+*   **Clube de Fidelidade Digital:** Cartão de carimbos gamificado de fidelização na tela pública de confirmação de presença.
 *   **Faturamento Automático:** Integração onde a conclusão de um atendimento na timeline gera e consolida automaticamente a receita no painel do CRM Financeiro.
 
 ### 3. 💳 Faturamento e Faturas (`PortalFinance.tsx`)
