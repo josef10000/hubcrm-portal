@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp 
@@ -11,6 +12,8 @@ import { Offer, Client } from '../types';
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import CustomSelect from '../components/CustomSelect';
+import PortalPackages from '../components/PortalPackages';
+import PortalFidelity from '../components/PortalFidelity';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -19,6 +22,7 @@ interface PortalAgendaProps {
 
 export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [subTab, setSubTab] = useState<'timeline' | 'services' | 'settings'>('timeline');
+  const [settingsSubTab, setSettingsSubTab] = useState<'hours' | 'rules' | 'biosite' | 'packages' | 'fidelity'>('hours');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -1574,10 +1578,92 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
       {/* ABA 3: EXPEDIENTE COMERCIAL */}
       {subTab === 'settings' && (
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6">
+        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-8 animate-in fade-in duration-300">
           
-          {/* Seção 1: Horários de Atendimento */}
-          <div className="space-y-6">
+          {/* Menu Horizontal de Sub-Abas de Configuração */}
+          <div className="flex border-b border-white/10 gap-2 md:gap-4 overflow-x-auto pb-px scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('hours')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'hours' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Clock size={16} />
+              <span>Horários de Atendimento</span>
+              {settingsSubTab === 'hours' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('rules')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'rules' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Settings size={16} />
+              <span>Regras e Rótulos</span>
+              {settingsSubTab === 'rules' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('biosite')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'biosite' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Globe size={16} />
+              <span>Mini-Site / Bio</span>
+              {settingsSubTab === 'biosite' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('packages')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'packages' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Scissors size={16} />
+              <span>Pacotes de Clientes</span>
+              {settingsSubTab === 'packages' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('fidelity')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'fidelity' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Award size={16} />
+              <span>Clube de Fidelidade</span>
+              {settingsSubTab === 'fidelity' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={settingsSubTab}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full"
+            >
+              {settingsSubTab === 'hours' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1688,11 +1774,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               })}
             </div>
           </div>
-
-          <div className="w-full h-[1px] bg-white/15" />
-
-          {/* Seção 2: Regras e Nomenclatura */}
-          <div className="space-y-6">
+        )}
+        {/* Seção 2: Regras e Nomenclatura */}
+        {settingsSubTab === 'rules' && (
+          <>
+            <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -2004,11 +2090,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               </div>
             )}
           </div>
-
-          <div className="w-full h-[1px] bg-white/15 my-6" />
-
-          {/* Seção 4: Configuração do Mini-Site (Link da Bio) */}
-          <div className="space-y-6">
+        </>
+      )}
+        {/* Seção 4: Configuração do Mini-Site (Link da Bio) */}
+        {settingsSubTab === 'biosite' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -2266,8 +2352,18 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               </div>
             )}
           </div>
+        )}
 
+        {settingsSubTab === 'packages' && (
+          <PortalPackages orgId={orgId} />
+        )}
 
+        {settingsSubTab === 'fidelity' && (
+          <PortalFidelity orgId={orgId} />
+        )}
+
+            </motion.div>
+          </AnimatePresence>
 
         </div>
       )}

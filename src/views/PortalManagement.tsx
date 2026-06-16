@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Calculator, Briefcase, ChevronDown, Scissors, Award } from 'lucide-react';
+import { Package, Calculator, Briefcase, ChevronDown } from 'lucide-react';
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
-import PortalPackages from '../components/PortalPackages';
-import PortalFidelity from '../components/PortalFidelity';
 
 interface PortalManagementProps {
   orgId: string;
@@ -12,31 +10,13 @@ interface PortalManagementProps {
 }
 
 export default function PortalManagement({ orgId, clientId }: PortalManagementProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'calculator' | 'packages' | 'fidelity'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'calculator'>('inventory');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const subTabs = [
     { id: 'inventory', label: 'Estoque de Insumos', icon: Package },
-    { id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator },
-    { id: 'packages', label: 'Pacotes de Clientes', icon: Scissors },
-    { id: 'fidelity', label: 'Clube de Fidelidade', icon: Award }
+    { id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }
   ] as const;
-
-  const getActiveTabDetails = () => {
-    switch (activeSubTab) {
-      case 'inventory':
-        return { label: 'Estoque de Insumos', icon: Package };
-      case 'calculator':
-        return { label: 'Calculadora de Orçamentos', icon: Calculator };
-      case 'packages':
-        return { label: 'Pacotes de Clientes', icon: Scissors };
-      case 'fidelity':
-        return { label: 'Clube de Fidelidade', icon: Award };
-    }
-  };
-
-  const activeTabDetails = getActiveTabDetails();
-  const ActiveIcon = activeTabDetails.icon;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -50,7 +30,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
             Meu Negócio
           </h3>
           <p className="text-gray-500 text-xs lg:text-sm mt-1">
-            Gerencie o estoque de insumos, simule orçamentos, acompanhe pacotes de sessões e administre o clube de fidelidade.
+            Gerencie o estoque de insumos e simule orçamentos operacionais com facilidade.
           </p>
         </div>
       </div>
@@ -63,10 +43,13 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
         >
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
-            <ActiveIcon size={18} />
+            {(() => {
+              if (activeSubTab === 'inventory') return <Package size={18} />;
+              return <Calculator size={18} />;
+            })()}
           </div>
           <span>
-            {activeTabDetails.label}
+            {activeSubTab === 'inventory' ? 'Estoque de Insumos' : 'Calculadora de Orçamentos'}
           </span>
           <ChevronDown 
             size={16} 
@@ -78,28 +61,36 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           <>
             <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsDropdownOpen(false)} />
             <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
-              {subTabs.map((tab) => {
-                const TabIcon = tab.icon;
-                const isActive = activeSubTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveSubTab(tab.id);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                      isActive 
-                        ? 'bg-primary-500/15 text-primary-400 font-black' 
-                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                    }`}
-                  >
-                    <TabIcon size={16} className={isActive ? 'text-primary-400' : 'text-gray-500'} />
-                    {tab.label}
-                  </button>
-                );
-              })}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('inventory');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                  activeSubTab === 'inventory' 
+                    ? 'bg-primary-500/15 text-primary-400 font-black' 
+                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                }`}
+              >
+                <Package size={16} className={activeSubTab === 'inventory' ? 'text-primary-400' : 'text-gray-500'} />
+                Estoque de Insumos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('calculator');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                  activeSubTab === 'calculator' 
+                    ? 'bg-primary-500/15 text-primary-400 font-black' 
+                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                }`}
+              >
+                <Calculator size={16} className={activeSubTab === 'calculator' ? 'text-primary-400' : 'text-gray-500'} />
+                Calculadora de Orçamentos
+              </button>
             </div>
           </>
         )}
@@ -149,12 +140,6 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
             )}
             {activeSubTab === 'calculator' && (
               <PortalCalculator orgId={orgId} />
-            )}
-            {activeSubTab === 'packages' && (
-              <PortalPackages orgId={orgId} />
-            )}
-            {activeSubTab === 'fidelity' && (
-              <PortalFidelity orgId={orgId} />
             )}
           </motion.div>
         </AnimatePresence>

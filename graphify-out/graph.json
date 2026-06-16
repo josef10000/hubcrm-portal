@@ -1,0 +1,4347 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1",
+      "id": "package",
+      "community": 4,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "id": "package_name",
+      "community": 4,
+      "norm_label": "name"
+    },
+    {
+      "label": "private",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "id": "package_private",
+      "community": 4,
+      "norm_label": "private"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "id": "package_version",
+      "community": 4,
+      "norm_label": "version"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "id": "package_type",
+      "community": 4,
+      "norm_label": "type"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "id": "package_scripts",
+      "community": 4,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "id": "package_scripts_dev",
+      "community": 4,
+      "norm_label": "dev"
+    },
+    {
+      "label": "build",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "id": "package_scripts_build",
+      "community": 4,
+      "norm_label": "build"
+    },
+    {
+      "label": "preview",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "id": "package_scripts_preview",
+      "community": 4,
+      "norm_label": "preview"
+    },
+    {
+      "label": "test",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "id": "package_scripts_test",
+      "community": 4,
+      "norm_label": "test"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "id": "package_dependencies",
+      "community": 4,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "clsx",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "id": "package_dependencies_clsx",
+      "community": 4,
+      "norm_label": "clsx"
+    },
+    {
+      "label": "firebase",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "id": "package_dependencies_firebase",
+      "community": 4,
+      "norm_label": "firebase"
+    },
+    {
+      "label": "lucide-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "id": "package_dependencies_lucide_react",
+      "community": 4,
+      "norm_label": "lucide-react"
+    },
+    {
+      "label": "motion",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "id": "package_dependencies_motion",
+      "community": 4,
+      "norm_label": "motion"
+    },
+    {
+      "label": "react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "id": "package_dependencies_react",
+      "community": 4,
+      "norm_label": "react"
+    },
+    {
+      "label": "react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "id": "package_dependencies_react_dom",
+      "community": 4,
+      "norm_label": "react-dom"
+    },
+    {
+      "label": "react-router-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "id": "package_dependencies_react_router_dom",
+      "community": 4,
+      "norm_label": "react-router-dom"
+    },
+    {
+      "label": "sonner",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "id": "package_dependencies_sonner",
+      "community": 4,
+      "norm_label": "sonner"
+    },
+    {
+      "label": "tailwind-merge",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "id": "package_dependencies_tailwind_merge",
+      "community": 4,
+      "norm_label": "tailwind-merge"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "id": "package_devdependencies",
+      "community": 7,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@tailwindcss/vite",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "id": "package_devdependencies_tailwindcss_vite",
+      "community": 7,
+      "norm_label": "@tailwindcss/vite"
+    },
+    {
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "id": "package_devdependencies_types_node",
+      "community": 7,
+      "norm_label": "@types/node"
+    },
+    {
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "id": "package_devdependencies_types_react",
+      "community": 7,
+      "norm_label": "@types/react"
+    },
+    {
+      "label": "@types/react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "id": "package_devdependencies_types_react_dom",
+      "community": 7,
+      "norm_label": "@types/react-dom"
+    },
+    {
+      "label": "@vitejs/plugin-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "id": "package_devdependencies_vitejs_plugin_react",
+      "community": 7,
+      "norm_label": "@vitejs/plugin-react"
+    },
+    {
+      "label": "autoprefixer",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "id": "package_devdependencies_autoprefixer",
+      "community": 7,
+      "norm_label": "autoprefixer"
+    },
+    {
+      "label": "tailwindcss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "id": "package_devdependencies_tailwindcss",
+      "community": 7,
+      "norm_label": "tailwindcss"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "id": "package_devdependencies_typescript",
+      "community": 7,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "vite",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "id": "package_devdependencies_vite",
+      "community": 7,
+      "norm_label": "vite"
+    },
+    {
+      "label": "vitest",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L33",
+      "id": "package_devdependencies_vitest",
+      "community": 7,
+      "norm_label": "vitest"
+    },
+    {
+      "label": "App.tsx",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L1",
+      "id": "src_app",
+      "community": 8,
+      "norm_label": "app.tsx"
+    },
+    {
+      "label": "ClientPortalLayout",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L5",
+      "id": "src_app_clientportallayout",
+      "community": 8,
+      "norm_label": "clientportallayout"
+    },
+    {
+      "label": "PortalActivation",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L6",
+      "id": "src_app_portalactivation",
+      "community": 8,
+      "norm_label": "portalactivation"
+    },
+    {
+      "label": "ConfirmarPresenca",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L7",
+      "id": "src_app_confirmarpresenca",
+      "community": 8,
+      "norm_label": "confirmarpresenca"
+    },
+    {
+      "label": "PortalBioSite",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L8",
+      "id": "src_app_portalbiosite",
+      "community": 8,
+      "norm_label": "portalbiosite"
+    },
+    {
+      "label": "PortalPublicBooking",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L9",
+      "id": "src_app_portalpublicbooking",
+      "community": 8,
+      "norm_label": "portalpublicbooking"
+    },
+    {
+      "label": "App()",
+      "file_type": "code",
+      "source_file": "src/App.tsx",
+      "source_location": "L11",
+      "id": "src_app_app",
+      "community": 8,
+      "norm_label": "app()"
+    },
+    {
+      "label": "ClientPortalLayout.tsx",
+      "file_type": "code",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L1",
+      "id": "components_clientportallayout",
+      "community": 0,
+      "norm_label": "clientportallayout.tsx"
+    },
+    {
+      "label": "ClientPortalLayout()",
+      "file_type": "code",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L44",
+      "id": "components_clientportallayout_clientportallayout",
+      "community": 0,
+      "norm_label": "clientportallayout()"
+    },
+    {
+      "label": "ConfirmModal.tsx",
+      "file_type": "code",
+      "source_file": "src/components/ConfirmModal.tsx",
+      "source_location": "L1",
+      "id": "components_confirmmodal",
+      "community": 3,
+      "norm_label": "confirmmodal.tsx"
+    },
+    {
+      "label": "ConfirmModalProps",
+      "file_type": "code",
+      "source_file": "src/components/ConfirmModal.tsx",
+      "source_location": "L4",
+      "id": "components_confirmmodal_confirmmodalprops",
+      "community": 3,
+      "norm_label": "confirmmodalprops"
+    },
+    {
+      "label": "ConfirmModal()",
+      "file_type": "code",
+      "source_file": "src/components/ConfirmModal.tsx",
+      "source_location": "L14",
+      "id": "components_confirmmodal_confirmmodal",
+      "community": 3,
+      "norm_label": "confirmmodal()"
+    },
+    {
+      "label": "CustomSelect.tsx",
+      "file_type": "code",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L1",
+      "id": "components_customselect",
+      "community": 3,
+      "norm_label": "customselect.tsx"
+    },
+    {
+      "label": "Option",
+      "file_type": "code",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L4",
+      "id": "components_customselect_option",
+      "community": 3,
+      "norm_label": "option"
+    },
+    {
+      "label": "CustomSelectProps",
+      "file_type": "code",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L9",
+      "id": "components_customselect_customselectprops",
+      "community": 3,
+      "norm_label": "customselectprops"
+    },
+    {
+      "label": "CustomSelect()",
+      "file_type": "code",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L18",
+      "id": "components_customselect_customselect",
+      "community": 3,
+      "norm_label": "customselect()"
+    },
+    {
+      "label": "PortalCalculator.tsx",
+      "file_type": "code",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L1",
+      "id": "components_portalcalculator",
+      "community": 6,
+      "norm_label": "portalcalculator.tsx"
+    },
+    {
+      "label": "PortalCalculatorProps",
+      "file_type": "code",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L20",
+      "id": "components_portalcalculator_portalcalculatorprops",
+      "community": 6,
+      "norm_label": "portalcalculatorprops"
+    },
+    {
+      "label": "InventoryItem",
+      "file_type": "code",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L24",
+      "id": "components_portalcalculator_inventoryitem",
+      "community": 6,
+      "norm_label": "inventoryitem"
+    },
+    {
+      "label": "SelectedMaterial",
+      "file_type": "code",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L32",
+      "id": "components_portalcalculator_selectedmaterial",
+      "community": 6,
+      "norm_label": "selectedmaterial"
+    },
+    {
+      "label": "PortalCalculator()",
+      "file_type": "code",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L40",
+      "id": "components_portalcalculator_portalcalculator",
+      "community": 6,
+      "norm_label": "portalcalculator()"
+    },
+    {
+      "label": "PortalInventory.tsx",
+      "file_type": "code",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L1",
+      "id": "components_portalinventory",
+      "community": 3,
+      "norm_label": "portalinventory.tsx"
+    },
+    {
+      "label": "PortalInventoryProps",
+      "file_type": "code",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L13",
+      "id": "components_portalinventory_portalinventoryprops",
+      "community": 3,
+      "norm_label": "portalinventoryprops"
+    },
+    {
+      "label": "InventoryItem",
+      "file_type": "code",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L17",
+      "id": "components_portalinventory_inventoryitem",
+      "community": 3,
+      "norm_label": "inventoryitem"
+    },
+    {
+      "label": "PortalInventory()",
+      "file_type": "code",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L26",
+      "id": "components_portalinventory_portalinventory",
+      "community": 3,
+      "norm_label": "portalinventory()"
+    },
+    {
+      "label": "usePortalData.ts",
+      "file_type": "code",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L1",
+      "id": "hooks_useportaldata",
+      "community": 0,
+      "norm_label": "useportaldata.ts"
+    },
+    {
+      "label": "usePortalData()",
+      "file_type": "code",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L7",
+      "id": "hooks_useportaldata_useportaldata",
+      "community": 0,
+      "norm_label": "useportaldata()"
+    },
+    {
+      "label": "usePortalSupport.ts",
+      "file_type": "code",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L1",
+      "id": "hooks_useportalsupport",
+      "community": 0,
+      "norm_label": "useportalsupport.ts"
+    },
+    {
+      "label": "usePortalSupport()",
+      "file_type": "code",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L7",
+      "id": "hooks_useportalsupport_useportalsupport",
+      "community": 0,
+      "norm_label": "useportalsupport()"
+    },
+    {
+      "label": "cloudinary.ts",
+      "file_type": "code",
+      "source_file": "src/lib/cloudinary.ts",
+      "source_location": "L1",
+      "id": "lib_cloudinary",
+      "community": 0,
+      "norm_label": "cloudinary.ts"
+    },
+    {
+      "label": "CloudinaryResponse",
+      "file_type": "code",
+      "source_file": "src/lib/cloudinary.ts",
+      "source_location": "L9",
+      "id": "lib_cloudinary_cloudinaryresponse",
+      "community": 0,
+      "norm_label": "cloudinaryresponse"
+    },
+    {
+      "label": "uploadToCloudinary()",
+      "file_type": "code",
+      "source_file": "src/lib/cloudinary.ts",
+      "source_location": "L20",
+      "id": "lib_cloudinary_uploadtocloudinary",
+      "community": 0,
+      "norm_label": "uploadtocloudinary()"
+    },
+    {
+      "label": "firebase.ts",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L1",
+      "id": "lib_firebase",
+      "community": 0,
+      "norm_label": "firebase.ts"
+    },
+    {
+      "label": "firebaseConfig",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L7",
+      "id": "lib_firebase_firebaseconfig",
+      "community": 0,
+      "norm_label": "firebaseconfig"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L16",
+      "id": "lib_firebase_app",
+      "community": 0,
+      "norm_label": "app"
+    },
+    {
+      "label": "auth",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L17",
+      "id": "lib_firebase_auth",
+      "community": 0,
+      "norm_label": "auth"
+    },
+    {
+      "label": "db",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L22",
+      "id": "lib_firebase_db",
+      "community": 0,
+      "norm_label": "db"
+    },
+    {
+      "label": "storage",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L24",
+      "id": "lib_firebase_storage",
+      "community": 0,
+      "norm_label": "storage"
+    },
+    {
+      "label": "googleProvider",
+      "file_type": "code",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L27",
+      "id": "lib_firebase_googleprovider",
+      "community": 0,
+      "norm_label": "googleprovider"
+    },
+    {
+      "label": "main.tsx",
+      "file_type": "code",
+      "source_file": "src/main.tsx",
+      "source_location": "L1",
+      "id": "src_main",
+      "community": 8,
+      "norm_label": "main.tsx"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L1",
+      "id": "types_index",
+      "community": 2,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "Client",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L1",
+      "id": "types_index_client",
+      "community": 2,
+      "norm_label": "client"
+    },
+    {
+      "label": "Offer",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L38",
+      "id": "types_index_offer",
+      "community": 2,
+      "norm_label": "offer"
+    },
+    {
+      "label": "ClientContract",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L48",
+      "id": "types_index_clientcontract",
+      "community": 2,
+      "norm_label": "clientcontract"
+    },
+    {
+      "label": "ClientLog",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L60",
+      "id": "types_index_clientlog",
+      "community": 2,
+      "norm_label": "clientlog"
+    },
+    {
+      "label": "Payment",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L66",
+      "id": "types_index_payment",
+      "community": 2,
+      "norm_label": "payment"
+    },
+    {
+      "label": "SupportTicket",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L80",
+      "id": "types_index_supportticket",
+      "community": 0,
+      "norm_label": "supportticket"
+    },
+    {
+      "label": "GrowthAsset",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L96",
+      "id": "types_index_growthasset",
+      "community": 2,
+      "norm_label": "growthasset"
+    },
+    {
+      "label": "calculations.test.ts",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L1",
+      "id": "utils_calculations_test",
+      "community": 6,
+      "norm_label": "calculations.test.ts"
+    },
+    {
+      "label": "calculations.ts",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L1",
+      "id": "utils_calculations",
+      "community": 6,
+      "norm_label": "calculations.ts"
+    },
+    {
+      "label": "SelectedMaterial",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L1",
+      "id": "utils_calculations_selectedmaterial",
+      "community": 6,
+      "norm_label": "selectedmaterial"
+    },
+    {
+      "label": "calculateMaterialsCost()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L11",
+      "id": "utils_calculations_calculatematerialscost",
+      "community": 6,
+      "norm_label": "calculatematerialscost()"
+    },
+    {
+      "label": "calculateLaborCost()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L18",
+      "id": "utils_calculations_calculatelaborcost",
+      "community": 6,
+      "norm_label": "calculatelaborcost()"
+    },
+    {
+      "label": "parseExtraCost()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L27",
+      "id": "utils_calculations_parseextracost",
+      "community": 6,
+      "norm_label": "parseextracost()"
+    },
+    {
+      "label": "calculateTotalCost()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L38",
+      "id": "utils_calculations_calculatetotalcost",
+      "community": 6,
+      "norm_label": "calculatetotalcost()"
+    },
+    {
+      "label": "calculateSuggestedPrice()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L50",
+      "id": "utils_calculations_calculatesuggestedprice",
+      "community": 6,
+      "norm_label": "calculatesuggestedprice()"
+    },
+    {
+      "label": "calculateNetProfit()",
+      "file_type": "code",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L61",
+      "id": "utils_calculations_calculatenetprofit",
+      "community": 6,
+      "norm_label": "calculatenetprofit()"
+    },
+    {
+      "label": "ConfirmarPresenca.tsx",
+      "file_type": "code",
+      "source_file": "src/views/ConfirmarPresenca.tsx",
+      "source_location": "L1",
+      "id": "views_confirmarpresenca",
+      "community": 0,
+      "norm_label": "confirmarpresenca.tsx"
+    },
+    {
+      "label": "ConfirmarPresenca()",
+      "file_type": "code",
+      "source_file": "src/views/ConfirmarPresenca.tsx",
+      "source_location": "L8",
+      "id": "views_confirmarpresenca_confirmarpresenca",
+      "community": 0,
+      "norm_label": "confirmarpresenca()"
+    },
+    {
+      "label": "PortalActivation.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalActivation.tsx",
+      "source_location": "L1",
+      "id": "views_portalactivation",
+      "community": 0,
+      "norm_label": "portalactivation.tsx"
+    },
+    {
+      "label": "PortalActivation()",
+      "file_type": "code",
+      "source_file": "src/views/PortalActivation.tsx",
+      "source_location": "L8",
+      "id": "views_portalactivation_portalactivation",
+      "community": 0,
+      "norm_label": "portalactivation()"
+    },
+    {
+      "label": "PortalAgenda.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L1",
+      "id": "views_portalagenda",
+      "community": 2,
+      "norm_label": "portalagenda.tsx"
+    },
+    {
+      "label": "PortalAgendaProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L15",
+      "id": "views_portalagenda_portalagendaprops",
+      "community": 2,
+      "norm_label": "portalagendaprops"
+    },
+    {
+      "label": "PortalAgenda()",
+      "file_type": "code",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L20",
+      "id": "views_portalagenda_portalagenda",
+      "community": 2,
+      "norm_label": "portalagenda()"
+    },
+    {
+      "label": "PortalBioSite.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalBioSite.tsx",
+      "source_location": "L1",
+      "id": "views_portalbiosite",
+      "community": 0,
+      "norm_label": "portalbiosite.tsx"
+    },
+    {
+      "label": "PortalBioSite()",
+      "file_type": "code",
+      "source_file": "src/views/PortalBioSite.tsx",
+      "source_location": "L17",
+      "id": "views_portalbiosite_portalbiosite",
+      "community": 0,
+      "norm_label": "portalbiosite()"
+    },
+    {
+      "label": "PortalCRMFinance.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L1",
+      "id": "views_portalcrmfinance",
+      "community": 3,
+      "norm_label": "portalcrmfinance.tsx"
+    },
+    {
+      "label": "PortalCRMFinanceProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L11",
+      "id": "views_portalcrmfinance_portalcrmfinanceprops",
+      "community": 3,
+      "norm_label": "portalcrmfinanceprops"
+    },
+    {
+      "label": "Expense",
+      "file_type": "code",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L16",
+      "id": "views_portalcrmfinance_expense",
+      "community": 3,
+      "norm_label": "expense"
+    },
+    {
+      "label": "Revenue",
+      "file_type": "code",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L30",
+      "id": "views_portalcrmfinance_revenue",
+      "community": 3,
+      "norm_label": "revenue"
+    },
+    {
+      "label": "PortalCRMFinance()",
+      "file_type": "code",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L42",
+      "id": "views_portalcrmfinance_portalcrmfinance",
+      "community": 3,
+      "norm_label": "portalcrmfinance()"
+    },
+    {
+      "label": "PortalDocuments.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L1",
+      "id": "views_portaldocuments",
+      "community": 2,
+      "norm_label": "portaldocuments.tsx"
+    },
+    {
+      "label": "PortalDocumentsProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L19",
+      "id": "views_portaldocuments_portaldocumentsprops",
+      "community": 2,
+      "norm_label": "portaldocumentsprops"
+    },
+    {
+      "label": "PortalDocuments()",
+      "file_type": "code",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L24",
+      "id": "views_portaldocuments_portaldocuments",
+      "community": 2,
+      "norm_label": "portaldocuments()"
+    },
+    {
+      "label": "PortalFinance.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L1",
+      "id": "views_portalfinance",
+      "community": 2,
+      "norm_label": "portalfinance.tsx"
+    },
+    {
+      "label": "PortalFinanceProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L18",
+      "id": "views_portalfinance_portalfinanceprops",
+      "community": 2,
+      "norm_label": "portalfinanceprops"
+    },
+    {
+      "label": "PortalFinance()",
+      "file_type": "code",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L26",
+      "id": "views_portalfinance_portalfinance",
+      "community": 2,
+      "norm_label": "portalfinance()"
+    },
+    {
+      "label": "PortalGrowthHub.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L1",
+      "id": "views_portalgrowthhub",
+      "community": 2,
+      "norm_label": "portalgrowthhub.tsx"
+    },
+    {
+      "label": "TabId",
+      "file_type": "code",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L23",
+      "id": "views_portalgrowthhub_tabid",
+      "community": 2,
+      "norm_label": "tabid"
+    },
+    {
+      "label": "PortalGrowthHubProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L25",
+      "id": "views_portalgrowthhub_portalgrowthhubprops",
+      "community": 2,
+      "norm_label": "portalgrowthhubprops"
+    },
+    {
+      "label": "PortalGrowthHub()",
+      "file_type": "code",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L32",
+      "id": "views_portalgrowthhub_portalgrowthhub",
+      "community": 2,
+      "norm_label": "portalgrowthhub()"
+    },
+    {
+      "label": "PortalHome.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L1",
+      "id": "views_portalhome",
+      "community": 0,
+      "norm_label": "portalhome.tsx"
+    },
+    {
+      "label": "PortalHomeProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L29",
+      "id": "views_portalhome_portalhomeprops",
+      "community": 0,
+      "norm_label": "portalhomeprops"
+    },
+    {
+      "label": "PortalHome()",
+      "file_type": "code",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L36",
+      "id": "views_portalhome_portalhome",
+      "community": 0,
+      "norm_label": "portalhome()"
+    },
+    {
+      "label": "PortalLogin.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L1",
+      "id": "views_portallogin",
+      "community": 0,
+      "norm_label": "portallogin.tsx"
+    },
+    {
+      "label": "PortalLogin()",
+      "file_type": "code",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L16",
+      "id": "views_portallogin_portallogin",
+      "community": 0,
+      "norm_label": "portallogin()"
+    },
+    {
+      "label": "PortalManagement.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L1",
+      "id": "views_portalmanagement",
+      "community": 3,
+      "norm_label": "portalmanagement.tsx"
+    },
+    {
+      "label": "PortalManagementProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L7",
+      "id": "views_portalmanagement_portalmanagementprops",
+      "community": 3,
+      "norm_label": "portalmanagementprops"
+    },
+    {
+      "label": "PortalManagement()",
+      "file_type": "code",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L12",
+      "id": "views_portalmanagement_portalmanagement",
+      "community": 3,
+      "norm_label": "portalmanagement()"
+    },
+    {
+      "label": "PortalProfile.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L1",
+      "id": "views_portalprofile",
+      "community": 0,
+      "norm_label": "portalprofile.tsx"
+    },
+    {
+      "label": "PortalProfileProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L21",
+      "id": "views_portalprofile_portalprofileprops",
+      "community": 0,
+      "norm_label": "portalprofileprops"
+    },
+    {
+      "label": "PortalProfile()",
+      "file_type": "code",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L28",
+      "id": "views_portalprofile_portalprofile",
+      "community": 0,
+      "norm_label": "portalprofile()"
+    },
+    {
+      "label": "PortalPublicBooking.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L1",
+      "id": "views_portalpublicbooking",
+      "community": 3,
+      "norm_label": "portalpublicbooking.tsx"
+    },
+    {
+      "label": "PortalPublicBooking()",
+      "file_type": "code",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L24",
+      "id": "views_portalpublicbooking_portalpublicbooking",
+      "community": 3,
+      "norm_label": "portalpublicbooking()"
+    },
+    {
+      "label": "PortalServices.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L1",
+      "id": "views_portalservices",
+      "community": 2,
+      "norm_label": "portalservices.tsx"
+    },
+    {
+      "label": "PortalServicesProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L17",
+      "id": "views_portalservices_portalservicesprops",
+      "community": 2,
+      "norm_label": "portalservicesprops"
+    },
+    {
+      "label": "PortalServices()",
+      "file_type": "code",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L22",
+      "id": "views_portalservices_portalservices",
+      "community": 2,
+      "norm_label": "portalservices()"
+    },
+    {
+      "label": "PortalSupport.tsx",
+      "file_type": "code",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L1",
+      "id": "views_portalsupport",
+      "community": 0,
+      "norm_label": "portalsupport.tsx"
+    },
+    {
+      "label": "PortalSupportProps",
+      "file_type": "code",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L27",
+      "id": "views_portalsupport_portalsupportprops",
+      "community": 0,
+      "norm_label": "portalsupportprops"
+    },
+    {
+      "label": "PortalSupport()",
+      "file_type": "code",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L33",
+      "id": "views_portalsupport_portalsupport",
+      "community": 0,
+      "norm_label": "portalsupport()"
+    },
+    {
+      "label": "vite-env.d.ts",
+      "file_type": "code",
+      "source_file": "src/vite-env.d.ts",
+      "source_location": "L1",
+      "id": "src_vite_env_d",
+      "community": 10,
+      "norm_label": "vite-env.d.ts"
+    },
+    {
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L1",
+      "id": "tsconfig",
+      "community": 1,
+      "norm_label": "tsconfig.json"
+    },
+    {
+      "label": "compilerOptions",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L2",
+      "id": "tsconfig_compileroptions",
+      "community": 1,
+      "norm_label": "compileroptions"
+    },
+    {
+      "label": "target",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L3",
+      "id": "tsconfig_compileroptions_target",
+      "community": 1,
+      "norm_label": "target"
+    },
+    {
+      "label": "useDefineForClassFields",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L4",
+      "id": "tsconfig_compileroptions_usedefineforclassfields",
+      "community": 1,
+      "norm_label": "usedefineforclassfields"
+    },
+    {
+      "label": "lib",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L5",
+      "id": "tsconfig_compileroptions_lib",
+      "community": 1,
+      "norm_label": "lib"
+    },
+    {
+      "label": "module",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L6",
+      "id": "tsconfig_compileroptions_module",
+      "community": 1,
+      "norm_label": "module"
+    },
+    {
+      "label": "skipLibCheck",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L7",
+      "id": "tsconfig_compileroptions_skiplibcheck",
+      "community": 1,
+      "norm_label": "skiplibcheck"
+    },
+    {
+      "label": "moduleResolution",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L10",
+      "id": "tsconfig_compileroptions_moduleresolution",
+      "community": 1,
+      "norm_label": "moduleresolution"
+    },
+    {
+      "label": "allowImportingTsExtensions",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L11",
+      "id": "tsconfig_compileroptions_allowimportingtsextensions",
+      "community": 1,
+      "norm_label": "allowimportingtsextensions"
+    },
+    {
+      "label": "resolveJsonModule",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L12",
+      "id": "tsconfig_compileroptions_resolvejsonmodule",
+      "community": 1,
+      "norm_label": "resolvejsonmodule"
+    },
+    {
+      "label": "isolatedModules",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L13",
+      "id": "tsconfig_compileroptions_isolatedmodules",
+      "community": 1,
+      "norm_label": "isolatedmodules"
+    },
+    {
+      "label": "noEmit",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L14",
+      "id": "tsconfig_compileroptions_noemit",
+      "community": 1,
+      "norm_label": "noemit"
+    },
+    {
+      "label": "jsx",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L15",
+      "id": "tsconfig_compileroptions_jsx",
+      "community": 1,
+      "norm_label": "jsx"
+    },
+    {
+      "label": "strict",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L18",
+      "id": "tsconfig_compileroptions_strict",
+      "community": 1,
+      "norm_label": "strict"
+    },
+    {
+      "label": "noUnusedLocals",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L19",
+      "id": "tsconfig_compileroptions_nounusedlocals",
+      "community": 1,
+      "norm_label": "nounusedlocals"
+    },
+    {
+      "label": "noUnusedParameters",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L20",
+      "id": "tsconfig_compileroptions_nounusedparameters",
+      "community": 1,
+      "norm_label": "nounusedparameters"
+    },
+    {
+      "label": "noFallthroughCasesInSwitch",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L21",
+      "id": "tsconfig_compileroptions_nofallthroughcasesinswitch",
+      "community": 1,
+      "norm_label": "nofallthroughcasesinswitch"
+    },
+    {
+      "label": "types",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L22",
+      "id": "tsconfig_compileroptions_types",
+      "community": 1,
+      "norm_label": "types"
+    },
+    {
+      "label": "baseUrl",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L25",
+      "id": "tsconfig_compileroptions_baseurl",
+      "community": 1,
+      "norm_label": "baseurl"
+    },
+    {
+      "label": "paths",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L26",
+      "id": "tsconfig_compileroptions_paths",
+      "community": 1,
+      "norm_label": "paths"
+    },
+    {
+      "label": "@/*",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L27",
+      "id": "tsconfig_paths",
+      "community": 1,
+      "norm_label": "@/*"
+    },
+    {
+      "label": "include",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L30",
+      "id": "tsconfig_include",
+      "community": 1,
+      "norm_label": "include"
+    },
+    {
+      "label": "exclude",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L31",
+      "id": "tsconfig_exclude",
+      "community": 1,
+      "norm_label": "exclude"
+    },
+    {
+      "label": "vercel.json",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L1",
+      "id": "vercel",
+      "community": 9,
+      "norm_label": "vercel.json"
+    },
+    {
+      "label": "rewrites",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L2",
+      "id": "vercel_rewrites",
+      "community": 9,
+      "norm_label": "rewrites"
+    },
+    {
+      "label": "vite.config.ts",
+      "file_type": "code",
+      "source_file": "vite.config.ts",
+      "source_location": "L1",
+      "id": "vite_config",
+      "community": 11,
+      "norm_label": "vite.config.ts"
+    },
+    {
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "readme",
+      "community": 5,
+      "norm_label": "readme.md"
+    },
+    {
+      "label": "\ud83c\udf10 PORTAL HUB \u2014 CANAL DO CLIENTE INDEPENDENTE",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "readme_portal_hub_canal_do_cliente_independente",
+      "community": 5,
+      "norm_label": "\ud83c\udf10 portal hub \u2014 canal do cliente independente"
+    },
+    {
+      "label": "\ud83d\ude80 Principais Recursos",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L9",
+      "id": "readme_principais_recursos",
+      "community": 5,
+      "norm_label": "\ud83d\ude80 principais recursos"
+    },
+    {
+      "label": "1. \ud83d\udcca M\u00f3dulo \"Meu Neg\u00f3cio\" (`PortalManagement.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L11",
+      "id": "readme_1_m\u00f3dulo_meu_neg\u00f3cio_portalmanagement_tsx",
+      "community": 5,
+      "norm_label": "1. \ud83d\udcca modulo \"meu negocio\" (`portalmanagement.tsx`)"
+    },
+    {
+      "label": "2. \ud83d\udcc5 Agenda e Atendimentos (`PortalAgenda.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L17",
+      "id": "readme_2_agenda_e_atendimentos_portalagenda_tsx",
+      "community": 5,
+      "norm_label": "2. \ud83d\udcc5 agenda e atendimentos (`portalagenda.tsx`)"
+    },
+    {
+      "label": "3. \ud83d\udcb3 Faturamento e Faturas (`PortalFinance.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L29",
+      "id": "readme_3_faturamento_e_faturas_portalfinance_tsx",
+      "community": 5,
+      "norm_label": "3. \ud83d\udcb3 faturamento e faturas (`portalfinance.tsx`)"
+    },
+    {
+      "label": "4. \ud83d\udecd\ufe0f Marketplace de Servi\u00e7os (`PortalServices.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L33",
+      "id": "readme_4_marketplace_de_servi\u00e7os_portalservices_tsx",
+      "community": 5,
+      "norm_label": "4. \ud83d\udecd\ufe0f marketplace de servicos (`portalservices.tsx`)"
+    },
+    {
+      "label": "5. \ud83d\udcc2 Documentos e Assinatura Digital (`PortalDocuments.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L38",
+      "id": "readme_5_documentos_e_assinatura_digital_portaldocuments_tsx",
+      "community": 5,
+      "norm_label": "5. \ud83d\udcc2 documentos e assinatura digital (`portaldocuments.tsx`)"
+    },
+    {
+      "label": "6. \ud83d\udcac Atendimento & Central de Suporte (`PortalSupport.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L42",
+      "id": "readme_6_atendimento_central_de_suporte_portalsupport_tsx",
+      "community": 5,
+      "norm_label": "6. \ud83d\udcac atendimento & central de suporte (`portalsupport.tsx`)"
+    },
+    {
+      "label": "7. \ud83d\udc64 Perfil, Autentica\u00e7\u00e3o e Ativa\u00e7\u00e3o",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L46",
+      "id": "readme_7_perfil_autentica\u00e7\u00e3o_e_ativa\u00e7\u00e3o",
+      "community": 5,
+      "norm_label": "7. \ud83d\udc64 perfil, autenticacao e ativacao"
+    },
+    {
+      "label": "8. \ud83d\ude80 Hub de Crescimento & Rotas P\u00fablicas (`PortalGrowthHub.tsx`)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "id": "readme_8_hub_de_crescimento_rotas_p\u00fablicas_portalgrowthhub_tsx",
+      "community": 5,
+      "norm_label": "8. \ud83d\ude80 hub de crescimento & rotas publicas (`portalgrowthhub.tsx`)"
+    },
+    {
+      "label": "\ud83d\udee0\ufe0f Stack Tecnol\u00f3gica",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L59",
+      "id": "readme_stack_tecnol\u00f3gica",
+      "community": 5,
+      "norm_label": "\ud83d\udee0\ufe0f stack tecnologica"
+    },
+    {
+      "label": "\ud83d\udd11 Configura\u00e7\u00e3o de Vari\u00e1veis de Ambiente (.env)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L68",
+      "id": "readme_configura\u00e7\u00e3o_de_vari\u00e1veis_de_ambiente_env",
+      "community": 5,
+      "norm_label": "\ud83d\udd11 configuracao de variaveis de ambiente (.env)"
+    },
+    {
+      "label": "\ud83d\udce6 Como Rodar Localmente (Se houver Node instalado na m\u00e1quina)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L87",
+      "id": "readme_como_rodar_localmente_se_houver_node_instalado_na_m\u00e1quina",
+      "community": 5,
+      "norm_label": "\ud83d\udce6 como rodar localmente (se houver node instalado na maquina)"
+    },
+    {
+      "label": "\ud83e\uddea Testes Automatizados & Integra\u00e7\u00e3o Cont\u00ednua (CI)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L102",
+      "id": "readme_testes_automatizados_integra\u00e7\u00e3o_cont\u00ednua_ci",
+      "community": 5,
+      "norm_label": "\ud83e\uddea testes automatizados & integracao continua (ci)"
+    },
+    {
+      "label": "Como Executar os Testes (Se houver Node instalado na m\u00e1quina)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L106",
+      "id": "readme_como_executar_os_testes_se_houver_node_instalado_na_m\u00e1quina",
+      "community": 5,
+      "norm_label": "como executar os testes (se houver node instalado na maquina)"
+    },
+    {
+      "label": "GitHub Actions (CI)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L112",
+      "id": "readme_github_actions_ci",
+      "community": 5,
+      "norm_label": "github actions (ci)"
+    },
+    {
+      "label": "\u2601\ufe0f Deploy na Vercel",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "id": "readme_deploy_na_vercel",
+      "community": 5,
+      "norm_label": "\u2601\ufe0f deploy na vercel"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "package",
+      "target": "package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_clsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_lucide_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_motion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_react_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_react_router_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_sonner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "package_dependencies",
+      "target": "package_dependencies_tailwind_merge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_autoprefixer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_tailwindcss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_tailwindcss_vite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_types_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_types_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_types_react_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_vite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_vitejs_plugin_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_vitest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_clientportallayout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_confirmarpresenca",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_portalactivation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_portalbiosite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "src_app_portalpublicbooking",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_app",
+      "target": "views_portallogin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_main",
+      "target": "src_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "components_clientportallayout_clientportallayout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "hooks_useportaldata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "hooks_useportaldata_useportaldata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "hooks_useportalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "hooks_useportalsupport_useportalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "lib_firebase_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalagenda",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalcrmfinance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portaldocuments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalfinance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalgrowthhub",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalhome",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalmanagement",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalprofile",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalservices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "components_clientportallayout",
+      "target": "views_portalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "components_clientportallayout_clientportallayout",
+      "target": "hooks_useportaldata_useportaldata"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/ClientPortalLayout.tsx",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "components_clientportallayout_clientportallayout",
+      "target": "hooks_useportalsupport_useportalsupport"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ConfirmModal.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "components_confirmmodal",
+      "target": "components_confirmmodal_confirmmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ConfirmModal.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "components_confirmmodal",
+      "target": "components_confirmmodal_confirmmodalprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "components_confirmmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "components_confirmmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "components_confirmmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "components_customselect",
+      "target": "components_customselect_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "components_customselect",
+      "target": "components_customselect_customselectprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/CustomSelect.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "components_customselect",
+      "target": "components_customselect_option",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "views_portalpublicbooking",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "components_customselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "components_portalcalculator_inventoryitem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "components_portalcalculator_portalcalculator",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "components_portalcalculator_portalcalculatorprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "components_portalcalculator_selectedmaterial",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_calculatelaborcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_calculatematerialscost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_calculatenetprofit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_calculatesuggestedprice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_calculatetotalcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "components_portalcalculator",
+      "target": "utils_calculations_parseextracost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "views_portalmanagement",
+      "target": "components_portalcalculator",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_calculatelaborcost"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_calculatematerialscost"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_calculatenetprofit"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_calculatesuggestedprice"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L123",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_calculatetotalcost"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/PortalCalculator.tsx",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "components_portalcalculator_portalcalculator",
+      "target": "utils_calculations_parseextracost"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "components_portalinventory_inventoryitem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "components_portalinventory_portalinventory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "components_portalinventory_portalinventoryprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/PortalInventory.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "components_portalinventory",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "views_portalmanagement",
+      "target": "components_portalinventory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "hooks_useportaldata_useportaldata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index_growthasset",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index_offer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index_payment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalData.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "hooks_useportaldata",
+      "target": "types_index_supportticket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "hooks_useportalsupport",
+      "target": "hooks_useportalsupport_useportalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "hooks_useportalsupport",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "hooks_useportalsupport",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "hooks_useportalsupport",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/usePortalSupport.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "hooks_useportalsupport",
+      "target": "types_index_supportticket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "hooks_useportalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "hooks_useportalsupport_useportalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "views_portalsupport_portalsupport",
+      "target": "hooks_useportalsupport_useportalsupport"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/cloudinary.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "lib_cloudinary",
+      "target": "lib_cloudinary_cloudinaryresponse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/cloudinary.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "lib_cloudinary",
+      "target": "lib_cloudinary_uploadtocloudinary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "lib_cloudinary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "lib_cloudinary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "lib_cloudinary_uploadtocloudinary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "lib_cloudinary_uploadtocloudinary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_firebaseconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_googleprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/firebase.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "lib_firebase",
+      "target": "lib_firebase_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/ConfirmarPresenca.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "views_confirmarpresenca",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalActivation.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "views_portalactivation",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalBioSite.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "views_portalbiosite",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portalhome",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "views_portallogin",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "views_portalpublicbooking",
+      "target": "lib_firebase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalActivation.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "views_portalactivation",
+      "target": "lib_firebase_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "views_portallogin",
+      "target": "lib_firebase_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "lib_firebase_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/ConfirmarPresenca.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "views_confirmarpresenca",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalBioSite.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "views_portalbiosite",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portalhome",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "views_portallogin",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "views_portalpublicbooking",
+      "target": "lib_firebase_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_clientcontract",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_clientlog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_growthasset",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_offer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_payment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/types/index.ts",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "types_index",
+      "target": "types_index_supportticket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portalfinance",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalservices",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "types_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portaldocuments_portaldocumentsprops",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub_portalgrowthhubprops",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalservices",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "views_portalservices_portalservicesprops",
+      "target": "types_index_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "types_index_offer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalservices",
+      "target": "types_index_offer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "views_portalservices_portalservicesprops",
+      "target": "types_index_offer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "types_index_clientcontract",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "types_index_clientlog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portalfinance",
+      "target": "types_index_payment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalfinance_portalfinanceprops",
+      "target": "types_index_payment",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "types_index_supportticket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "views_portalsupport_portalsupportprops",
+      "target": "types_index_supportticket",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "types_index_growthasset",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub_portalgrowthhubprops",
+      "target": "types_index_growthasset",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_calculatelaborcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_calculatematerialscost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_calculatenetprofit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_calculatesuggestedprice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_calculatetotalcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_parseextracost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "utils_calculations_test",
+      "target": "utils_calculations_selectedmaterial",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_calculatelaborcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_calculatematerialscost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_calculatenetprofit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_calculatesuggestedprice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_calculatetotalcost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_parseextracost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/calculations.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "utils_calculations",
+      "target": "utils_calculations_selectedmaterial",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/ConfirmarPresenca.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "views_confirmarpresenca",
+      "target": "views_confirmarpresenca_confirmarpresenca",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalActivation.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "views_portalactivation",
+      "target": "views_portalactivation_portalactivation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "views_portalagenda_portalagenda",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalAgenda.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "views_portalagenda",
+      "target": "views_portalagenda_portalagendaprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalBioSite.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "views_portalbiosite",
+      "target": "views_portalbiosite_portalbiosite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "views_portalcrmfinance_expense",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "views_portalcrmfinance_portalcrmfinance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "views_portalcrmfinance_portalcrmfinanceprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalCRMFinance.tsx",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "views_portalcrmfinance",
+      "target": "views_portalcrmfinance_revenue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "views_portaldocuments_portaldocuments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalDocuments.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "views_portaldocuments",
+      "target": "views_portaldocuments_portaldocumentsprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "views_portalfinance",
+      "target": "views_portalfinance_portalfinance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalFinance.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "views_portalfinance",
+      "target": "views_portalfinance_portalfinanceprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "views_portalgrowthhub_portalgrowthhub",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "views_portalgrowthhub_portalgrowthhubprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalGrowthHub.tsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "views_portalgrowthhub",
+      "target": "views_portalgrowthhub_tabid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "views_portalhome",
+      "target": "views_portalhome_portalhome",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalHome.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "views_portalhome",
+      "target": "views_portalhome_portalhomeprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalLogin.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "views_portallogin",
+      "target": "views_portallogin_portallogin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "views_portalmanagement",
+      "target": "views_portalmanagement_portalmanagement",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalManagement.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "views_portalmanagement",
+      "target": "views_portalmanagement_portalmanagementprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "views_portalprofile_portalprofile",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalProfile.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "views_portalprofile",
+      "target": "views_portalprofile_portalprofileprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalPublicBooking.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "views_portalpublicbooking",
+      "target": "views_portalpublicbooking_portalpublicbooking",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "views_portalservices",
+      "target": "views_portalservices_portalservices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalServices.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "views_portalservices",
+      "target": "views_portalservices_portalservicesprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "views_portalsupport_portalsupport",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/PortalSupport.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "views_portalsupport",
+      "target": "views_portalsupport_portalsupportprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "tsconfig",
+      "target": "tsconfig_compileroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tsconfig",
+      "target": "tsconfig_exclude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "tsconfig",
+      "target": "tsconfig_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_allowimportingtsextensions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_baseurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_isolatedmodules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_jsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_lib",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_moduleresolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_noemit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_nofallthroughcasesinswitch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_nounusedlocals",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_nounusedparameters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_paths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_resolvejsonmodule",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_skiplibcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_strict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_target",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions",
+      "target": "tsconfig_compileroptions_usedefineforclassfields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "tsconfig_compileroptions_paths",
+      "target": "tsconfig_paths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "vercel",
+      "target": "vercel_rewrites",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "readme",
+      "target": "readme_portal_hub_canal_do_cliente_independente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_como_rodar_localmente_se_houver_node_instalado_na_m\u00e1quina",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_configura\u00e7\u00e3o_de_vari\u00e1veis_de_ambiente_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_deploy_na_vercel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_principais_recursos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_stack_tecnol\u00f3gica",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "readme_portal_hub_canal_do_cliente_independente",
+      "target": "readme_testes_automatizados_integra\u00e7\u00e3o_cont\u00ednua_ci",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_1_m\u00f3dulo_meu_neg\u00f3cio_portalmanagement_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_2_agenda_e_atendimentos_portalagenda_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_3_faturamento_e_faturas_portalfinance_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_4_marketplace_de_servi\u00e7os_portalservices_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_5_documentos_e_assinatura_digital_portaldocuments_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_6_atendimento_central_de_suporte_portalsupport_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_7_perfil_autentica\u00e7\u00e3o_e_ativa\u00e7\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "readme_principais_recursos",
+      "target": "readme_8_hub_de_crescimento_rotas_p\u00fablicas_portalgrowthhub_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "readme_testes_automatizados_integra\u00e7\u00e3o_cont\u00ednua_ci",
+      "target": "readme_como_executar_os_testes_se_houver_node_instalado_na_m\u00e1quina",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "readme_testes_automatizados_integra\u00e7\u00e3o_cont\u00ednua_ci",
+      "target": "readme_github_actions_ci",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "built_at_commit": "a1d00ecf8894f2ad7228312910dda4e25e4b75f1"
+}

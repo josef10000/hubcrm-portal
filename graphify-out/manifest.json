@@ -1,0 +1,187 @@
+{
+  "package.json": {
+    "mtime": 1781097469.4812222,
+    "ast_hash": "b721fb6ff9f31c56dd87e5892049a4e1",
+    "semantic_hash": ""
+  },
+  "src/App.tsx": {
+    "mtime": 1781285208.0352502,
+    "ast_hash": "1dbdbc24ee082d22dcb3940800c47d81",
+    "semantic_hash": ""
+  },
+  "src/components/ClientPortalLayout.tsx": {
+    "mtime": 1781290095.6094303,
+    "ast_hash": "7d3bbc93746e8401ff20a6389965095b",
+    "semantic_hash": ""
+  },
+  "src/components/ConfirmModal.tsx": {
+    "mtime": 1781193408.9194734,
+    "ast_hash": "ad5fa77602ff5a427d86b85b71e0f2f0",
+    "semantic_hash": ""
+  },
+  "src/components/CustomSelect.tsx": {
+    "mtime": 1781280695.7754128,
+    "ast_hash": "c7aba7fd9bd2997edff0d5c433dcfe80",
+    "semantic_hash": ""
+  },
+  "src/components/PortalCalculator.tsx": {
+    "mtime": 1781280750.894182,
+    "ast_hash": "7b2cc694c508802aac73d8e35deceb4c",
+    "semantic_hash": ""
+  },
+  "src/components/PortalInventory.tsx": {
+    "mtime": 1781280735.7183793,
+    "ast_hash": "e0ef5a24805dbfb32e78617d88b998ba",
+    "semantic_hash": ""
+  },
+  "src/hooks/usePortalData.ts": {
+    "mtime": 1781200196.451026,
+    "ast_hash": "63bebece1b13f326a08b2bc30af95666",
+    "semantic_hash": ""
+  },
+  "src/hooks/usePortalSupport.ts": {
+    "mtime": 1781191032.268729,
+    "ast_hash": "abdab5001aefe4d442ff56fbae24bee0",
+    "semantic_hash": ""
+  },
+  "src/lib/cloudinary.ts": {
+    "mtime": 1781183256.5460477,
+    "ast_hash": "c9e51a63d254fa4a9890819f984d0b99",
+    "semantic_hash": ""
+  },
+  "src/lib/firebase.ts": {
+    "mtime": 1781187442.240222,
+    "ast_hash": "99782825d3d77b2332db91f01e0968c4",
+    "semantic_hash": ""
+  },
+  "src/main.tsx": {
+    "mtime": 1781095797.720672,
+    "ast_hash": "16507ff9cb1dc5b560a1986f85d48643",
+    "semantic_hash": ""
+  },
+  "src/types/index.ts": {
+    "mtime": 1781199757.3166597,
+    "ast_hash": "9872284117efd49e05fa96f08713eeda",
+    "semantic_hash": ""
+  },
+  "src/utils/calculations.test.ts": {
+    "mtime": 1781097735.2435813,
+    "ast_hash": "7e30bc61b1041312b62206fd3e0b837d",
+    "semantic_hash": ""
+  },
+  "src/utils/calculations.ts": {
+    "mtime": 1781097455.4927576,
+    "ast_hash": "a3b3d99052a2545fb0455685eef81569",
+    "semantic_hash": ""
+  },
+  "src/views/ConfirmarPresenca.tsx": {
+    "mtime": 1781285251.9259856,
+    "ast_hash": "d723020875bb81f06b0185761781326f",
+    "semantic_hash": ""
+  },
+  "src/views/PortalActivation.tsx": {
+    "mtime": 1781118128.5882578,
+    "ast_hash": "3d11977c61f2da46aa9628693c18874f",
+    "semantic_hash": ""
+  },
+  "src/views/PortalAgenda.tsx": {
+    "mtime": 1781290203.0483794,
+    "ast_hash": "5c8e8470f92c3af91b79a704c68d173e",
+    "semantic_hash": ""
+  },
+  "src/views/PortalBioSite.tsx": {
+    "mtime": 1781285185.5278451,
+    "ast_hash": "a5f0641e061e889ce861efbb16db831b",
+    "semantic_hash": ""
+  },
+  "src/views/PortalCRMFinance.tsx": {
+    "mtime": 1781286130.245303,
+    "ast_hash": "72928178be7174b44c3f9f06e8fcd2e3",
+    "semantic_hash": ""
+  },
+  "src/views/PortalDocuments.tsx": {
+    "mtime": 1781269060.8373425,
+    "ast_hash": "fdfc8c9c8b16099ec3192f80157229b4",
+    "semantic_hash": ""
+  },
+  "src/views/PortalFinance.tsx": {
+    "mtime": 1781191037.437125,
+    "ast_hash": "715d2d3b1fd983f8d6b2ff7373adc79c",
+    "semantic_hash": ""
+  },
+  "src/views/PortalGrowthHub.tsx": {
+    "mtime": 1781269123.3824992,
+    "ast_hash": "c8d0e2dad913772090eed4ac932eb353",
+    "semantic_hash": ""
+  },
+  "src/views/PortalHome.tsx": {
+    "mtime": 1781285346.384276,
+    "ast_hash": "ded0ee29a679cbc5c191d6fc5c2e9064",
+    "semantic_hash": ""
+  },
+  "src/views/PortalLogin.tsx": {
+    "mtime": 1781184455.28324,
+    "ast_hash": "c58eb71d9d94adeb462dcaba128218a2",
+    "semantic_hash": ""
+  },
+  "src/views/PortalManagement.tsx": {
+    "mtime": 1781266176.141356,
+    "ast_hash": "b71913205c2f7ccd98d0c7f5998aa293",
+    "semantic_hash": ""
+  },
+  "src/views/PortalProfile.tsx": {
+    "mtime": 1781189558.2618525,
+    "ast_hash": "5eb682417e12fb536cf1817cc62a5dac",
+    "semantic_hash": ""
+  },
+  "src/views/PortalPublicBooking.tsx": {
+    "mtime": 1781288869.3196943,
+    "ast_hash": "0d49cb4e77ee6158f5bb440e4d4a022c",
+    "semantic_hash": ""
+  },
+  "src/views/PortalServices.tsx": {
+    "mtime": 1781269069.5443692,
+    "ast_hash": "8b152107cc01a8abe05979ff3a6bd960",
+    "semantic_hash": ""
+  },
+  "src/views/PortalSupport.tsx": {
+    "mtime": 1781280806.339432,
+    "ast_hash": "6cd4fdbb626a745d1fbd55edac86875d",
+    "semantic_hash": ""
+  },
+  "src/vite-env.d.ts": {
+    "mtime": 1781098538.254191,
+    "ast_hash": "0352474ba2918efe13895edbc3780d94",
+    "semantic_hash": ""
+  },
+  "tsconfig.json": {
+    "mtime": 1781098525.31237,
+    "ast_hash": "6f06879c46cf1d964086ce28b0b4c3a6",
+    "semantic_hash": ""
+  },
+  "vercel.json": {
+    "mtime": 1781095758.608295,
+    "ast_hash": "51545ddce6398926b965219e2a2b7260",
+    "semantic_hash": ""
+  },
+  "vite.config.ts": {
+    "mtime": 1781095748.9667132,
+    "ast_hash": "f07f80c71e7a733a9bd3d48a7898870a",
+    "semantic_hash": ""
+  },
+  ".github/workflows/test.yml": {
+    "mtime": 1781097585.647315,
+    "ast_hash": "049d3d71681a68c5fd2dc882597d7783",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1781290221.1936328,
+    "ast_hash": "b253840e67cd6101b059a744d4177b8e",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1781269008.3606148,
+    "ast_hash": "e04df80ef65a18e27feba45062bf0e70",
+    "semantic_hash": ""
+  }
+}
