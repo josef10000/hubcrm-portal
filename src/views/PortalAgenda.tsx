@@ -309,11 +309,19 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setExpediente(data);
+        setExpediente((prev: any) => ({
+          ...prev,
+          ...data,
+          businessHours: data.businessHours && Object.keys(data.businessHours).length > 0
+            ? { ...prev.businessHours, ...data.businessHours }
+            : prev.businessHours
+        }));
         if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
           setWhatsappTemplates(data.whatsappTemplates);
         }
       }
+    }, (err) => {
+      console.error('Erro ao ler scheduling settings:', err);
     });
     return () => unsub();
   }, [orgId]);
