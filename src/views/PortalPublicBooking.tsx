@@ -103,12 +103,28 @@ export default function PortalPublicBooking() {
         }
 
         // Configuração de Expediente (carregado sob o cliente/profissional se detectado)
-        const schedulingRef = activeClientId 
-          ? doc(db, 'organizations', orgId, 'clients', activeClientId, 'settings', 'scheduling')
-          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-        const schedulingSnap = await getDoc(schedulingRef);
-        if (schedulingSnap.exists()) {
-          setExpediente(schedulingSnap.data());
+        let schedulingData: any = null;
+        if (activeClientId) {
+          const clientRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+          const clientSnap = await getDoc(clientRef);
+          if (clientSnap.exists()) {
+            schedulingData = clientSnap.data()?.schedulingSettings || null;
+          }
+        }
+
+        if (!schedulingData) {
+          // Fallback tradicional
+          const schedulingRef = activeClientId 
+            ? doc(db, 'organizations', orgId, 'clients', activeClientId, 'settings', 'scheduling')
+            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
+          const schedulingSnap = await getDoc(schedulingRef);
+          if (schedulingSnap.exists()) {
+            schedulingData = schedulingSnap.data();
+          }
+        }
+
+        if (schedulingData) {
+          setExpediente(schedulingData);
         } else {
           // Padrão do sistema
           setExpediente({
@@ -140,15 +156,28 @@ export default function PortalPublicBooking() {
     if (!orgId) return;
     const loadPixSettings = async () => {
       try {
-        const docRef = detectedClientId
-          ? doc(db, 'organizations', orgId, 'clients', detectedClientId, 'settings', 'scheduling')
-          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.pixKey && data.pixEnabled) {
-            setPixConfig(data);
+        let data: any = null;
+        if (detectedClientId) {
+          const clientRef = doc(db, 'organizations', orgId, 'clients', detectedClientId);
+          const clientSnap = await getDoc(clientRef);
+          if (clientSnap.exists()) {
+            data = clientSnap.data()?.schedulingSettings || null;
           }
+        }
+
+        if (!data) {
+          // Fallback tradicional
+          const docRef = detectedClientId
+            ? doc(db, 'organizations', orgId, 'clients', detectedClientId, 'settings', 'scheduling')
+            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            data = docSnap.data();
+          }
+        }
+
+        if (data && data.pixKey && data.pixEnabled) {
+          setPixConfig(data);
         }
       } catch (e) {
         console.error('Erro ao buscar configurações de Pix:', e);

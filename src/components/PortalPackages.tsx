@@ -32,11 +32,12 @@ export default function PortalPackages({ orgId, clientId }: PortalPackagesProps)
   // 1. Escuta se a funcionalidade de pacotes está ativa
   useEffect(() => {
     if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setPackagesActive(data.packagesActive || false);
+        const sched = data.schedulingSettings || {};
+        setPackagesActive(sched.packagesActive || false);
       }
     });
     return () => unsub();
@@ -78,12 +79,10 @@ export default function PortalPackages({ orgId, clientId }: PortalPackagesProps)
   const handleToggleActive = async (newVal: boolean) => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-      try {
-        await updateDoc(docRef, { packagesActive: newVal });
-      } catch (err) {
-        await setDoc(docRef, { packagesActive: newVal }, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'schedulingSettings.packagesActive': newVal
+      });
       setPackagesActive(newVal);
       toast.success(newVal ? 'Uso de pacotes ativado!' : 'Uso de pacotes desativado.');
     } catch (e) {

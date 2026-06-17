@@ -96,8 +96,9 @@ export function usePortalData(orgId: string | undefined, initialClientId: string
         try {
           const growthSnapshot = await getDocs(collection(db, 'growth_assets'));
           growthList = growthSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GrowthAsset));
-        } catch (firestoreErr) {
-          console.error("[usePortalData] Erro ao buscar growth_assets no Firestore:", firestoreErr);
+        } catch (firestoreErr: any) {
+          // Apenas loga aviso caso o usuário não tenha permissão, o que é esperado no portal de cliente
+          console.warn("[usePortalData] Não foi possível ler growth_assets do Firestore (usando dados da API como fallback):", firestoreErr.message || firestoreErr);
         }
         setGrowthAssets(data.growthAssets || growthList);
         

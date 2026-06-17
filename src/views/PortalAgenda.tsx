@@ -317,50 +317,41 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     return () => unsub();
   }, [orgId]);
 
-  // Escuta Configuração de Expediente
+  // Escuta as configurações da Agenda no próprio documento do cliente
   useEffect(() => {
     if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const clientData = docSnap.data();
+        
+        // Carrega Configurações do Expediente e Pix (schedulingSettings)
+        const sched = clientData.schedulingSettings || {};
         setExpediente((prev: any) => ({
           ...prev,
-          ...data,
-          businessHours: data.businessHours && Object.keys(data.businessHours).length > 0
-            ? { ...prev.businessHours, ...data.businessHours }
+          ...sched,
+          businessHours: sched.businessHours && Object.keys(sched.businessHours).length > 0
+            ? { ...prev.businessHours, ...sched.businessHours }
             : prev.businessHours
         }));
-        if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
-          setWhatsappTemplates(data.whatsappTemplates);
+        if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
+          setWhatsappTemplates(sched.whatsappTemplates);
         }
-        // Carrega configurações de Pix
-        setPixKey(data.pixKey || '');
-        setPixName(data.pixName || '');
-        setPixCity(data.pixCity || '');
-        setPixEnabled(data.pixEnabled || false);
-      }
-    }, (err) => {
-      console.error('Erro ao ler scheduling settings:', err);
-    });
-    return () => unsub();
-  }, [orgId, clientId]);
+        setPixKey(sched.pixKey || '');
+        setPixName(sched.pixName || '');
+        setPixCity(sched.pixCity || '');
+        setPixEnabled(sched.pixEnabled || false);
 
-  // Escuta Configurações do Mini-Site (Bio)
-  useEffect(() => {
-    if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'biosite');
-    const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setBioTitle(data.title || '');
-        setBioDescription(data.description || '');
-        setBioAvatarUrl(data.avatarUrl || '');
-        setBioLinks(data.links || []);
-        setBioShowBooking(data.showBooking !== undefined ? data.showBooking : true);
+        // Carrega Configurações do Mini-Site (bioSettings)
+        const bio = clientData.bioSettings || {};
+        setBioTitle(bio.title || '');
+        setBioDescription(bio.description || '');
+        setBioAvatarUrl(bio.avatarUrl || '');
+        setBioLinks(bio.links || []);
+        setBioShowBooking(bio.showBooking !== undefined ? bio.showBooking : true);
       }
     }, (err) => {
-      console.error('Erro ao ler biosite settings:', err);
+      console.error('Erro ao ler configurações da agenda do cliente:', err);
     });
     return () => unsub();
   }, [orgId, clientId]);
@@ -544,15 +535,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const handleSaveHours = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-      const dataToSave = {
-        businessHours: expediente.businessHours || {}
-      };
-      try {
-        await updateDoc(docRef, dataToSave);
-      } catch (err) {
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'schedulingSettings.businessHours': expediente.businessHours || {}
+      });
       toast.success('Horários de expediente salvos com sucesso!');
       setIsEditingHours(false);
     } catch (e) {
@@ -565,18 +551,13 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const handleSaveNomenclature = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-      const dataToSave = {
-        slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
-        appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
-        appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos',
-        packagesActive: expediente.packagesActive || false
-      };
-      try {
-        await updateDoc(docRef, dataToSave);
-      } catch (err) {
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'schedulingSettings.slotIntervalMinutes': expediente.slotIntervalMinutes || 30,
+        'schedulingSettings.appointmentLabelSingular': expediente.appointmentLabelSingular || 'Agendamento',
+        'schedulingSettings.appointmentLabelPlural': expediente.appointmentLabelPlural || 'Agendamentos',
+        'schedulingSettings.packagesActive': expediente.packagesActive || false
+      });
       toast.success('Configurações de regras e nomenclaturas salvas!');
       setIsEditingNomenclature(false);
     } catch (e) {
@@ -589,18 +570,13 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const handleSavePixSettings = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-      const dataToSave = {
-        pixKey: pixKey.trim(),
-        pixName: pixName.trim(),
-        pixCity: pixCity.trim(),
-        pixEnabled: pixEnabled
-      };
-      try {
-        await updateDoc(docRef, dataToSave);
-      } catch (err) {
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'schedulingSettings.pixKey': pixKey.trim(),
+        'schedulingSettings.pixName': pixName.trim(),
+        'schedulingSettings.pixCity': pixCity.trim(),
+        'schedulingSettings.pixEnabled': pixEnabled
+      });
       toast.success('Configurações de Pix salvas com sucesso!');
       setIsEditingPix(false);
     } catch (e) {
@@ -668,19 +644,14 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const handleSaveBioSite = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'biosite');
-      const dataToSave = {
-        title: bioTitle.trim(),
-        description: bioDescription.trim(),
-        avatarUrl: bioAvatarUrl.trim(),
-        links: bioLinks,
-        showBooking: bioShowBooking
-      };
-      try {
-        await updateDoc(docRef, dataToSave);
-      } catch (err) {
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'bioSettings.title': bioTitle.trim(),
+        'bioSettings.description': bioDescription.trim(),
+        'bioSettings.avatarUrl': bioAvatarUrl.trim(),
+        'bioSettings.links': bioLinks,
+        'bioSettings.showBooking': bioShowBooking
+      });
       toast.success('Configurações do Mini-Site salvas com sucesso!');
       setIsEditingBio(false);
     } catch (e) {
@@ -2130,12 +2101,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                       }
 
                       if (orgId && clientId) {
-                        const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-                        try {
-                          await updateDoc(docRef, { whatsappTemplates: currentTemplates });
-                        } catch (err) {
-                          await setDoc(docRef, { whatsappTemplates: currentTemplates }, { merge: true });
-                        }
+                        const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+                        await updateDoc(docRef, {
+                          'schedulingSettings.whatsappTemplates': currentTemplates
+                        });
                       }
 
                       setWhatsappTemplates(currentTemplates);
@@ -2203,12 +2172,10 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                           onClick={async () => {
                             const updatedTemplates = whatsappTemplates.filter(t => t.id !== tpl.id);
                             if (orgId && clientId) {
-                              const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
-                              try {
-                                await updateDoc(docRef, { whatsappTemplates: updatedTemplates });
-                              } catch (err) {
-                                await setDoc(docRef, { whatsappTemplates: updatedTemplates }, { merge: true });
-                              }
+                              const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+                              await updateDoc(docRef, {
+                                'schedulingSettings.whatsappTemplates': updatedTemplates
+                              });
                             }
                             setWhatsappTemplates(updatedTemplates);
                             toast.success('Template excluído e removido com sucesso!');

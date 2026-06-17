@@ -70,12 +70,27 @@ export default function ConfirmarPresenca() {
     const loadFidelity = async () => {
       setFidelityLoading(true);
       try {
-        const fidelityRef = clientId 
-          ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity')
-          : doc(db, 'organizations', orgId, 'settings', 'fidelity');
-        const fidelitySnap = await getDoc(fidelityRef);
-        if (fidelitySnap.exists() && fidelitySnap.data().active) {
-          const config = fidelitySnap.data();
+        let config: any = null;
+        if (clientId) {
+          const clientRef = doc(db, 'organizations', orgId, 'clients', clientId);
+          const clientSnap = await getDoc(clientRef);
+          if (clientSnap.exists()) {
+            config = clientSnap.data()?.fidelitySettings || null;
+          }
+        }
+
+        // Fallback para subcoleção do cliente ou coleção global se não houver o campo no documento
+        if (!config) {
+          const fidelityRef = clientId 
+            ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity')
+            : doc(db, 'organizations', orgId, 'settings', 'fidelity');
+          const fidelitySnap = await getDoc(fidelityRef);
+          if (fidelitySnap.exists()) {
+            config = fidelitySnap.data();
+          }
+        }
+
+        if (config && config.active) {
           setFidelityConfig(config);
 
           // Busca agendamentos completed do mesmo telefone
@@ -103,12 +118,27 @@ export default function ConfirmarPresenca() {
     if (!orgId) return;
     const loadPixSettings = async () => {
       try {
-        const docRef = clientId 
-          ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling')
-          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+        let data: any = null;
+        if (clientId) {
+          const clientRef = doc(db, 'organizations', orgId, 'clients', clientId);
+          const clientSnap = await getDoc(clientRef);
+          if (clientSnap.exists()) {
+            data = clientSnap.data()?.schedulingSettings || null;
+          }
+        }
+
+        // Fallback para subcoleção do cliente ou coleção global se não houver no documento
+        if (!data) {
+          const docRef = clientId 
+            ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling')
+            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            data = docSnap.data();
+          }
+        }
+
+        if (data) {
           if (data.pixKey && data.pixEnabled) {
             setPixConfig(data);
           }

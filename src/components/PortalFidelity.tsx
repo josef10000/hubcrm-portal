@@ -25,13 +25,14 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
   useEffect(() => {
     if (!orgId || !clientId) return;
 
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity');
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setFidelityActive(data.active || false);
-        setFidelityGoal(data.goal || 10);
-        setFidelityReward(data.reward || '');
+        const fid = data.fidelitySettings || {};
+        setFidelityActive(fid.active || false);
+        setFidelityGoal(fid.goal || 10);
+        setFidelityReward(fid.reward || '');
       }
       setLoading(false);
     }, (err) => {
@@ -60,17 +61,12 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
   const handleSave = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity');
-      const dataToSave = {
-        active: fidelityActive,
-        goal: Number(fidelityGoal),
-        reward: fidelityReward
-      };
-      try {
-        await updateDoc(docRef, dataToSave);
-      } catch (err) {
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await updateDoc(docRef, {
+        'fidelitySettings.active': fidelityActive,
+        'fidelitySettings.goal': Number(fidelityGoal),
+        'fidelitySettings.reward': fidelityReward
+      });
       toast.success('Configurações do Clube de Fidelidade salvas!');
       setIsEditing(false);
     } catch (e) {
