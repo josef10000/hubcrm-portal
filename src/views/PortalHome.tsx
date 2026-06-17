@@ -189,6 +189,9 @@ export default function PortalHome({ client, announcement, setActiveTab, support
       setInactiveClients(inactives);
       
       setLoadingApps(false);
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler agendamentos na Home em:", appointmentsRef.path, error);
+      setLoadingApps(false);
     });
 
     return () => unsub();

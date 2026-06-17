@@ -153,6 +153,8 @@ export default function ClientPortalLayout() {
       if (docSnap.exists()) {
         setUserProfile({ id: docSnap.id, ...docSnap.data() });
       }
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler perfil em:", profileRef.path, error);
     });
     return () => unsub();
   }, [currentUser]);

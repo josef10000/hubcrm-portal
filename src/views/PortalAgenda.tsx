@@ -301,6 +301,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setAppointments(list);
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler appointments na Agenda em:", appointmentsRef.path, error);
     });
     return () => unsub();
   }, [orgId]);
@@ -313,6 +315,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setServices(list);
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler client_services na Agenda em:", servicesRef.path, error);
     });
     return () => unsub();
   }, [orgId]);
@@ -365,6 +369,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
     const unsub = onSnapshot(inventoryRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setInventory(list);
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler inventory na Agenda em:", inventoryRef.path, error);
     });
     return () => unsub();
   }, [orgId]);
@@ -379,9 +385,12 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       setClientPackages(list);
     }, (err) => {
       // Fallback sem ordenação caso o índice não esteja criado
+      console.warn("[PortalAgenda] Índice ausente ao ordenar pacotes, tentando ler sem ordenação:", err);
       onSnapshot(packagesRef, (snapshot) => {
         const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         setClientPackages(list);
+      }, (error) => {
+        console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler client_packages na Agenda em:", packagesRef.path, error);
       });
     });
     return () => unsub();
