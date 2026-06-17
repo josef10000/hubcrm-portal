@@ -29,7 +29,7 @@ import PortalGrowthHub from '../views/PortalGrowthHub';
 import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 
 // Importando as views
 import PortalHome from '../views/PortalHome';
@@ -77,6 +77,46 @@ export default function ClientPortalLayout() {
 
   const { requests: supportRequests } = usePortalSupport(orgId, client?.id);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
+
+  // Teste de diagnóstico de escrita do Firestore
+  useEffect(() => {
+    if (!orgId || !activeClientId) return;
+
+    const runWriteDiagnostics = async () => {
+      console.info("============== [INÍCIO DIAGNÓSTICO ESCRITA FIRESTORE] ==============");
+
+      // Teste 1: Escrita direta no documento do cliente B2B
+      try {
+        const clientRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+        await updateDoc(clientRef, { 'schedulingSettings.testWriteDiagnostics': Date.now() });
+        console.info("[DIAGNOSTICO ESCRITA] 1. Escrita no documento do Cliente: SUCESSO ✅");
+      } catch (e: any) {
+        console.error("[DIAGNOSTICO ESCRITA] 1. Escrita no documento do Cliente: FALHA ❌", e.message || e);
+      }
+
+      // Teste 2: Escrita na subcoleção de configurações sob o cliente B2B
+      try {
+        const clientSettingsRef = doc(db, 'organizations', orgId, 'clients', activeClientId, 'settings', 'test_permission');
+        await setDoc(clientSettingsRef, { testWrite: Date.now() }, { merge: true });
+        console.info("[DIAGNOSTICO ESCRITA] 2. Escrita na subcoleção /settings do Cliente: SUCESSO ✅");
+      } catch (e: any) {
+        console.error("[DIAGNOSTICO ESCRITA] 2. Escrita na subcoleção /settings do Cliente: FALHA ❌", e.message || e);
+      }
+
+      // Teste 3: Escrita na coleção global de configurações da organização
+      try {
+        const orgSettingsRef = doc(db, 'organizations', orgId, 'settings', 'test_permission');
+        await setDoc(orgSettingsRef, { testWrite: Date.now() }, { merge: true });
+        console.info("[DIAGNOSTICO ESCRITA] 3. Escrita na coleção global /settings da Org: SUCESSO ✅");
+      } catch (e: any) {
+        console.error("[DIAGNOSTICO ESCRITA] 3. Escrita na coleção global /settings da Org: FALHA ❌", e.message || e);
+      }
+
+      console.info("================ [FIM DIAGNÓSTICO ESCRITA FIRESTORE] ================");
+    };
+
+    runWriteDiagnostics();
+  }, [orgId, activeClientId]);
 
   // Calcula chamados com respostas não lidas
   useEffect(() => {
