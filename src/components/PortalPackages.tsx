@@ -9,9 +9,10 @@ import CustomSelect from './CustomSelect';
 
 interface PortalPackagesProps {
   orgId: string;
+  clientId: string;
 }
 
-export default function PortalPackages({ orgId }: PortalPackagesProps) {
+export default function PortalPackages({ orgId, clientId }: PortalPackagesProps) {
   const [packagesActive, setPackagesActive] = useState(false);
   const [clientPackages, setClientPackages] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -30,8 +31,8 @@ export default function PortalPackages({ orgId }: PortalPackagesProps) {
 
   // 1. Escuta se a funcionalidade de pacotes está ativa
   useEffect(() => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -39,7 +40,7 @@ export default function PortalPackages({ orgId }: PortalPackagesProps) {
       }
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 2. Escuta os pacotes do cliente
   useEffect(() => {
@@ -75,10 +76,14 @@ export default function PortalPackages({ orgId }: PortalPackagesProps) {
 
   // Alternar ativação de pacotes
   const handleToggleActive = async (newVal: boolean) => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
-      await setDoc(docRef, { packagesActive: newVal }, { merge: true });
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
+      try {
+        await updateDoc(docRef, { packagesActive: newVal });
+      } catch (err) {
+        await setDoc(docRef, { packagesActive: newVal }, { merge: true });
+      }
       setPackagesActive(newVal);
       toast.success(newVal ? 'Uso de pacotes ativado!' : 'Uso de pacotes desativado.');
     } catch (e) {

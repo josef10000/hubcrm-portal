@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { doc, onSnapshot, setDoc, collection } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, updateDoc } from 'firebase/firestore';
 import { Award, Sparkles, Edit2, Check, X, Users, Search, Phone, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PortalFidelityProps {
   orgId: string;
+  clientId: string;
 }
 
-export default function PortalFidelity({ orgId }: PortalFidelityProps) {
+export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps) {
   const [fidelityActive, setFidelityActive] = useState(false);
   const [fidelityGoal, setFidelityGoal] = useState(10);
   const [fidelityReward, setFidelityReward] = useState('');
@@ -22,9 +23,9 @@ export default function PortalFidelity({ orgId }: PortalFidelityProps) {
 
   // Busca configurações de fidelidade
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
 
-    const docRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -39,7 +40,7 @@ export default function PortalFidelity({ orgId }: PortalFidelityProps) {
     });
 
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // Busca atendimentos em tempo real para calcular a lista de fidelidade dos clientes
   useEffect(() => {
@@ -57,15 +58,19 @@ export default function PortalFidelity({ orgId }: PortalFidelityProps) {
   }, [orgId]);
 
   const handleSave = async () => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity');
       const dataToSave = {
         active: fidelityActive,
         goal: Number(fidelityGoal),
         reward: fidelityReward
       };
-      await setDoc(docRef, dataToSave, { merge: true });
+      try {
+        await updateDoc(docRef, dataToSave);
+      } catch (err) {
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
       toast.success('Configurações do Clube de Fidelidade salvas!');
       setIsEditing(false);
     } catch (e) {

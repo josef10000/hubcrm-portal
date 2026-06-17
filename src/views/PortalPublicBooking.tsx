@@ -92,8 +92,20 @@ export default function PortalPublicBooking() {
           .filter((s: any) => s.isActive !== false);
         setServices(activeServices);
 
-        // Configuração de Expediente
-        const schedulingRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        // Busca o clientId associado a esta organização (primeiro cliente da subcoleção)
+        let activeClientId = '';
+        const clientsRef = collection(db, 'organizations', orgId, 'clients');
+        const clientsSnap = await getDocs(clientsRef);
+        if (!clientsSnap.empty) {
+          const firstClientDoc = clientsSnap.docs[0];
+          activeClientId = firstClientDoc.id;
+          setDetectedClientId(firstClientDoc.id);
+        }
+
+        // Configuração de Expediente (carregado sob o cliente/profissional se detectado)
+        const schedulingRef = activeClientId 
+          ? doc(db, 'organizations', orgId, 'clients', activeClientId, 'settings', 'scheduling')
+          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
         const schedulingSnap = await getDoc(schedulingRef);
         if (schedulingSnap.exists()) {
           setExpediente(schedulingSnap.data());
@@ -112,14 +124,6 @@ export default function PortalPublicBooking() {
             slotIntervalMinutes: 30
           });
         }
-
-        // Busca o clientId associado a esta organização (primeiro cliente da subcoleção)
-        const clientsRef = collection(db, 'organizations', orgId, 'clients');
-        const clientsSnap = await getDocs(clientsRef);
-        if (!clientsSnap.empty) {
-          const firstClientDoc = clientsSnap.docs[0];
-          setDetectedClientId(firstClientDoc.id);
-        }
       } catch (err: any) {
         console.error(err);
         setError(err.message || 'Erro ao carregar dados de agendamento.');
@@ -136,7 +140,9 @@ export default function PortalPublicBooking() {
     if (!orgId) return;
     const loadPixSettings = async () => {
       try {
-        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const docRef = detectedClientId
+          ? doc(db, 'organizations', orgId, 'clients', detectedClientId, 'settings', 'scheduling')
+          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -149,7 +155,7 @@ export default function PortalPublicBooking() {
       }
     };
     loadPixSettings();
-  }, [orgId]);
+  }, [orgId, detectedClientId]);
 
   // Gera o código Pix Copia e Cola
   useEffect(() => {

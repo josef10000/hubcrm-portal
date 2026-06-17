@@ -319,8 +319,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   // Escuta Configuração de Expediente
   useEffect(() => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -344,12 +344,12 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       console.error('Erro ao ler scheduling settings:', err);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // Escuta Configurações do Mini-Site (Bio)
   useEffect(() => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'biosite');
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -363,7 +363,7 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       console.error('Erro ao ler biosite settings:', err);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
 
 
@@ -542,9 +542,9 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   // Salvar apenas os Horários de Atendimento (Expediente Comercial)
   const handleSaveHours = async () => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
       const dataToSave = {
         businessHours: expediente.businessHours || {}
       };
@@ -563,9 +563,9 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   // Salvar apenas as Regras e Nomenclaturas
   const handleSaveNomenclature = async () => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
       const dataToSave = {
         slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
         appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
@@ -587,9 +587,9 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   // Salvar apenas as configurações do Pix
   const handleSavePixSettings = async () => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
       const dataToSave = {
         pixKey: pixKey.trim(),
         pixName: pixName.trim(),
@@ -666,17 +666,21 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
 
   // Salvar apenas Mini-Site (Bio)
   const handleSaveBioSite = async () => {
-    if (!orgId) return;
+    if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'biosite');
       const dataToSave = {
-        title: bioTitle,
-        description: bioDescription,
-        avatarUrl: bioAvatarUrl,
+        title: bioTitle.trim(),
+        description: bioDescription.trim(),
+        avatarUrl: bioAvatarUrl.trim(),
         links: bioLinks,
         showBooking: bioShowBooking
       };
-      await setDoc(docRef, dataToSave, { merge: true });
+      try {
+        await updateDoc(docRef, dataToSave);
+      } catch (err) {
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
       toast.success('Configurações do Mini-Site salvas com sucesso!');
       setIsEditingBio(false);
     } catch (e) {
@@ -2125,8 +2129,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                         });
                       }
 
-                      if (orgId) {
-                        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+                      if (orgId && clientId) {
+                        const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
                         try {
                           await updateDoc(docRef, { whatsappTemplates: currentTemplates });
                         } catch (err) {
@@ -2198,8 +2202,8 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                           type="button"
                           onClick={async () => {
                             const updatedTemplates = whatsappTemplates.filter(t => t.id !== tpl.id);
-                            if (orgId) {
-                              const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+                            if (orgId && clientId) {
+                              const docRef = doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling');
                               try {
                                 await updateDoc(docRef, { whatsappTemplates: updatedTemplates });
                               } catch (err) {
@@ -2486,11 +2490,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         )}
 
         {settingsSubTab === 'packages' && (
-          <PortalPackages orgId={orgId} />
+          <PortalPackages orgId={orgId} clientId={clientId} />
         )}
 
         {settingsSubTab === 'fidelity' && (
-          <PortalFidelity orgId={orgId} />
+          <PortalFidelity orgId={orgId} clientId={clientId} />
         )}
 
         {settingsSubTab === 'pix' && (

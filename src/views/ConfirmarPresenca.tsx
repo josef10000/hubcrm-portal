@@ -70,7 +70,9 @@ export default function ConfirmarPresenca() {
     const loadFidelity = async () => {
       setFidelityLoading(true);
       try {
-        const fidelityRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+        const fidelityRef = clientId 
+          ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'fidelity')
+          : doc(db, 'organizations', orgId, 'settings', 'fidelity');
         const fidelitySnap = await getDoc(fidelityRef);
         if (fidelitySnap.exists() && fidelitySnap.data().active) {
           const config = fidelitySnap.data();
@@ -94,14 +96,16 @@ export default function ConfirmarPresenca() {
     };
 
     loadFidelity();
-  }, [orgId, appointment]);
+  }, [orgId, appointment, clientId]);
 
   // Busca configurações de Pix do Firestore
   useEffect(() => {
     if (!orgId) return;
     const loadPixSettings = async () => {
       try {
-        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const docRef = clientId 
+          ? doc(db, 'organizations', orgId, 'clients', clientId, 'settings', 'scheduling')
+          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -114,7 +118,7 @@ export default function ConfirmarPresenca() {
       }
     };
     loadPixSettings();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // Gera o código Pix Copia e Cola
   useEffect(() => {

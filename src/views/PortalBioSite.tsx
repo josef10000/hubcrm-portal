@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { 
@@ -22,6 +22,8 @@ import {
 export default function PortalBioSite() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClientId = searchParams.get('clientId');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,19 @@ export default function PortalBioSite() {
           setOrgData(orgSnap.data());
         }
 
-        const bioRef = doc(db, 'organizations', orgId, 'settings', 'biosite');
+        // Tenta buscar o clientId da URL ou autodetecta do primeiro cliente
+        let targetClientId = queryClientId || '';
+        if (!targetClientId) {
+          const clientsRef = collection(db, 'organizations', orgId, 'clients');
+          const clientsSnap = await getDocs(clientsRef);
+          if (!clientsSnap.empty) {
+            targetClientId = clientsSnap.docs[0].id;
+          }
+        }
+
+        const bioRef = targetClientId 
+          ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'biosite')
+          : doc(db, 'organizations', orgId, 'settings', 'biosite');
         const bioSnap = await getDoc(bioRef);
         if (bioSnap.exists()) {
           setBioData(bioSnap.data());
@@ -64,13 +78,17 @@ export default function PortalBioSite() {
           });
         }
 
-        const schedRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const schedRef = targetClientId 
+          ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'scheduling')
+          : doc(db, 'organizations', orgId, 'settings', 'scheduling');
         const schedSnap = await getDoc(schedRef);
         if (schedSnap.exists()) {
           setSchedulingConfig(schedSnap.data());
         }
 
-        const fidelityRef = doc(db, 'organizations', orgId, 'settings', 'fidelity');
+        const fidelityRef = targetClientId 
+          ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'fidelity')
+          : doc(db, 'organizations', orgId, 'settings', 'fidelity');
         const fidelitySnap = await getDoc(fidelityRef);
         if (fidelitySnap.exists()) {
           setFidelityConfig(fidelitySnap.data());
@@ -84,7 +102,7 @@ export default function PortalBioSite() {
     };
 
     fetchData();
-  }, [orgId]);
+  }, [orgId, queryClientId]);
 
   const handleSearchCredits = async (e: React.FormEvent) => {
     e.preventDefault();
