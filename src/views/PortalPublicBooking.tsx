@@ -16,10 +16,12 @@ import {
   Sparkles, 
   DollarSign,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
+import { generateStaticPix } from '../lib/pix';
 
 export default function PortalPublicBooking() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -59,6 +61,10 @@ export default function PortalPublicBooking() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [monthAppointments, setMonthAppointments] = useState<any[]>([]);
   const [detectedClientId, setDetectedClientId] = useState<string | null>(null);
+
+  // Estados do Pix
+  const [pixConfig, setPixConfig] = useState<any>(null);
+  const [pixCode, setPixCode] = useState<string>('');
 
   // 1. Carrega dados básicos (Organização, Serviços e Expediente)
   useEffect(() => {
@@ -124,6 +130,44 @@ export default function PortalPublicBooking() {
 
     loadData();
   }, [orgId]);
+
+  // Busca configurações de Pix do Firestore
+  useEffect(() => {
+    if (!orgId) return;
+    const loadPixSettings = async () => {
+      try {
+        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.pixKey && data.pixEnabled) {
+            setPixConfig(data);
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar configurações de Pix:', e);
+      }
+    };
+    loadPixSettings();
+  }, [orgId]);
+
+  // Gera o código Pix Copia e Cola
+  useEffect(() => {
+    if (!pixConfig || !successBooking || successBooking.paymentMethod === 'pacote' || successBooking.price <= 0) return;
+    
+    try {
+      const code = generateStaticPix({
+        key: pixConfig.pixKey,
+        name: pixConfig.pixName || 'Empresa',
+        city: pixConfig.pixCity || 'Sao Paulo',
+        amount: successBooking.price,
+        txid: successBooking.id ? successBooking.id.substring(0, 25) : '***'
+      });
+      setPixCode(code);
+    } catch (e) {
+      console.error('Erro ao gerar código Pix:', e);
+    }
+  }, [pixConfig, successBooking]);
 
   // Carrega todos os agendamentos do mês atual para calcular a disponibilidade de cada dia de forma eficiente
   useEffect(() => {
@@ -463,6 +507,25 @@ export default function PortalPublicBooking() {
     window.open(url, '_blank');
   };
 
+  const handleOpenWhatsAppPix = () => {
+    if (!successBooking || !orgId) return;
+
+    let rawPhone = orgData?.phone || orgData?.whatsapp || '';
+    let formattedPhone = rawPhone.replace(/\D/g, '');
+    if (formattedPhone.length === 11 && !formattedPhone.startsWith('55')) {
+      formattedPhone = '55' + formattedPhone;
+    } else if (formattedPhone.length === 10 && !formattedPhone.startsWith('55')) {
+      formattedPhone = '55' + formattedPhone;
+    }
+
+    const dateObj = new Date(successBooking.date + 'T12:00:00');
+    const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const message = `Olá! Fiz a solicitação de agendamento de *${successBooking.serviceName}* para o dia *${dateFormatted}* às *${successBooking.time}*.\n\nRealizei o pagamento do Pix no valor de *R$ ${successBooking.price.toFixed(2).replace('.', ',')}*. Segue o comprovante de pagamento.`;
+    const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    
+    window.open(url, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4">
@@ -528,24 +591,80 @@ export default function PortalPublicBooking() {
             </div>
           </div>
 
-          <div className="bg-primary-500/10 border border-primary-500/20 p-4 rounded-2xl text-xs text-primary-400 leading-relaxed text-left flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0" />
-            <span>
-              <strong>Atenção:</strong> Seu agendamento precisa ser validado. Clique no botão abaixo para nos enviar uma mensagem rápida no WhatsApp e finalizar a confirmação.
-            </span>
-          </div>
+          {pixCode ? (
+            <div className="bg-black/30 border border-white/5 rounded-3xl p-5 space-y-4 text-left animate-in fade-in duration-300">
+              <div className="text-center space-y-1">
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  <DollarSign className="text-primary-400" size={14} />
+                  Garanta sua Vaga com Pix
+                </h3>
+                <p className="text-[10px] text-gray-500 text-center">Pague o Pix e envie o comprovante pelo WhatsApp abaixo.</p>
+              </div>
+              
+              {/* QR Code */}
+              <div className="bg-white p-2.5 rounded-2xl w-40 h-40 mx-auto flex items-center justify-center border border-white/10">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixCode)}`} 
+                  alt="Pix QR Code" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
 
-          <button
-            onClick={handleOpenWhatsApp}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-sm"
-          >
-            <Phone size={18} />
-            <span>Confirmar via WhatsApp</span>
-          </button>
+              {/* Pix Copia e Cola */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Pix Copia e Cola</span>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={pixCode}
+                    className="flex-1 px-3 py-2 bg-black/40 border border-white/10 text-white text-[10px] font-mono rounded-xl outline-none select-all truncate"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixCode);
+                      toast.success('Código Pix copiado!');
+                    }}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-0 shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Botão de Confirmação WhatsApp */}
+              <button
+                type="button"
+                onClick={handleOpenWhatsAppPix}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/10 cursor-pointer border-0 mt-2 hover:scale-[1.02] justify-center"
+              >
+                <MessageSquare size={16} />
+                <span>Confirmar Pagamento (Enviar Comprovante)</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="bg-primary-500/10 border border-primary-500/20 p-4 rounded-2xl text-xs text-primary-400 leading-relaxed text-left flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <span>
+                  <strong>Atenção:</strong> Seu agendamento precisa ser validado. Clique no botão abaixo para nos enviar uma mensagem rápida no WhatsApp e finalizar a confirmação.
+                </span>
+              </div>
+
+              <button
+                onClick={handleOpenWhatsApp}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-sm"
+              >
+                <Phone size={18} />
+                <span>Confirmar via WhatsApp</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => navigate(`/bio/${orgId}`)}
-            className="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer"
+            className="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer block mx-auto mt-4"
           >
             Voltar para o Mini-Site
           </button>

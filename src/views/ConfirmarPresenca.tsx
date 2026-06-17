@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2, Star, Gift } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2, Star, Gift, DollarSign } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { db } from '../lib/firebase';
 import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { generateStaticPix } from '../lib/pix';
 
 export default function ConfirmarPresenca() {
   const [searchParams] = useSearchParams();
@@ -21,6 +22,10 @@ export default function ConfirmarPresenca() {
   const [fidelityConfig, setFidelityConfig] = useState<any>(null);
   const [fidelityLoading, setFidelityLoading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
+
+  // Estados do Pix
+  const [pixConfig, setPixConfig] = useState<any>(null);
+  const [pixCode, setPixCode] = useState<string>('');
 
   const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
 
@@ -90,6 +95,44 @@ export default function ConfirmarPresenca() {
 
     loadFidelity();
   }, [orgId, appointment]);
+
+  // Busca configurações de Pix do Firestore
+  useEffect(() => {
+    if (!orgId) return;
+    const loadPixSettings = async () => {
+      try {
+        const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.pixKey && data.pixEnabled) {
+            setPixConfig(data);
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar configurações de Pix:', e);
+      }
+    };
+    loadPixSettings();
+  }, [orgId]);
+
+  // Gera o código Pix Copia e Cola
+  useEffect(() => {
+    if (!pixConfig || !appointment || appointment.paymentStatus === 'paid' || appointment.price <= 0) return;
+    
+    try {
+      const code = generateStaticPix({
+        key: pixConfig.pixKey,
+        name: pixConfig.pixName || 'Empresa',
+        city: pixConfig.pixCity || 'Sao Paulo',
+        amount: appointment.price,
+        txid: appointmentId ? appointmentId.substring(0, 25) : '***'
+      });
+      setPixCode(code);
+    } catch (e) {
+      console.error('Erro ao gerar código Pix:', e);
+    }
+  }, [pixConfig, appointment, appointmentId]);
 
   const handleConfirm = async (confirm: boolean) => {
     const targetStatus = confirm ? 'confirmed' : 'cancelled';
@@ -340,6 +383,66 @@ export default function ConfirmarPresenca() {
                       Você possui {completedCount} {completedCount === 1 ? 'carimbo' : 'carimbos'}. Faltam {fidelityConfig.goal - completedCount} para ganhar!
                     </p>
                   )}
+                </div>
+              )}
+
+              {pixCode && (
+                <div className="bg-black/30 border border-white/5 rounded-3xl p-5 space-y-4 text-left animate-in fade-in duration-300">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                      <DollarSign className="text-primary-400" size={14} />
+                      Garanta sua Vaga com Pix
+                    </h3>
+                    <p className="text-[10px] text-gray-500">Pague o Pix e envie o comprovante pelo WhatsApp abaixo.</p>
+                  </div>
+                  
+                  {/* QR Code */}
+                  <div className="bg-white p-2.5 rounded-2xl w-40 h-40 mx-auto flex items-center justify-center border border-white/10">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixCode)}`} 
+                      alt="Pix QR Code" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* Pix Copia e Cola */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Pix Copia e Cola</span>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={pixCode}
+                        className="flex-1 px-3 py-2 bg-black/40 border border-white/10 text-white text-[10px] font-mono rounded-xl outline-none select-all truncate"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pixCode);
+                          toast.success('Código Pix copiado!');
+                        }}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-0 shrink-0"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Botão de Confirmação WhatsApp */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dateObj = new Date(appointment.date + 'T12:00:00');
+                      const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                      const text = `Olá! Confirmei minha presença no agendamento de *${appointment.serviceName}* no dia *${dateFormatted}* às *${appointment.time}*.\n\nFiz o pagamento do Pix no valor de *R$ ${appointment.price.toFixed(2).replace('.', ',')}*. Segue o comprovante em anexo.`;
+                      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/10 cursor-pointer border-0 mt-2 hover:scale-[1.02]"
+                  >
+                    <MessageSquare size={16} />
+                    <span>Confirmar Pagamento (Enviar Comprovante)</span>
+                  </button>
                 </div>
               )}
 

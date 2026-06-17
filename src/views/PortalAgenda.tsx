@@ -14,6 +14,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import CustomSelect from '../components/CustomSelect';
 import PortalPackages from '../components/PortalPackages';
 import PortalFidelity from '../components/PortalFidelity';
+import { generateStaticPix } from '../lib/pix';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -22,7 +23,7 @@ interface PortalAgendaProps {
 
 export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [subTab, setSubTab] = useState<'timeline' | 'services' | 'settings'>('timeline');
-  const [settingsSubTab, setSettingsSubTab] = useState<'hours' | 'rules' | 'biosite' | 'packages' | 'fidelity'>('hours');
+  const [settingsSubTab, setSettingsSubTab] = useState<'hours' | 'rules' | 'biosite' | 'packages' | 'fidelity' | 'pix'>('hours');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -87,6 +88,20 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
   const [bioAvatarUrl, setBioAvatarUrl] = useState('');
   const [bioLinks, setBioLinks] = useState<any[]>([]);
   const [bioShowBooking, setBioShowBooking] = useState(true);
+
+  // Estados para Configurações do Pix
+  const [pixKey, setPixKey] = useState('');
+  const [pixName, setPixName] = useState('');
+  const [pixCity, setPixCity] = useState('');
+  const [pixEnabled, setPixEnabled] = useState(false);
+  const [isEditingPix, setIsEditingPix] = useState(false);
+  const [pixBackup, setPixBackup] = useState<any>(null);
+
+  // Estados para o Modal de Cobrança Pix do Profissional
+  const [isPixBillingModalOpen, setIsPixBillingModalOpen] = useState(false);
+  const [activeAppointmentForPix, setActiveAppointmentForPix] = useState<any>(null);
+  const [pixBillingAmount, setPixBillingAmount] = useState('');
+  const [generatedPixCode, setGeneratedPixCode] = useState('');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioBackup, setBioBackup] = useState<any>(null);
   
@@ -319,6 +334,11 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
           setWhatsappTemplates(data.whatsappTemplates);
         }
+        // Carrega configurações de Pix
+        setPixKey(data.pixKey || '');
+        setPixName(data.pixName || '');
+        setPixCity(data.pixCity || '');
+        setPixEnabled(data.pixEnabled || false);
       }
     }, (err) => {
       console.error('Erro ao ler scheduling settings:', err);
@@ -563,6 +583,85 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
       console.error(e);
       toast.error('Erro ao salvar configurações.');
     }
+  };
+
+  // Salvar apenas as configurações do Pix
+  const handleSavePixSettings = async () => {
+    if (!orgId) return;
+    try {
+      const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+      const dataToSave = {
+        pixKey: pixKey.trim(),
+        pixName: pixName.trim(),
+        pixCity: pixCity.trim(),
+        pixEnabled: pixEnabled
+      };
+      try {
+        await updateDoc(docRef, dataToSave);
+      } catch (err) {
+        await setDoc(docRef, dataToSave, { merge: true });
+      }
+      toast.success('Configurações de Pix salvas com sucesso!');
+      setIsEditingPix(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao salvar configurações de Pix.');
+    }
+  };
+
+  // Abre modal de cobrança Pix
+  const handleOpenPixBillingModal = (app: any) => {
+    setActiveAppointmentForPix(app);
+    setPixBillingAmount((app.price || 0).toFixed(2).replace('.', ','));
+    
+    if (pixKey) {
+      const code = generateStaticPix({
+        key: pixKey,
+        name: pixName || 'Empresa',
+        city: pixCity || 'Sao Paulo',
+        amount: app.price || 0,
+        txid: app.id ? app.id.substring(0, 25) : '***'
+      });
+      setGeneratedPixCode(code);
+    } else {
+      setGeneratedPixCode('');
+    }
+    
+    setIsPixBillingModalOpen(true);
+  };
+
+  // Recalcula código Pix ao digitar outro valor
+  const handleRecalculatePixCode = (amountStr: string) => {
+    setPixBillingAmount(amountStr);
+    const parsedAmount = parseFloat(amountStr.replace(',', '.'));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    
+    if (pixKey && activeAppointmentForPix) {
+      const code = generateStaticPix({
+        key: pixKey,
+        name: pixName || 'Empresa',
+        city: pixCity || 'Sao Paulo',
+        amount: parsedAmount,
+        txid: activeAppointmentForPix.id ? activeAppointmentForPix.id.substring(0, 25) : '***'
+      });
+      setGeneratedPixCode(code);
+    }
+  };
+
+  // Envia Pix via WhatsApp
+  const handleSendPixWhatsAppMessage = () => {
+    if (!activeAppointmentForPix || !generatedPixCode) return;
+    
+    const cleanPhone = activeAppointmentForPix.clientPhone.replace(/\D/g, '');
+    const dateObj = new Date(activeAppointmentForPix.date + 'T12:00:00');
+    const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    const text = `Olá, *${activeAppointmentForPix.clientName}*! Segue abaixo os dados para o pagamento via Pix referente ao seu agendamento de *${activeAppointmentForPix.serviceName}* no dia *${dateFormatted}* às *${activeAppointmentForPix.time}*:\n\n💰 *Valor*: R$ ${pixBillingAmount}\n\n🔑 *Pix Copia e Cola*:\n\`${generatedPixCode}\`\n\n_Por favor, nos envie o comprovante por aqui assim que realizar o pagamento. Obrigado!_`;
+    
+    const encodedText = encodeURIComponent(text);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    window.open(url, '_blank');
+    setIsPixBillingModalOpen(false);
   };
 
   // Salvar apenas Mini-Site (Bio)
@@ -1206,6 +1305,16 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                               Enviar Confirmação
                             </button>
                           )}
+
+                          {pixKey && app.price > 0 && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleOpenPixBillingModal(app)}
+                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
+                            >
+                              <DollarSign size={14} />
+                              Cobrar Pix
+                            </button>
+                          )}
                           
                           {app.status !== 'completed' && app.status !== 'cancelled' && (
                             <>
@@ -1656,6 +1765,20 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
               <Award size={16} />
               <span>Clube de Fidelidade</span>
               {settingsSubTab === 'fidelity' && (
+                <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab('pix')}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs md:text-sm font-bold transition-all whitespace-nowrap relative border-0 bg-transparent cursor-pointer ${
+                settingsSubTab === 'pix' ? 'border-primary-500 text-primary-400 font-black' : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <DollarSign size={16} />
+              <span>Pagamentos / Pix</span>
+              {settingsSubTab === 'pix' && (
                 <motion.div layoutId="activeSettingsSubTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
               )}
             </button>
@@ -2370,6 +2493,114 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
           <PortalFidelity orgId={orgId} />
         )}
 
+        {settingsSubTab === 'pix' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign className="text-primary-400" size={16} />
+                  Configuração de Pagamento via Pix
+                </h3>
+                <p className="text-xs text-gray-400">Configure sua chave Pix e habilite a exibição do QR Code para pagamentos automáticos dos clientes.</p>
+              </div>
+
+              {!isEditingPix ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPixBackup({
+                      pixKey,
+                      pixName,
+                      pixCity,
+                      pixEnabled
+                    });
+                    setIsEditingPix(true);
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-500/50 hover:bg-primary-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 animate-in fade-in"
+                >
+                  <Edit2 size={12} />
+                  <span>Editar Configurações</span>
+                </button>
+              ) : (
+                <div className="flex gap-2 shrink-0 animate-in fade-in">
+                  <button
+                    type="button"
+                    onClick={handleSavePixSettings}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Check size={12} />
+                    <span>Salvar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPixKey(pixBackup.pixKey);
+                      setPixName(pixBackup.pixName);
+                      setPixCity(pixBackup.pixCity);
+                      setPixEnabled(pixBackup.pixEnabled);
+                      setIsEditingPix(false);
+                    }}
+                    className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Chave Pix</label>
+                <input
+                  type="text"
+                  placeholder="E-mail, CPF/CNPJ, Telefone ou Aleatória"
+                  value={pixKey}
+                  disabled={!isEditingPix}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50 font-mono"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Beneficiário</label>
+                <input
+                  type="text"
+                  placeholder="Ex: João da Silva / Nome da Empresa"
+                  value={pixName}
+                  disabled={!isEditingPix}
+                  onChange={(e) => setPixName(e.target.value)}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cidade do Recebedor</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Sao Paulo"
+                  value={pixCity}
+                  disabled={!isEditingPix}
+                  onChange={(e) => setPixCity(e.target.value)}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-6 max-w-2xl">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={pixEnabled}
+                  disabled={!isEditingPix}
+                  onChange={(e) => setPixEnabled(e.target.checked)}
+                  className="rounded border-white/15 bg-black/40 text-primary-500 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer disabled:opacity-50"
+                />
+                <span className="text-xs font-semibold text-gray-300">Exibir cobrança Pix nos links públicos (agendamento e confirmação)</span>
+              </label>
+            </div>
+          </div>
+        ) }
+
             </motion.div>
           </AnimatePresence>
 
@@ -2675,6 +2906,101 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
                   className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cobrança Pix do Profissional */}
+      {isPixBillingModalOpen && activeAppointmentForPix && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-sm w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-300 text-left">
+            <button
+              onClick={() => setIsPixBillingModalOpen(false)}
+              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-white mb-1">
+                Cobrança via Pix
+              </h3>
+              <p className="text-xs text-gray-400">
+                Gere o Pix para o cliente *{activeAppointmentForPix.clientName}*.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valor do Pagamento (R$)</label>
+                <input
+                  type="text"
+                  value={pixBillingAmount}
+                  onChange={(e) => handleRecalculatePixCode(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all font-mono font-black"
+                />
+              </div>
+
+              {generatedPixCode ? (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {/* QR Code Container */}
+                  <div className="bg-white p-3 rounded-2xl w-48 h-48 mx-auto flex items-center justify-center border border-white/10 shadow-lg">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPixCode)}`}
+                      alt="Pix QR Code"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  {/* Pix Copia e Cola */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pix Copia e Cola</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={generatedPixCode}
+                        className="flex-1 px-3 py-2 bg-black/40 border border-white/10 text-white text-[10px] font-mono rounded-xl outline-none select-all truncate"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedPixCode);
+                          toast.success('Código Pix copiado!');
+                        }}
+                        className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-0 shrink-0"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-400 italic bg-amber-500/5 p-3 rounded-xl border border-amber-500/10">
+                  Cadastre sua chave Pix nas configurações da agenda para poder gerar cobranças.
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={!generatedPixCode}
+                  onClick={handleSendPixWhatsAppMessage}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                >
+                  <Phone size={14} />
+                  <span>Enviar por WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPixBillingModalOpen(false)}
+                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer border-0"
+                >
+                  Fechar
                 </button>
               </div>
             </div>

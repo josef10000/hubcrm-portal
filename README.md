@@ -28,6 +28,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Personalização de Rótulos Dinâmicos:** Nomenclaturas singular/plural customizáveis (ex: "Agendamento" -> "Proposta", "Sessão") aplicadas dinamicamente em toda a interface do portal.
 *   **Confirmação via WhatsApp:** Templates customizáveis e dinâmicos de mensagens do WhatsApp nas configurações da agenda (com tags como `{nome}`, `{servico}`, `{data}`, `{hora}`, `{valor}` e `{link}`).
 *   **Página Pública de Confirmação (`ConfirmarPresenca.tsx`):** Rota pública sem autenticação (`/confirmar-presenca`) onde o cliente final pode confirmar ou cancelar compromissos, exibindo a logo personalizada da empresa ou o fallback padrão.
+*   **Geração Automática de Pix Estático (QR Code & Copia e Cola):** Motor de cálculo autônomo baseado no padrão EMV BR Code (Pix Estático) integrado às páginas públicas de finalização de agendamento (`PortalPublicBooking.tsx`) e confirmação de presença (`ConfirmarPresenca.tsx`). Apresenta QR Code gerado em tempo real, Pix Copia e Cola com clique-copia e botão verde destacado para envio imediato de comprovante de pagamento via WhatsApp do estabelecimento.
+*   **Módulo de Cobrança Rápida do Profissional:** Botão "Cobrar Pix" na Timeline Diária do profissional que gera o Pix do agendamento com valor editável e formata a mensagem com link para envio rápido pelo WhatsApp do cliente.
 *   **Clube de Fidelidade Digital:** Cartão de carimbos gamificado de fidelização na tela pública de confirmação de presença.
 *   **Faturamento Automático:** Integração onde a conclusão de um atendimento na timeline gera e consolida automaticamente a receita no painel do CRM Financeiro.
 
