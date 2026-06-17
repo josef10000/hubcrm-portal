@@ -31,9 +31,10 @@ interface PortalHomeProps {
   announcement: any;
   setActiveTab: (tab: string) => void;
   supportRequests: any[];
+  clientId: string;
 }
 
-export default function PortalHome({ client, announcement, setActiveTab, supportRequests }: PortalHomeProps) {
+export default function PortalHome({ client, announcement, setActiveTab, supportRequests, clientId }: PortalHomeProps) {
   const { orgId } = useParams<{ orgId: string }>();
   const [appointmentsToday, setAppointmentsToday] = useState<any[]>([]);
   const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
@@ -71,18 +72,34 @@ export default function PortalHome({ client, announcement, setActiveTab, support
   // Escuta Configuração de Expediente
   useEffect(() => {
     if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+    
+    // Tenta escutar do documento do próprio cliente primeiro
+    let docRef = doc(db, 'organizations', orgId, 'settings', 'scheduling');
+    if (clientId) {
+      docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    }
+
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setExpediente(data);
-        if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
-          setWhatsappTemplates(data.whatsappTemplates);
+        if (clientId) {
+          const sched = data.schedulingSettings || {};
+          setExpediente(sched);
+          if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
+            setWhatsappTemplates(sched.whatsappTemplates);
+          }
+        } else {
+          setExpediente(data);
+          if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
+            setWhatsappTemplates(data.whatsappTemplates);
+          }
         }
       }
+    }, (err) => {
+      console.warn("[PortalHome] Não foi possível ler as configurações de expediente diretamente do Firestore (caindo para fallbacks):", err.message || err);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // Escuta os compromissos reativamente e calcula LTV / Inativos
   useEffect(() => {

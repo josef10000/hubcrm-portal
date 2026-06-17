@@ -606,6 +606,7 @@ export default function ClientPortalLayout() {
                   announcement={announcement} 
                   setActiveTab={setActiveTab} 
                   supportRequests={supportRequests} 
+                  clientId={activeClientId || ''}
                 />
               )}
               {activeTab === 'agenda' && (
