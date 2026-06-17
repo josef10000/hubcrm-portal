@@ -19,10 +19,12 @@ import { generateStaticPix } from '../lib/pix';
 interface PortalAgendaProps {
   orgId: string;
   clientId: string;
+  initialSubTab?: 'timeline' | 'services' | 'settings';
+  hideMainTabs?: boolean;
 }
 
-export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
-  const [subTab, setSubTab] = useState<'timeline' | 'services' | 'settings'>('timeline');
+export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timeline', hideMainTabs = false }: PortalAgendaProps) {
+  const [subTab, setSubTab] = useState<'timeline' | 'services' | 'settings'>(initialSubTab);
   const [settingsSubTab, setSettingsSubTab] = useState<'hours' | 'rules' | 'biosite' | 'packages' | 'fidelity' | 'pix'>('hours');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -920,114 +922,93 @@ export default function PortalAgenda({ orgId, clientId }: PortalAgendaProps) {
         </div>
       )}
 
-      {/* Seletor Mobile (Dropdown Customizado) */}
-      <div className="relative block md:hidden w-full mb-6 z-20">
-        <button
-          type="button"
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
-        >
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
-            {(() => {
-              if (subTab === 'timeline') return <Clock size={18} />;
-              if (subTab === 'services') return <Scissors size={18} />;
-              return <Settings size={18} />;
-            })()}
+      {/* Seletor Mobile & Desktop de Abas (oculto se hideMainTabs for true) */}
+      {!hideMainTabs && (
+        <>
+          {/* Seletor Mobile (Dropdown Customizado) */}
+          <div className="relative block md:hidden w-full mb-6 z-20">
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
+            >
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
+                {(() => {
+                  if (subTab === 'timeline') return <Clock size={18} />;
+                  return <Scissors size={18} />;
+                })()}
+              </div>
+              <span>
+                {subTab === 'timeline' ? 'Linha do Tempo' : 'Gerenciar Serviços'}
+              </span>
+              <ChevronDown 
+                size={16} 
+                className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
+              />
+            </button>
+
+            {isDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsDropdownOpen(false)} />
+                <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubTab('timeline');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                      subTab === 'timeline' 
+                        ? 'bg-primary-500/15 text-primary-400 font-black' 
+                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                    }`}
+                  >
+                    <Clock size={16} className={subTab === 'timeline' ? 'text-primary-400' : 'text-gray-500'} />
+                    Linha do Tempo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubTab('services');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                      subTab === 'services' 
+                        ? 'bg-primary-500/15 text-primary-400 font-black' 
+                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                    }`}
+                  >
+                    <Scissors size={16} className={subTab === 'services' ? 'text-primary-400' : 'text-gray-500'} />
+                    Gerenciar Serviços
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <span>
-            {subTab === 'timeline' ? 'Linha do Tempo' :
-             subTab === 'services' ? 'Gerenciar Serviços' : 'Configurações da Agenda'}
-          </span>
-          <ChevronDown 
-            size={16} 
-            className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
-          />
-        </button>
 
-        {isDropdownOpen && (
-          <>
-            <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsDropdownOpen(false)} />
-            <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setSubTab('timeline');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                  subTab === 'timeline' 
-                    ? 'bg-primary-500/15 text-primary-400 font-black' 
-                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                }`}
-              >
-                <Clock size={16} className={subTab === 'timeline' ? 'text-primary-400' : 'text-gray-500'} />
-                Linha do Tempo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSubTab('services');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                  subTab === 'services' 
-                    ? 'bg-primary-500/15 text-primary-400 font-black' 
-                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                }`}
-              >
-                <Scissors size={16} className={subTab === 'services' ? 'text-primary-400' : 'text-gray-500'} />
-                Gerenciar Serviços
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSubTab('settings');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                  subTab === 'settings' 
-                    ? 'bg-primary-500/15 text-primary-400 font-black' 
-                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                }`}
-              >
-                <Settings size={16} className={subTab === 'settings' ? 'text-primary-400' : 'text-gray-500'} />
-                Configurações da Agenda
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Abas Superiores (Desktop) */}
-      <div className="hidden md:flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-full overflow-x-auto scrollbar-none snap-x flex-nowrap md:w-fit">
-        <button
-          onClick={() => setSubTab('timeline')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
-            subTab === 'timeline' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Clock size={14} />
-          Linha do Tempo
-        </button>
-        <button
-          onClick={() => setSubTab('services')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
-            subTab === 'services' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Scissors size={14} />
-          Gerenciar Serviços
-        </button>
-        <button
-          onClick={() => setSubTab('settings')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
-            subTab === 'settings' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Settings size={14} />
-          Configurações
-        </button>
-      </div>
+          {/* Abas Superiores (Desktop) */}
+          <div className="hidden md:flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-full overflow-x-auto scrollbar-none snap-x flex-nowrap md:w-fit mb-6">
+            <button
+              onClick={() => setSubTab('timeline')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
+                subTab === 'timeline' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Clock size={14} />
+              Linha do Tempo
+            </button>
+            <button
+              onClick={() => setSubTab('services')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
+                subTab === 'services' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Scissors size={14} />
+              Gerenciar Serviços
+            </button>
+          </div>
+        </>
+      )}
 
       {/* ABA 1: LINHA DO TEMPO */}
       {subTab === 'timeline' && (

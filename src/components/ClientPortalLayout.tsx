@@ -20,7 +20,8 @@ import {
   Palette,
   Layout,
   FileText,
-  Video
+  Video,
+  Settings
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
@@ -208,6 +209,7 @@ export default function ClientPortalLayout() {
   const navItems = [
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
+    { id: 'agenda_settings', label: 'Configurações', icon: Settings },
     { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
     { id: 'management', label: 'Meu Negócio', icon: Briefcase },
     { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
@@ -612,7 +614,10 @@ export default function ClientPortalLayout() {
                 />
               )}
               {activeTab === 'agenda' && (
-                <PortalAgenda orgId={orgId || ''} clientId={activeClientId || ''} />
+                <PortalAgenda orgId={orgId || ''} clientId={activeClientId || ''} initialSubTab="timeline" />
+              )}
+              {activeTab === 'agenda_settings' && (
+                <PortalAgenda orgId={orgId || ''} clientId={activeClientId || ''} initialSubTab="settings" hideMainTabs={true} />
               )}
               {activeTab === 'crm_finance' && (
                 <PortalCRMFinance orgId={orgId || ''} clientId={activeClientId || ''} />
