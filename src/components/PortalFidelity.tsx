@@ -61,12 +61,30 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
   const handleSave = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'fidelitySettings.active': fidelityActive,
-        'fidelitySettings.goal': Number(fidelityGoal),
-        'fidelitySettings.reward': fidelityReward
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          fidelitySettings: {
+            active: fidelityActive,
+            goal: Number(fidelityGoal),
+            reward: fidelityReward
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar Clube de Fidelidade.');
+      }
+
       toast.success('Configurações do Clube de Fidelidade salvas!');
       setIsEditing(false);
     } catch (e) {

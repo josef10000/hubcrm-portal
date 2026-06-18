@@ -546,10 +546,34 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSaveHours = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'schedulingSettings.businessHours': expediente.businessHours || {}
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          schedulingSettings: {
+            ...expediente,
+            pixKey,
+            pixName,
+            pixCity,
+            pixEnabled,
+            whatsappTemplates,
+            businessHours: expediente.businessHours || {}
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar expediente.');
+      }
+
       toast.success('Horários de expediente salvos com sucesso!');
       setIsEditingHours(false);
     } catch (e) {
@@ -562,13 +586,37 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSaveNomenclature = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'schedulingSettings.slotIntervalMinutes': expediente.slotIntervalMinutes || 30,
-        'schedulingSettings.appointmentLabelSingular': expediente.appointmentLabelSingular || 'Agendamento',
-        'schedulingSettings.appointmentLabelPlural': expediente.appointmentLabelPlural || 'Agendamentos',
-        'schedulingSettings.packagesActive': expediente.packagesActive || false
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          schedulingSettings: {
+            ...expediente,
+            pixKey,
+            pixName,
+            pixCity,
+            pixEnabled,
+            whatsappTemplates,
+            slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
+            appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
+            appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos',
+            packagesActive: expediente.packagesActive || false
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar configurações.');
+      }
+
       toast.success('Configurações de regras e nomenclaturas salvas!');
       setIsEditingNomenclature(false);
     } catch (e) {
@@ -581,13 +629,33 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSavePixSettings = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'schedulingSettings.pixKey': pixKey.trim(),
-        'schedulingSettings.pixName': pixName.trim(),
-        'schedulingSettings.pixCity': pixCity.trim(),
-        'schedulingSettings.pixEnabled': pixEnabled
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          schedulingSettings: {
+            ...expediente,
+            whatsappTemplates,
+            pixKey: pixKey.trim(),
+            pixName: pixName.trim(),
+            pixCity: pixCity.trim(),
+            pixEnabled: pixEnabled
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar configurações de Pix.');
+      }
+
       toast.success('Configurações de Pix salvas com sucesso!');
       setIsEditingPix(false);
     } catch (e) {
@@ -655,14 +723,32 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSaveBioSite = async () => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'bioSettings.title': bioTitle.trim(),
-        'bioSettings.description': bioDescription.trim(),
-        'bioSettings.avatarUrl': bioAvatarUrl.trim(),
-        'bioSettings.links': bioLinks,
-        'bioSettings.showBooking': bioShowBooking
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          bioSettings: {
+            title: bioTitle.trim(),
+            description: bioDescription.trim(),
+            avatarUrl: bioAvatarUrl.trim(),
+            links: bioLinks,
+            showBooking: bioShowBooking
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar configurações do Mini-Site.');
+      }
+
       toast.success('Configurações do Mini-Site salvas com sucesso!');
       setIsEditingBio(false);
     } catch (e) {
@@ -2091,9 +2177,26 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       }
 
                       if (orgId && clientId) {
-                        const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-                        await updateDoc(docRef, {
-                          'schedulingSettings.whatsappTemplates': currentTemplates
+                        const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+                        const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+                        
+                        await fetch(`${crmApiUrl}/api/portal_handler`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            action: 'update_client',
+                            orgId,
+                            clientId,
+                            token,
+                            schedulingSettings: {
+                              ...expediente,
+                              pixKey,
+                              pixName,
+                              pixCity,
+                              pixEnabled,
+                              whatsappTemplates: currentTemplates
+                            }
+                          })
                         });
                       }
 
@@ -2162,9 +2265,26 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                           onClick={async () => {
                             const updatedTemplates = whatsappTemplates.filter(t => t.id !== tpl.id);
                             if (orgId && clientId) {
-                              const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-                              await updateDoc(docRef, {
-                                'schedulingSettings.whatsappTemplates': updatedTemplates
+                              const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+                              const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+                              
+                              await fetch(`${crmApiUrl}/api/portal_handler`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  action: 'update_client',
+                                  orgId,
+                                  clientId,
+                                  token,
+                                  schedulingSettings: {
+                                    ...expediente,
+                                    pixKey,
+                                    pixName,
+                                    pixCity,
+                                    pixEnabled,
+                                    whatsappTemplates: updatedTemplates
+                                  }
+                                })
                               });
                             }
                             setWhatsappTemplates(updatedTemplates);

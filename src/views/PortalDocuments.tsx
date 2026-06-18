@@ -60,11 +60,26 @@ export default function PortalDocuments({ client, orgId }: PortalDocumentsProps)
         date: timestamp
       };
 
-      const clientRef = doc(db, 'organizations', orgId, 'clients', client.id);
-      await updateDoc(clientRef, {
-        contracts: updatedContracts,
-        logs: [...(client.logs || []), newLog]
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId: client.id,
+          token,
+          contracts: updatedContracts,
+          logs: [...(client.logs || []), newLog]
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao salvar assinatura do contrato.');
+      }
 
       toast.success('Contrato Assinado com Sucesso!', { description: 'Sua assinatura com validade de IP foi registrada.' });
       setSelectedContract(null);

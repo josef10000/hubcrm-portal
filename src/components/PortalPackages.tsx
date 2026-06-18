@@ -79,10 +79,28 @@ export default function PortalPackages({ orgId, clientId }: PortalPackagesProps)
   const handleToggleActive = async (newVal: boolean) => {
     if (!orgId || !clientId) return;
     try {
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(docRef, {
-        'schedulingSettings.packagesActive': newVal
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          schedulingSettings: {
+            packagesActive: newVal
+          }
+        })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao alterar status da funcionalidade.');
+      }
+
       setPackagesActive(newVal);
       toast.success(newVal ? 'Uso de pacotes ativado!' : 'Uso de pacotes desativado.');
     } catch (e) {
