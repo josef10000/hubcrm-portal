@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp 
 } from 'firebase/firestore';
@@ -81,6 +81,7 @@ export default function PortalPackages({ orgId, clientId }: PortalPackagesProps)
     try {
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -90,6 +91,8 @@ export default function PortalPackages({ orgId, clientId }: PortalPackagesProps)
           orgId,
           clientId,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           schedulingSettings: {
             packagesActive: newVal
           }

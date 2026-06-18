@@ -12,7 +12,7 @@ import {
   FileUp
 } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { Client, ClientContract, ClientLog } from '../types';
 import { toast } from 'sonner';
 
@@ -62,6 +62,7 @@ export default function PortalDocuments({ client, orgId }: PortalDocumentsProps)
 
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -71,6 +72,8 @@ export default function PortalDocuments({ client, orgId }: PortalDocumentsProps)
           orgId,
           clientId: client.id,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           contracts: updatedContracts,
           logs: [...(client.logs || []), newLog]
         })

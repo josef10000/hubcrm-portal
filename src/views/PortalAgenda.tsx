@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp 
 } from 'firebase/firestore';
@@ -548,6 +548,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     try {
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -557,6 +558,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           orgId,
           clientId,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           schedulingSettings: {
             ...expediente,
             pixKey,
@@ -588,6 +591,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     try {
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -597,6 +601,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           orgId,
           clientId,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           schedulingSettings: {
             ...expediente,
             pixKey,
@@ -631,6 +637,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     try {
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -640,6 +647,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           orgId,
           clientId,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           schedulingSettings: {
             ...expediente,
             whatsappTemplates,
@@ -725,6 +734,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     try {
       const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
       const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+      const currentUser = auth.currentUser;
 
       const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
         method: 'POST',
@@ -734,6 +744,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           orgId,
           clientId,
           token,
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || '',
           bioSettings: {
             title: bioTitle.trim(),
             description: bioDescription.trim(),
@@ -2179,6 +2191,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       if (orgId && clientId) {
                         const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
                         const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+                        const currentUser = auth.currentUser;
                         
                         await fetch(`${crmApiUrl}/api/portal_handler`, {
                           method: 'POST',
@@ -2188,6 +2201,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                             orgId,
                             clientId,
                             token,
+                            uid: currentUser?.uid || '',
+                            email: currentUser?.email || '',
                             schedulingSettings: {
                               ...expediente,
                               pixKey,
@@ -2267,6 +2282,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                             if (orgId && clientId) {
                               const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
                               const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+                              const currentUser = auth.currentUser;
                               
                               await fetch(`${crmApiUrl}/api/portal_handler`, {
                                 method: 'POST',
@@ -2276,6 +2292,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                                   orgId,
                                   clientId,
                                   token,
+                                  uid: currentUser?.uid || '',
+                                  email: currentUser?.email || '',
                                   schedulingSettings: {
                                     ...expediente,
                                     pixKey,
