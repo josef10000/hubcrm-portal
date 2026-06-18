@@ -742,7 +742,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     }
   };
 
-  // Envia Pix via WhatsApp
+  // Envia Pix via WhatsApp (Texto tradicional copia e cola)
   const handleSendPixWhatsAppMessage = () => {
     if (!activeAppointmentForPix || !generatedPixCode) return;
     
@@ -751,6 +751,28 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     
     const text = `Olá, *${activeAppointmentForPix.clientName}*! Segue abaixo os dados para o pagamento via Pix referente ao seu agendamento de *${activeAppointmentForPix.serviceName}* no dia *${dateFormatted}* às *${activeAppointmentForPix.time}*:\n\n💰 *Valor*: R$ ${pixBillingAmount}\n\n🔑 *Pix Copia e Cola*:\n\`${generatedPixCode}\`\n\n_Por favor, nos envie o comprovante por aqui assim que realizar o pagamento. Obrigado!_`;
+    
+    const encodedText = encodeURIComponent(text);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    window.open(url, '_blank');
+    setIsPixBillingModalOpen(false);
+  };
+
+  // Envia Pix via WhatsApp usando link público de pagamento
+  const handleSendPixLinkWhatsAppMessage = () => {
+    if (!activeAppointmentForPix || !pixKey) return;
+    
+    const cleanPhone = activeAppointmentForPix.clientPhone.replace(/\D/g, '');
+    const parsedAmount = parseFloat(pixBillingAmount.replace(/\./g, '').replace(',', '.'));
+    const amountVal = isNaN(parsedAmount) || parsedAmount <= 0 ? 0 : parsedAmount;
+    
+    const baseUrl = window.location.origin;
+    const paymentLink = `${baseUrl}/pagar-pix?key=${encodeURIComponent(pixKey)}&name=${encodeURIComponent(pixName || 'Empresa')}&city=${encodeURIComponent(pixCity || 'Sao Paulo')}&amount=${amountVal}&txid=${activeAppointmentForPix.id ? activeAppointmentForPix.id.substring(0, 25) : '***'}`;
+    
+    const dateObj = new Date(activeAppointmentForPix.date + 'T12:00:00');
+    const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    const text = `Olá, *${activeAppointmentForPix.clientName}*! Segue o link para o pagamento via Pix referente ao seu agendamento de *${activeAppointmentForPix.serviceName}* no dia *${dateFormatted}* às *${activeAppointmentForPix.time}*:\n\n🔗 *Link de Pagamento*:\n${paymentLink}\n\n_Acesse o link para visualizar o QR Code ou copiar o código de pagamento. Obrigado!_`;
     
     const encodedText = encodeURIComponent(text);
     const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
@@ -781,7 +803,28 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     }
   };
 
-  // Envia Pix avulso via WhatsApp
+  // Retorna o link de pagamento do Pix avulso
+  const handleGetCustomPixLink = () => {
+    if (!pixKey) return '';
+    const parsedAmount = parseFloat(customPixAmount.replace(/\./g, '').replace(',', '.'));
+    const amountVal = isNaN(parsedAmount) || parsedAmount <= 0 ? 0 : parsedAmount;
+    
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/pagar-pix?key=${encodeURIComponent(pixKey)}&name=${encodeURIComponent(pixName || 'Empresa')}&city=${encodeURIComponent(pixCity || 'Sao Paulo')}&amount=${amountVal}`;
+  };
+
+  // Copia o link de pagamento do Pix avulso
+  const handleCopyCustomPixLink = () => {
+    const link = handleGetCustomPixLink();
+    if (!link) {
+      toast.error('Gere o código Pix primeiro.');
+      return;
+    }
+    navigator.clipboard.writeText(link);
+    toast.success('Link de pagamento copiado com sucesso!');
+  };
+
+  // Envia Pix avulso via WhatsApp (Texto copia e cola)
   const handleSendCustomPixWhatsApp = () => {
     if (!customPixCode) {
       toast.error('Gere o código Pix antes de enviar.');
@@ -800,6 +843,32 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     const clientGreeting = customPixClientName.trim() ? `Olá, *${customPixClientName.trim()}*!` : 'Olá!';
     
     const text = `${clientGreeting} Segue abaixo os dados para o pagamento via Pix:\n\n💰 *Valor*: R$ ${customPixAmount}\n\n🔑 *Pix Copia e Cola*:\n\`${customPixCode}\`\n\n_Por favor, nos envie o comprovante por aqui assim que realizar o pagamento. Obrigado!_`;
+    
+    const encodedText = encodeURIComponent(text);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    window.open(url, '_blank');
+  };
+
+  // Envia Pix avulso via WhatsApp (Link de pagamento)
+  const handleSendCustomPixLinkWhatsApp = () => {
+    const link = handleGetCustomPixLink();
+    if (!link) {
+      toast.error('Gere o código Pix primeiro.');
+      return;
+    }
+    if (!customPixPhone.trim()) {
+      toast.error('Informe o telefone do cliente.');
+      return;
+    }
+    
+    let cleanPhone = customPixPhone.replace(/\D/g, '');
+    if (!cleanPhone.startsWith('55') && cleanPhone.length >= 10 && cleanPhone.length <= 11) {
+      cleanPhone = '55' + cleanPhone;
+    }
+    
+    const clientGreeting = customPixClientName.trim() ? `Olá, *${customPixClientName.trim()}*!` : 'Olá!';
+    
+    const text = `${clientGreeting} Segue o link para realizar o pagamento via Pix no valor de R$ ${customPixAmount}:\n\n🔗 *Link de Pagamento*:\n${link}\n\n_Basta acessar o link para visualizar o QR Code ou copiar o código para pagar no seu banco. Obrigado!_`;
     
     const encodedText = encodeURIComponent(text);
     const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
@@ -2834,15 +2903,26 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     </div>
 
                     {customPixCode && (
-                      <button
-                        type="button"
-                        onClick={handleSendCustomPixWhatsApp}
-                        disabled={!customPixPhone.trim()}
-                        className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/20 disabled:text-emerald-500/40 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed border-0"
-                      >
-                        <Phone size={16} />
-                        <span>Enviar Pix por WhatsApp</span>
-                      </button>
+                      <div className="flex flex-col gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={handleSendCustomPixLinkWhatsApp}
+                          disabled={!customPixPhone.trim()}
+                          className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/20 disabled:text-emerald-500/40 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed border-0"
+                        >
+                          <Link size={16} />
+                          <span>Enviar Link por WhatsApp</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendCustomPixWhatsApp}
+                          disabled={!customPixPhone.trim()}
+                          className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-30 disabled:hover:bg-transparent text-gray-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed border-0"
+                        >
+                          <Phone size={14} />
+                          <span>Enviar Texto (Copia e Cola) no WhatsApp</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -2860,7 +2940,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                         </div>
 
                         {/* Código Copia e Cola */}
-                        <div className="w-full space-y-1.5">
+                        <div className="w-full space-y-1.5 font-sans">
                           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-center">Pix Copia e Cola</label>
                           <div className="flex gap-2">
                             <input
@@ -2881,6 +2961,16 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                               <Copy size={14} />
                             </button>
                           </div>
+                          
+                          {/* Botão de Copiar Link de Pagamento */}
+                          <button
+                            type="button"
+                            onClick={handleCopyCustomPixLink}
+                            className="w-full mt-2 py-2 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-0"
+                          >
+                            <Link size={12} />
+                            <span>Copiar Link de Pagamento</span>
+                          </button>
                         </div>
                       </div>
                     ) : (
@@ -3252,7 +3342,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                   </div>
 
                   {/* Pix Copia e Cola */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 font-sans">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pix Copia e Cola</label>
                     <div className="flex gap-2">
                       <input
@@ -3272,6 +3362,26 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                         Copiar
                       </button>
                     </div>
+                    
+                    {/* Botão de Copiar Link de Pagamento no Modal */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!pixKey) return;
+                        const parsedAmount = parseFloat(pixBillingAmount.replace(/\./g, '').replace(',', '.'));
+                        const amountVal = isNaN(parsedAmount) || parsedAmount <= 0 ? 0 : parsedAmount;
+                        
+                        const baseUrl = window.location.origin;
+                        const link = `${baseUrl}/pagar-pix?key=${encodeURIComponent(pixKey)}&name=${encodeURIComponent(pixName || 'Empresa')}&city=${encodeURIComponent(pixCity || 'Sao Paulo')}&amount=${amountVal}&txid=${activeAppointmentForPix.id ? activeAppointmentForPix.id.substring(0, 25) : '***'}`;
+                        
+                        navigator.clipboard.writeText(link);
+                        toast.success('Link de pagamento copiado!');
+                      }}
+                      className="w-full mt-2 py-2 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 font-bold rounded-xl text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer border-0"
+                    >
+                      <Link size={10} />
+                      <span>Copiar Link de Pagamento</span>
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -3280,23 +3390,35 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 </p>
               )}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
                   disabled={!generatedPixCode}
-                  onClick={handleSendPixWhatsAppMessage}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                  onClick={handleSendPixLinkWhatsAppMessage}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0"
                 >
-                  <Phone size={14} />
-                  <span>Enviar por WhatsApp</span>
+                  <Link size={14} />
+                  <span>Enviar Link por WhatsApp</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsPixBillingModalOpen(false)}
-                  className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer border-0"
-                >
-                  Fechar
-                </button>
+                
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!generatedPixCode}
+                    onClick={handleSendPixWhatsAppMessage}
+                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-0"
+                  >
+                    <Phone size={12} />
+                    <span>Texto Copia/Cola</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPixBillingModalOpen(false)}
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer border-0"
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
