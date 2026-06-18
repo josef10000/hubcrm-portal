@@ -104,6 +104,12 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [activeAppointmentForPix, setActiveAppointmentForPix] = useState<any>(null);
   const [pixBillingAmount, setPixBillingAmount] = useState('');
   const [generatedPixCode, setGeneratedPixCode] = useState('');
+
+  // Estados para o Gerador de Pix Avulso (sem agendamento)
+  const [customPixAmount, setCustomPixAmount] = useState('');
+  const [customPixPhone, setCustomPixPhone] = useState('');
+  const [customPixClientName, setCustomPixClientName] = useState('');
+  const [customPixCode, setCustomPixCode] = useState('');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioBackup, setBioBackup] = useState<any>(null);
   
@@ -324,12 +330,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   }, [orgId]);
 
   // Escuta as configurações da Agenda no próprio documento do cliente
-  // Com fallback via API quando Firestore bloqueia por permissão
+  // Sempre busca via API no mount para garantir dados persistidos
   useEffect(() => {
     if (!orgId || !clientId) return;
 
     const applyClientData = (clientData: any) => {
-      // Carrega Configurações do Expediente e Pix (schedulingSettings)
       const sched = clientData.schedulingSettings || {};
       setExpediente((prev: any) => ({
         ...prev,
@@ -341,12 +346,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
         setWhatsappTemplates(sched.whatsappTemplates);
       }
-      setPixKey(sched.pixKey || '');
-      setPixName(sched.pixName || '');
-      setPixCity(sched.pixCity || '');
-      setPixEnabled(sched.pixEnabled || false);
+      if (sched.pixKey !== undefined) setPixKey(sched.pixKey || '');
+      if (sched.pixName !== undefined) setPixName(sched.pixName || '');
+      if (sched.pixCity !== undefined) setPixCity(sched.pixCity || '');
+      if (sched.pixEnabled !== undefined) setPixEnabled(sched.pixEnabled || false);
 
-      // Carrega Configurações do Mini-Site (bioSettings)
       const bio = clientData.bioSettings || {};
       setBioTitle(bio.title || '');
       setBioDescription(bio.description || '');
@@ -366,22 +370,24 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         });
         if (res.ok) {
           const data = await res.json();
-          const clientData = data.client || data;
-          applyClientData(clientData);
+          applyClientData(data.client || data);
         }
       } catch (e) {
-        console.error('[PortalAgenda] Fallback API também falhou:', e);
+        console.error('[PortalAgenda] Falha ao buscar dados via API:', e);
       }
     };
 
+    // Busca via API imediatamente no mount para garantir dados persistidos
+    fetchFromApi();
+
+    // Também escuta Firestore em tempo real (funciona quando há permissão)
     const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         applyClientData(docSnap.data());
       }
     }, (err) => {
-      console.warn('[PortalAgenda] Firestore sem permissão de leitura, usando fallback via API:', err.message);
-      fetchFromApi();
+      console.warn('[PortalAgenda] Firestore sem permissão de leitura:', err.message);
     });
     return () => unsub();
   }, [orgId, clientId]);
@@ -750,6 +756,54 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
     window.open(url, '_blank');
     setIsPixBillingModalOpen(false);
+  };
+
+  // Recalcula código Pix avulso ao digitar valor
+  const handleRecalculateCustomPix = (amountStr: string) => {
+    setCustomPixAmount(amountStr);
+    const parsedAmount = parseFloat(amountStr.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setCustomPixCode('');
+      return;
+    }
+    
+    if (pixKey) {
+      const code = generateStaticPix({
+        key: pixKey,
+        name: pixName || 'Empresa',
+        city: pixCity || 'Sao Paulo',
+        amount: parsedAmount,
+        txid: 'PIXAVULSO' + Math.floor(Math.random() * 1000000)
+      });
+      setCustomPixCode(code);
+    } else {
+      setCustomPixCode('');
+    }
+  };
+
+  // Envia Pix avulso via WhatsApp
+  const handleSendCustomPixWhatsApp = () => {
+    if (!customPixCode) {
+      toast.error('Gere o código Pix antes de enviar.');
+      return;
+    }
+    if (!customPixPhone.trim()) {
+      toast.error('Informe o telefone do cliente.');
+      return;
+    }
+    
+    let cleanPhone = customPixPhone.replace(/\D/g, '');
+    if (!cleanPhone.startsWith('55') && cleanPhone.length >= 10 && cleanPhone.length <= 11) {
+      cleanPhone = '55' + cleanPhone;
+    }
+    
+    const clientGreeting = customPixClientName.trim() ? `Olá, *${customPixClientName.trim()}*!` : 'Olá!';
+    
+    const text = `${clientGreeting} Segue abaixo os dados para o pagamento via Pix:\n\n💰 *Valor*: R$ ${customPixAmount}\n\n🔑 *Pix Copia e Cola*:\n\`${customPixCode}\`\n\n_Por favor, nos envie o comprovante por aqui assim que realizar o pagamento. Obrigado!_`;
+    
+    const encodedText = encodeURIComponent(text);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    window.open(url, '_blank');
   };
 
   // Salvar apenas Mini-Site (Bio)
@@ -2721,8 +2775,126 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 <span className="text-xs font-semibold text-gray-300">Exibir cobrança Pix nos links públicos (agendamento e confirmação)</span>
               </label>
             </div>
+
+            {/* Gerador de Pix Avulso */}
+            <div className="border-t border-white/10 my-6 pt-6 animate-in fade-in duration-500">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 mb-3">
+                <Sparkles className="text-primary-400 animate-pulse" size={16} />
+                Gerador de Pix Avulso
+              </h4>
+              <p className="text-xs text-gray-400 mb-6">Gere um QR Code e código Copia e Cola instantaneamente para enviar aos seus clientes pelo WhatsApp a qualquer momento.</p>
+
+              {!pixKey ? (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-start gap-2.5 max-w-2xl">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Chave Pix não configurada:</span> Para utilizar o gerador de Pix, configure e salve sua chave Pix acima primeiro.
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl">
+                  {/* Formulário do Pix Avulso */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valor do Pix (R$)</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-semibold">R$</span>
+                        <input
+                          type="text"
+                          placeholder="0,00"
+                          value={customPixAmount}
+                          onChange={(e) => handleRecalculateCustomPix(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Cliente (Opcional)</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Maria Souza"
+                          value={customPixClientName}
+                          onChange={(e) => setCustomPixClientName(e.target.value)}
+                          className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp do Cliente</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: (11) 99999-9999"
+                          value={customPixPhone}
+                          onChange={(e) => setCustomPixPhone(e.target.value)}
+                          className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700"
+                        />
+                      </div>
+                    </div>
+
+                    {customPixCode && (
+                      <button
+                        type="button"
+                        onClick={handleSendCustomPixWhatsApp}
+                        disabled={!customPixPhone.trim()}
+                        className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/20 disabled:text-emerald-500/40 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:cursor-not-allowed border-0"
+                      >
+                        <Phone size={16} />
+                        <span>Enviar Pix por WhatsApp</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* QR Code e Copia e Cola */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-white/5 border border-white/10 rounded-2xl relative min-h-[250px]">
+                    {customPixCode ? (
+                      <div className="w-full flex flex-col items-center gap-5">
+                        {/* Renderização do QR Code */}
+                        <div className="p-3 bg-white rounded-xl shadow-lg">
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(customPixCode)}`}
+                            alt="QR Code Pix"
+                            className="w-[150px] h-[150px] object-contain"
+                          />
+                        </div>
+
+                        {/* Código Copia e Cola */}
+                        <div className="w-full space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-center">Pix Copia e Cola</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={customPixCode}
+                              className="flex-1 px-3 py-2 bg-black/50 border border-white/10 text-white rounded-lg text-xs outline-none font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(customPixCode);
+                                toast.success('Código Pix copiado!');
+                              }}
+                              className="p-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center cursor-pointer border-0"
+                              title="Copiar Código"
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center text-gray-500 space-y-2 py-8">
+                        <DollarSign className="mx-auto opacity-20 animate-bounce" size={40} />
+                        <p className="text-xs">Digite um valor válido para gerar o QR Code Pix.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        ) }
+        )}
 
             </motion.div>
           </AnimatePresence>
