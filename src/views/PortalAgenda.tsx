@@ -324,40 +324,64 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   }, [orgId]);
 
   // Escuta as configurações da Agenda no próprio documento do cliente
+  // Com fallback via API quando Firestore bloqueia por permissão
   useEffect(() => {
     if (!orgId || !clientId) return;
+
+    const applyClientData = (clientData: any) => {
+      // Carrega Configurações do Expediente e Pix (schedulingSettings)
+      const sched = clientData.schedulingSettings || {};
+      setExpediente((prev: any) => ({
+        ...prev,
+        ...sched,
+        businessHours: sched.businessHours && Object.keys(sched.businessHours).length > 0
+          ? { ...prev.businessHours, ...sched.businessHours }
+          : prev.businessHours
+      }));
+      if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
+        setWhatsappTemplates(sched.whatsappTemplates);
+      }
+      setPixKey(sched.pixKey || '');
+      setPixName(sched.pixName || '');
+      setPixCity(sched.pixCity || '');
+      setPixEnabled(sched.pixEnabled || false);
+
+      // Carrega Configurações do Mini-Site (bioSettings)
+      const bio = clientData.bioSettings || {};
+      setBioTitle(bio.title || '');
+      setBioDescription(bio.description || '');
+      setBioAvatarUrl(bio.avatarUrl || '');
+      setBioLinks(bio.links || []);
+      setBioShowBooking(bio.showBooking !== undefined ? bio.showBooking : true);
+    };
+
+    const fetchFromApi = async () => {
+      try {
+        const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+        const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+        const res = await fetch(`${crmApiUrl}/api/portal_handler`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_client', orgId, clientId, token })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const clientData = data.client || data;
+          applyClientData(clientData);
+        }
+      } catch (e) {
+        console.error('[PortalAgenda] Fallback API também falhou:', e);
+      }
+    };
+
     const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        const clientData = docSnap.data();
-        
-        // Carrega Configurações do Expediente e Pix (schedulingSettings)
-        const sched = clientData.schedulingSettings || {};
-        setExpediente((prev: any) => ({
-          ...prev,
-          ...sched,
-          businessHours: sched.businessHours && Object.keys(sched.businessHours).length > 0
-            ? { ...prev.businessHours, ...sched.businessHours }
-            : prev.businessHours
-        }));
-        if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
-          setWhatsappTemplates(sched.whatsappTemplates);
-        }
-        setPixKey(sched.pixKey || '');
-        setPixName(sched.pixName || '');
-        setPixCity(sched.pixCity || '');
-        setPixEnabled(sched.pixEnabled || false);
-
-        // Carrega Configurações do Mini-Site (bioSettings)
-        const bio = clientData.bioSettings || {};
-        setBioTitle(bio.title || '');
-        setBioDescription(bio.description || '');
-        setBioAvatarUrl(bio.avatarUrl || '');
-        setBioLinks(bio.links || []);
-        setBioShowBooking(bio.showBooking !== undefined ? bio.showBooking : true);
+        applyClientData(docSnap.data());
       }
     }, (err) => {
-      console.error('Erro ao ler configurações da agenda do cliente:', err);
+      console.warn('[PortalAgenda] Firestore sem permissão de leitura, usando fallback via API:', err.message);
+      fetchFromApi();
     });
     return () => unsub();
   }, [orgId, clientId]);
@@ -1369,7 +1393,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                             </button>
                           )}
 
-                          {pixKey && app.price > 0 && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                          {pixKey && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
                             <button
                               onClick={() => handleOpenPixBillingModal(app)}
                               className="flex-1 sm:flex-initial justify-center p-2.5 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
