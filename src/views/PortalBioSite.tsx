@@ -46,87 +46,27 @@ export default function PortalBioSite() {
 
     const fetchData = async () => {
       try {
-        const orgRef = doc(db, 'organizations', orgId);
-        const orgSnap = await getDoc(orgRef);
-        if (orgSnap.exists()) {
-          setOrgData(orgSnap.data());
+        const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+        const clientQueryParam = queryClientId ? `&clientId=${queryClientId}` : '';
+        const res = await fetch(`${crmApiUrl}/api/portal_handler?action=public_get_bio&orgId=${orgId}${clientQueryParam}`);
+        
+        if (!res.ok) {
+          throw new Error('Erro ao buscar dados do Mini-Site na API.');
         }
 
-        // Tenta buscar o clientId da URL ou autodetecta do primeiro cliente
-        let targetClientId = queryClientId || '';
-        if (!targetClientId) {
-          const clientsRef = collection(db, 'organizations', orgId, 'clients');
-          const clientsSnap = await getDocs(clientsRef);
-          if (!clientsSnap.empty) {
-            targetClientId = clientsSnap.docs[0].id;
-          }
+        const data = await res.json();
+        
+        if (data.org) {
+          setOrgData(data.org);
         }
-
-        // Lógica de leitura do documento do cliente B2B
-        let clientBio: any = null;
-        let clientSched: any = null;
-        let clientFid: any = null;
-
-        if (targetClientId) {
-          try {
-            const clientRef = doc(db, 'organizations', orgId, 'clients', targetClientId);
-            const clientSnap = await getDoc(clientRef);
-            if (clientSnap.exists()) {
-              const cData = clientSnap.data();
-              clientBio = cData.bioSettings || null;
-              clientSched = cData.schedulingSettings || null;
-              clientFid = cData.fidelitySettings || null;
-            }
-          } catch (e) {
-            console.warn('Erro ao ler dados estruturados do cliente B2B, tentando fallback:', e);
-          }
+        if (data.bioSettings) {
+          setBioData(data.bioSettings);
         }
-
-        // 1. Configurações de BioSite
-        if (clientBio) {
-          setBioData(clientBio);
-        } else {
-          const bioRef = targetClientId 
-            ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'biosite')
-            : doc(db, 'organizations', orgId, 'settings', 'biosite');
-          const bioSnap = await getDoc(bioRef);
-          if (bioSnap.exists()) {
-            setBioData(bioSnap.data());
-          } else {
-            setBioData({
-              title: orgSnap.exists() ? orgSnap.data().name : 'Nosso Negócio',
-              description: 'Seja bem-vindo à nossa página pública. Veja nossos links e faça um agendamento online.',
-              avatarUrl: orgSnap.exists() ? orgSnap.data().logoUrl : '',
-              links: [],
-              showBooking: true
-            });
-          }
+        if (data.schedulingSettings) {
+          setSchedulingConfig(data.schedulingSettings);
         }
-
-        // 2. Configurações de Agendamento
-        if (clientSched) {
-          setSchedulingConfig(clientSched);
-        } else {
-          const schedRef = targetClientId 
-            ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'scheduling')
-            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-          const schedSnap = await getDoc(schedRef);
-          if (schedSnap.exists()) {
-            setSchedulingConfig(schedSnap.data());
-          }
-        }
-
-        // 3. Configurações de Fidelidade
-        if (clientFid) {
-          setFidelityConfig(clientFid);
-        } else {
-          const fidelityRef = targetClientId 
-            ? doc(db, 'organizations', orgId, 'clients', targetClientId, 'settings', 'fidelity')
-            : doc(db, 'organizations', orgId, 'settings', 'fidelity');
-          const fidelitySnap = await getDoc(fidelityRef);
-          if (fidelitySnap.exists()) {
-            setFidelityConfig(fidelitySnap.data());
-          }
+        if (data.fidelitySettings) {
+          setFidelityConfig(data.fidelitySettings);
         }
       } catch (err: any) {
         console.error('Erro ao buscar dados do Mini-Site:', err);

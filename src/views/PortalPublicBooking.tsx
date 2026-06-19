@@ -76,55 +76,34 @@ export default function PortalPublicBooking() {
 
     const loadData = async () => {
       try {
-        // Org
-        const orgRef = doc(db, 'organizations', orgId);
-        const orgSnap = await getDoc(orgRef);
-        if (!orgSnap.exists()) {
-          throw new Error('Empresa não encontrada.');
-        }
-        setOrgData(orgSnap.data());
-
-        // Serviços ativos
-        const servicesRef = collection(db, 'organizations', orgId, 'client_services');
-        const servicesSnap = await getDocs(servicesRef);
-        const activeServices = servicesSnap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter((s: any) => s.isActive !== false);
-        setServices(activeServices);
-
-        // Busca o clientId associado a esta organização (primeiro cliente da subcoleção)
-        let activeClientId = '';
-        const clientsRef = collection(db, 'organizations', orgId, 'clients');
-        const clientsSnap = await getDocs(clientsRef);
-        if (!clientsSnap.empty) {
-          const firstClientDoc = clientsSnap.docs[0];
-          activeClientId = firstClientDoc.id;
-          setDetectedClientId(firstClientDoc.id);
+        const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+        const res = await fetch(`${crmApiUrl}/api/portal_handler?action=public_get_bio&orgId=${orgId}`);
+        
+        if (!res.ok) {
+          throw new Error('Erro ao buscar dados de agendamento na API.');
         }
 
-        // Configuração de Expediente (carregado sob o cliente/profissional se detectado)
-        let schedulingData: any = null;
-        if (activeClientId) {
-          const clientRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
-          const clientSnap = await getDoc(clientRef);
-          if (clientSnap.exists()) {
-            schedulingData = clientSnap.data()?.schedulingSettings || null;
-          }
+        const data = await res.json();
+        
+        if (data.org) {
+          setOrgData(data.org);
         }
-
-        if (!schedulingData) {
-          // Fallback tradicional
-          const schedulingRef = activeClientId 
-            ? doc(db, 'organizations', orgId, 'clients', activeClientId, 'settings', 'scheduling')
-            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-          const schedulingSnap = await getDoc(schedulingRef);
-          if (schedulingSnap.exists()) {
-            schedulingData = schedulingSnap.data();
-          }
+        
+        if (data.services) {
+          const activeServices = data.services.filter((s: any) => s.isActive !== false);
+          setServices(activeServices);
         }
-
+        
+        if (data.clientId) {
+          setDetectedClientId(data.clientId);
+        }
+        
+        const schedulingData = data.schedulingSettings;
         if (schedulingData) {
           setExpediente(schedulingData);
+          if (schedulingData.pixKey && schedulingData.pixEnabled) {
+            setPixConfig(schedulingData);
+          }
         } else {
           // Padrão do sistema
           setExpediente({
@@ -141,7 +120,7 @@ export default function PortalPublicBooking() {
           });
         }
       } catch (err: any) {
-        console.error(err);
+        console.error('Erro ao carregar dados do agendamento:', err);
         setError(err.message || 'Erro ao carregar dados de agendamento.');
       } finally {
         setLoading(false);
@@ -150,41 +129,6 @@ export default function PortalPublicBooking() {
 
     loadData();
   }, [orgId]);
-
-  // Busca configurações de Pix do Firestore
-  useEffect(() => {
-    if (!orgId) return;
-    const loadPixSettings = async () => {
-      try {
-        let data: any = null;
-        if (detectedClientId) {
-          const clientRef = doc(db, 'organizations', orgId, 'clients', detectedClientId);
-          const clientSnap = await getDoc(clientRef);
-          if (clientSnap.exists()) {
-            data = clientSnap.data()?.schedulingSettings || null;
-          }
-        }
-
-        if (!data) {
-          // Fallback tradicional
-          const docRef = detectedClientId
-            ? doc(db, 'organizations', orgId, 'clients', detectedClientId, 'settings', 'scheduling')
-            : doc(db, 'organizations', orgId, 'settings', 'scheduling');
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            data = docSnap.data();
-          }
-        }
-
-        if (data && data.pixKey && data.pixEnabled) {
-          setPixConfig(data);
-        }
-      } catch (e) {
-        console.error('Erro ao buscar configurações de Pix:', e);
-      }
-    };
-    loadPixSettings();
-  }, [orgId, detectedClientId]);
 
   // Gera o código Pix Copia e Cola
   useEffect(() => {
