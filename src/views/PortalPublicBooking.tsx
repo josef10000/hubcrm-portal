@@ -17,7 +17,8 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
@@ -47,6 +48,8 @@ export default function PortalPublicBooking() {
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [slotsCache, setSlotsCache] = useState<Record<string, string[]>>({});
   
   // Controle de slots e agendamentos existentes
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
@@ -127,19 +130,26 @@ export default function PortalPublicBooking() {
       }
     };
 
+    // Recupera dados salvos para agendamento em 1-clique
+    const savedName = localStorage.getItem('hubcrm_client_name');
+    const savedPhone = localStorage.getItem('hubcrm_client_phone');
+    if (savedName) setClientName(savedName);
+    if (savedPhone) setClientPhone(savedPhone);
+
     loadData();
   }, [orgId]);
 
   // Gera o código Pix Copia e Cola
   useEffect(() => {
-    if (!pixConfig || !successBooking || successBooking.paymentMethod === 'pacote' || successBooking.price <= 0) return;
+    if (!pixConfig || !successBooking || successBooking.paymentMethod === 'pacote' || (successBooking.price <= 0 && !successBooking.pixSignalRequired)) return;
     
     try {
+      const amount = successBooking.pixSignalRequired ? successBooking.pixSignalAmount : successBooking.price;
       const code = generateStaticPix({
         key: pixConfig.pixKey,
         name: pixConfig.pixName || 'Empresa',
         city: pixConfig.pixCity || 'Sao Paulo',
-        amount: successBooking.price,
+        amount: amount,
         txid: successBooking.id ? successBooking.id.substring(0, 25) : '***'
       });
       setPixCode(code);
@@ -188,6 +198,11 @@ export default function PortalPublicBooking() {
     }
 
     const fetchBookedTimes = async () => {
+      if (slotsCache[selectedDate]) {
+        setBookedTimes(slotsCache[selectedDate]);
+        return;
+      }
+
       setLoadingSlots(true);
       try {
         const apptsRef = collection(db, 'organizations', orgId, 'appointments');
@@ -198,6 +213,12 @@ export default function PortalPublicBooking() {
         );
         const snap = await getDocs(q);
         const times = snap.docs.map(d => d.data().time);
+        
+        setSlotsCache(prev => ({
+          ...prev,
+          [selectedDate]: times
+        }));
+        
         setBookedTimes(times);
       } catch (e) {
         console.error('Erro ao buscar slots ocupados:', e);
@@ -207,7 +228,7 @@ export default function PortalPublicBooking() {
     };
 
     fetchBookedTimes();
-  }, [selectedDate, orgId]);
+  }, [selectedDate, orgId, slotsCache]);
 
   // 3. Calcula e gera slots disponíveis com base no expediente e agendamentos existentes
   useEffect(() => {
@@ -425,10 +446,19 @@ export default function PortalPublicBooking() {
       toast.error('Preencha seu nome e celular.');
       return;
     }
+    if (expediente?.cancelTermsEnabled && !acceptedTerms) {
+      toast.error('Você precisa aceitar os termos de cancelamento para prosseguir.');
+      return;
+    }
     if (!orgId) return;
 
     setIsSubmitting(true);
     try {
+      // Salva no localStorage para agendamento em 1-clique futuro
+      localStorage.setItem('hubcrm_client_name', clientName.trim());
+      localStorage.setItem('hubcrm_client_phone', clientPhone.trim());
+
+      const requiresSignal = expediente?.pixRequiredForBooking && expediente?.pixBookingAmount > 0 && !usePackageCredit;
       const payload: any = {
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
@@ -440,7 +470,10 @@ export default function PortalPublicBooking() {
         status: 'pending',
         origin: 'public_link',
         createdAt: serverTimestamp(),
-        clientId: detectedClientId || ''
+        clientId: detectedClientId || '',
+        paymentStatus: requiresSignal ? 'signal_pending' : 'pending',
+        pixSignalRequired: requiresSignal || false,
+        pixSignalAmount: requiresSignal ? expediente.pixBookingAmount : 0
       };
 
       if (usePackageCredit && selectedPackageId) {
@@ -568,16 +601,43 @@ export default function PortalPublicBooking() {
                   : `R$ ${successBooking.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               </span>
             </div>
+            {successBooking.pixSignalRequired && (
+              <div className="flex justify-between items-center text-xs pt-2 border-t border-dashed border-white/10">
+                <span className="text-orange-400 font-bold uppercase tracking-wider">Sinal para Reserva</span>
+                <span className="text-orange-400 font-black">
+                  R$ {successBooking.pixSignalAmount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+            
+            {/* Botão de Como Chegar */}
+            {(orgData?.address || orgData?.endereco || orgData?.city) && (
+              <div className="pt-2 border-t border-white/5 flex justify-center">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orgData.address || orgData.endereco || orgData.city)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                >
+                  <MapPin size={11} className="text-primary-400" />
+                  <span>Como Chegar ({orgData.address || orgData.endereco || orgData.city})</span>
+                </a>
+              </div>
+            )}
           </div>
 
           {pixCode ? (
             <div className="bg-black/30 border border-white/5 rounded-3xl p-5 space-y-4 text-left animate-in fade-in duration-300">
               <div className="text-center space-y-1">
-                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans">
                   <DollarSign className="text-primary-400" size={14} />
-                  Garanta sua Vaga com Pix
+                  {successBooking.pixSignalRequired ? 'Garanta sua Vaga com o Sinal Pix' : 'Garanta sua Vaga com Pix'}
                 </h3>
-                <p className="text-[10px] text-gray-500 text-center">Pague o Pix e envie o comprovante pelo WhatsApp abaixo.</p>
+                <p className="text-[10px] text-gray-500 text-center font-sans">
+                  {successBooking.pixSignalRequired 
+                    ? `Realize o pagamento do sinal de R$ ${successBooking.pixSignalAmount?.toFixed(2).replace('.', ',')} para validar o agendamento.` 
+                    : 'Pague o Pix e envie o comprovante pelo WhatsApp abaixo.'}
+                </p>
               </div>
               
               {/* QR Code */}
@@ -640,6 +700,36 @@ export default function PortalPublicBooking() {
               </button>
             </>
           )}
+
+          {/* Carteiras Digitais (Apple & Google Wallet) - Event Ticket */}
+          <div className="border-t border-white/5 pt-4 space-y-2.5">
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Adicionar ao seu celular</span>
+            <div className="flex flex-wrap gap-2.5 justify-center">
+              <a
+                href={`${import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br'}/api/portal_handler?action=public_get_wallet_pass&type=appointment&orgId=${orgId}&id=${successBooking.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md decoration-none shrink-0"
+              >
+                <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.1,16.67C20.08,16.74 19.67,18.11 18.71,19.5M15.97,4.17C16.63,3.37 17.07,2.28 16.95,1C16,1.04 14.9,1.6 14.24,2.38C13.68,3.04 13.19,4.14 13.34,5.39C14.39,5.47 15.4,4.88 15.97,4.17Z" />
+                </svg>
+                <span>Apple Wallet</span>
+              </a>
+              <a
+                href={`${import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br'}/api/portal_handler?action=public_get_wallet_pass&type=appointment&orgId=${orgId}&id=${successBooking.id}&platform=google`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md decoration-none shrink-0"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                  <path fill="#34A853" d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                </svg>
+                <span>Google Wallet</span>
+              </a>
+            </div>
+          </div>
 
           <button
             onClick={() => navigate(`/bio/${orgId}`)}
@@ -875,6 +965,29 @@ export default function PortalPublicBooking() {
                   </div>
                 </div>
 
+                {/* Termos de Cancelamento Customizados */}
+                {expediente?.cancelTermsEnabled && expediente?.cancelTermsText && (
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 animate-in fade-in duration-300 mt-2">
+                    <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">Política de Cancelamento</span>
+                    <p className="text-[10px] text-gray-400 whitespace-pre-wrap leading-relaxed">
+                      {expediente.cancelTermsText}
+                    </p>
+                    <div className="flex items-center gap-3 bg-black/20 p-2.5 rounded-xl border border-white/5 mt-2">
+                      <input 
+                        type="checkbox"
+                        id="acceptCancelTerms"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="w-4.5 h-4.5 rounded bg-black/40 border-white/10 text-primary-500 focus:ring-primary-500 focus:ring-offset-black cursor-pointer"
+                        required
+                      />
+                      <label htmlFor="acceptCancelTerms" className="text-[10px] text-gray-300 font-bold cursor-pointer select-none">
+                        Estou ciente e aceito os Termos de Cancelamento
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 {checkingPackages && (
                   <p className="text-[10px] text-gray-500 animate-pulse pt-1">Verificando créditos de pacotes...</p>
                 )}
@@ -914,7 +1027,7 @@ export default function PortalPublicBooking() {
           {/* Botão de Enviar */}
           <button
             type="submit"
-            disabled={isSubmitting || !selectedTime || !clientName.trim() || !clientPhone.trim()}
+            disabled={isSubmitting || !selectedTime || !clientName.trim() || !clientPhone.trim() || (expediente?.cancelTermsEnabled && !acceptedTerms)}
             className="w-full py-4 bg-primary-500 hover:bg-primary-600 disabled:bg-white/5 disabled:text-gray-500 disabled:border-transparent text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-sm"
           >
             {isSubmitting ? (

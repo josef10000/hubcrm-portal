@@ -13,6 +13,8 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
   const [fidelityActive, setFidelityActive] = useState(false);
   const [fidelityGoal, setFidelityGoal] = useState(10);
   const [fidelityReward, setFidelityReward] = useState('');
+  const [walletCardColor, setWalletCardColor] = useState('#6366f1');
+  const [walletTextColor, setWalletTextColor] = useState('#ffffff');
   const [isEditing, setIsEditing] = useState(false);
   const [fidelityBackup, setFidelityBackup] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,8 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
         setFidelityActive(fid.active || false);
         setFidelityGoal(fid.goal || 10);
         setFidelityReward(fid.reward || '');
+        setWalletCardColor(fid.walletCardColor || '#6366f1');
+        setWalletTextColor(fid.walletTextColor || '#ffffff');
       }
       setLoading(false);
     }, (err) => {
@@ -78,7 +82,9 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
           fidelitySettings: {
             active: fidelityActive,
             goal: Number(fidelityGoal),
-            reward: fidelityReward
+            reward: fidelityReward,
+            walletCardColor,
+            walletTextColor
           }
         })
       });
@@ -157,7 +163,9 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
                 setFidelityBackup({
                   active: fidelityActive,
                   goal: fidelityGoal,
-                  reward: fidelityReward
+                  reward: fidelityReward,
+                  walletCardColor,
+                  walletTextColor
                 });
                 setIsEditing(true);
               }}
@@ -182,6 +190,8 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
                   setFidelityActive(fidelityBackup.active);
                   setFidelityGoal(fidelityBackup.goal);
                   setFidelityReward(fidelityBackup.reward);
+                  setWalletCardColor(fidelityBackup.walletCardColor);
+                  setWalletTextColor(fidelityBackup.walletTextColor);
                   setIsEditing(false);
                 }}
                 className="px-4 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer border-0"
@@ -232,6 +242,56 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
                   placeholder="Ex: Corte de Cabelo Grátis"
                   className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 disabled:opacity-30"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-white/5 mt-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: walletCardColor }} />
+                  Cor do Cartão (Carteira Digital)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={walletCardColor}
+                    disabled={!fidelityActive}
+                    onChange={(e) => setWalletCardColor(e.target.value)}
+                    className="w-12 h-10 bg-transparent border-0 rounded cursor-pointer disabled:opacity-30 shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={walletCardColor}
+                    disabled={!fidelityActive}
+                    onChange={(e) => setWalletCardColor(e.target.value)}
+                    placeholder="#6366f1"
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all disabled:opacity-30 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: walletTextColor }} />
+                  Cor do Texto (Carteira Digital)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={walletTextColor}
+                    disabled={!fidelityActive}
+                    onChange={(e) => setWalletTextColor(e.target.value)}
+                    className="w-12 h-10 bg-transparent border-0 rounded cursor-pointer disabled:opacity-30 shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={walletTextColor}
+                    disabled={!fidelityActive}
+                    onChange={(e) => setWalletTextColor(e.target.value)}
+                    placeholder="#ffffff"
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all disabled:opacity-30 font-mono"
+                  />
+                </div>
               </div>
             </div>
           </div>

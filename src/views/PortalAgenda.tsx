@@ -99,6 +99,12 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [isEditingPix, setIsEditingPix] = useState(false);
   const [pixBackup, setPixBackup] = useState<any>(null);
 
+  // Novos Estados: Termos de Cancelamento e Pix de Sinal para agendamento
+  const [cancelTermsEnabled, setCancelTermsEnabled] = useState(false);
+  const [cancelTermsText, setCancelTermsText] = useState('');
+  const [pixRequiredForBooking, setPixRequiredForBooking] = useState(false);
+  const [pixBookingAmount, setPixBookingAmount] = useState<number>(0);
+
   // Estados para o Modal de Cobrança Pix do Profissional
   const [isPixBillingModalOpen, setIsPixBillingModalOpen] = useState(false);
   const [activeAppointmentForPix, setActiveAppointmentForPix] = useState<any>(null);
@@ -350,6 +356,10 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       if (sched.pixName !== undefined) setPixName(sched.pixName || '');
       if (sched.pixCity !== undefined) setPixCity(sched.pixCity || '');
       if (sched.pixEnabled !== undefined) setPixEnabled(sched.pixEnabled || false);
+      if (sched.cancelTermsEnabled !== undefined) setCancelTermsEnabled(sched.cancelTermsEnabled || false);
+      if (sched.cancelTermsText !== undefined) setCancelTermsText(sched.cancelTermsText || '');
+      if (sched.pixRequiredForBooking !== undefined) setPixRequiredForBooking(sched.pixRequiredForBooking || false);
+      if (sched.pixBookingAmount !== undefined) setPixBookingAmount(sched.pixBookingAmount || 0);
 
       const bio = clientData.bioSettings || {};
       setBioTitle(bio.title || '');
@@ -643,7 +653,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
             appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
             appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos',
-            packagesActive: expediente.packagesActive || false
+            packagesActive: expediente.packagesActive || false,
+            cancelTermsEnabled,
+            cancelTermsText,
+            pixRequiredForBooking,
+            pixBookingAmount: Number(pixBookingAmount) || 0
           }
         })
       });
@@ -685,7 +699,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             pixKey: pixKey.trim(),
             pixName: pixName.trim(),
             pixCity: pixCity.trim(),
-            pixEnabled: pixEnabled
+            pixEnabled: pixEnabled,
+            cancelTermsEnabled,
+            cancelTermsText,
+            pixRequiredForBooking,
+            pixBookingAmount: Number(pixBookingAmount) || 0
           }
         })
       });
@@ -1461,11 +1479,23 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                           </span>
                         ) : (
                           <>
-                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                              app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                            }`}>
-                              {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
-                            </span>
+                            {app.paymentStatus === 'signal_pending' && (
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse">
+                                SINAL PENDENTE (R$ {app.pixSignalAmount?.toFixed(2).replace('.', ',')})
+                              </span>
+                            )}
+                            {app.paymentStatus === 'signal_paid' && (
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-sky-500/20 text-sky-400 border-sky-500/30">
+                                SINAL PAGO
+                              </span>
+                            )}
+                            {app.paymentStatus !== 'signal_pending' && app.paymentStatus !== 'signal_paid' && (
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                                app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                              }`}>
+                                {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
+                              </span>
+                            )}
                             <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                               app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
                               app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
@@ -1523,6 +1553,24 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                             >
                               <DollarSign size={14} />
                               Cobrar Pix
+                            </button>
+                          )}
+
+                          {app.paymentStatus === 'signal_pending' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const docRef = doc(db, 'organizations', orgId, 'appointments', app.id);
+                                  await updateDoc(docRef, { paymentStatus: 'signal_paid' });
+                                  toast.success('Sinal Pix confirmado com sucesso!');
+                                } catch (err) {
+                                  toast.error('Erro ao confirmar sinal.');
+                                }
+                              }}
+                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/20 text-sky-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                            >
+                              <Check size={14} />
+                              Confirmar Sinal
                             </button>
                           )}
                           
@@ -2135,7 +2183,9 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     setNomenclatureBackup({
                       slotIntervalMinutes: expediente.slotIntervalMinutes || 30,
                       appointmentLabelSingular: expediente.appointmentLabelSingular || 'Agendamento',
-                      appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos'
+                      appointmentLabelPlural: expediente.appointmentLabelPlural || 'Agendamentos',
+                      cancelTermsEnabled,
+                      cancelTermsText
                     });
                     setIsEditingNomenclature(true);
                   }}
@@ -2163,6 +2213,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                         appointmentLabelSingular: nomenclatureBackup.appointmentLabelSingular,
                         appointmentLabelPlural: nomenclatureBackup.appointmentLabelPlural
                       });
+                      setCancelTermsEnabled(nomenclatureBackup.cancelTermsEnabled);
+                      setCancelTermsText(nomenclatureBackup.cancelTermsText);
                       setIsEditingNomenclature(false);
                     }}
                     className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
@@ -2214,7 +2266,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-6 max-w-2xl">
+            <div className="mt-4 flex flex-col gap-4 max-w-2xl">
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -2225,6 +2277,31 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 />
                 <span className="text-xs font-semibold text-gray-300">Habilitar Módulo de Pacotes de Clientes</span>
               </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer select-none mt-2">
+                <input
+                  type="checkbox"
+                  checked={cancelTermsEnabled}
+                  disabled={!isEditingNomenclature}
+                  onChange={(e) => setCancelTermsEnabled(e.target.checked)}
+                  className="rounded border-white/15 bg-black/40 text-primary-500 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer disabled:opacity-50"
+                />
+                <span className="text-xs font-semibold text-gray-300">Exigir aceite de Termos de Cancelamento no agendamento público</span>
+              </label>
+
+              {cancelTermsEnabled && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200 mt-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Texto da Política de Cancelamento</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Ex: Cancelamentos realizados com menos de 24h de antecedência estarão sujeitos a multa de 50% do valor do serviço."
+                    value={cancelTermsText}
+                    disabled={!isEditingNomenclature}
+                    onChange={(e) => setCancelTermsText(e.target.value)}
+                    className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 disabled:opacity-50 resize-none font-sans"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -2758,7 +2835,9 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       pixKey,
                       pixName,
                       pixCity,
-                      pixEnabled
+                      pixEnabled,
+                      pixRequiredForBooking,
+                      pixBookingAmount
                     });
                     setIsEditingPix(true);
                   }}
@@ -2784,6 +2863,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       setPixName(pixBackup.pixName);
                       setPixCity(pixBackup.pixCity);
                       setPixEnabled(pixBackup.pixEnabled);
+                      setPixRequiredForBooking(pixBackup.pixRequiredForBooking);
+                      setPixBookingAmount(pixBackup.pixBookingAmount);
                       setIsEditingPix(false);
                     }}
                     className="px-4 py-2 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
@@ -2832,7 +2913,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-6 max-w-2xl">
+            <div className="mt-4 flex flex-col gap-4 max-w-2xl">
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -2843,6 +2924,36 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 />
                 <span className="text-xs font-semibold text-gray-300">Exibir cobrança Pix nos links públicos (agendamento e confirmação)</span>
               </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer select-none mt-2">
+                <input
+                  type="checkbox"
+                  checked={pixRequiredForBooking}
+                  disabled={!isEditingPix}
+                  onChange={(e) => setPixRequiredForBooking(e.target.checked)}
+                  className="rounded border-white/15 bg-black/40 text-primary-500 focus:ring-0 focus:ring-offset-0 w-4 h-4 cursor-pointer disabled:opacity-50"
+                />
+                <span className="text-xs font-semibold text-gray-300">Exigir pagamento de sinal Pix para novos agendamentos</span>
+              </label>
+
+              {pixRequiredForBooking && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200 mt-1 max-w-xs">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valor do Sinal (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-semibold">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={pixBookingAmount || ''}
+                      disabled={!isEditingPix}
+                      onChange={(e) => setPixBookingAmount(Number(e.target.value))}
+                      placeholder="0,00"
+                      className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-700 disabled:opacity-50 font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Gerador de Pix Avulso */}

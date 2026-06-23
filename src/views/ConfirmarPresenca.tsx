@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2, Star, Gift, DollarSign } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, MessageSquare, Loader2, Star, Gift, DollarSign, MapPin } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { db } from '../lib/firebase';
 import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
@@ -8,6 +8,7 @@ import { generateStaticPix } from '../lib/pix';
 
 export default function ConfirmarPresenca() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const appointmentId = searchParams.get('id');
   const orgId = searchParams.get('orgId');
   const clientId = searchParams.get('clientId');
@@ -26,6 +27,9 @@ export default function ConfirmarPresenca() {
   // Estados do Pix
   const [pixConfig, setPixConfig] = useState<any>(null);
   const [pixCode, setPixCode] = useState<string>('');
+  
+  // Estado para Endereço da Organização
+  const [orgAddress, setOrgAddress] = useState('');
 
   const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
 
@@ -62,6 +66,24 @@ export default function ConfirmarPresenca() {
 
     fetchAppointment();
   }, [orgId, appointmentId, clientId, crmApiUrl]);
+
+  // Busca dados da organização, incluindo o endereço para o "Como Chegar"
+  useEffect(() => {
+    if (!orgId) return;
+    const fetchOrgData = async () => {
+      try {
+        const orgRef = doc(db, 'organizations', orgId);
+        const orgSnap = await getDoc(orgRef);
+        if (orgSnap.exists()) {
+          const data = orgSnap.data();
+          setOrgAddress(data?.address || data?.endereco || data?.city || '');
+        }
+      } catch (e) {
+        console.error('Erro ao buscar dados da organização:', e);
+      }
+    };
+    fetchOrgData();
+  }, [orgId]);
 
   // Carrega configurações de fidelidade e histórico do cliente
   useEffect(() => {
@@ -368,21 +390,42 @@ export default function ConfirmarPresenca() {
               
               <div className="space-y-2">
                 <h1 className="text-2xl font-black text-white">Presença Confirmada!</h1>
-                <p className="text-gray-400 text-xs max-w-xs mx-auto leading-relaxed">
+                <p className="text-gray-400 text-xs max-w-xs mx-auto leading-relaxed font-sans">
                   Obrigado por confirmar! Sua vaga está oficialmente reservada para o dia <span className="text-white font-bold">{appointment?.date ? new Date(appointment.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span> às <span className="text-white font-bold">{appointment?.time}</span>.
                 </p>
+                {orgAddress && (
+                  <div className="flex justify-center mt-3 pb-1">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orgAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer decoration-none"
+                    >
+                      <MapPin size={11} className="text-primary-400" />
+                      <span>Como Chegar ({orgAddress})</span>
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Cartão Fidelidade Digital */}
               {fidelityConfig && (
-                <div className="bg-gradient-to-br from-amber-500/10 to-indigo-600/5 border border-white/10 rounded-3xl p-5 text-center space-y-4 shadow-xl">
+                <div 
+                  className="border border-white/10 rounded-3xl p-5 text-center space-y-4 shadow-xl"
+                  style={{
+                    backgroundColor: `${fidelityConfig.walletCardColor || '#6366f1'}15`,
+                    borderColor: `${fidelityConfig.walletCardColor || '#6366f1'}30`,
+                  }}
+                >
                   <div className="flex items-center justify-center gap-2">
-                    <Gift className="text-amber-400 w-5 h-5" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Cartão Fidelidade</h3>
+                    <Gift className="w-5 h-5" style={{ color: fidelityConfig.walletCardColor || '#6366f1' }} />
+                    <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: fidelityConfig.walletTextColor || '#ffffff' }}>
+                      Cartão Fidelidade
+                    </h3>
                   </div>
 
                   <p className="text-[11px] text-gray-400">
-                    Acumule <span className="text-white font-bold">{fidelityConfig.goal}</span> atendimentos concluídos e ganhe: <span className="text-amber-400 font-bold">{fidelityConfig.reward}</span>
+                    Acumule <span className="text-white font-bold">{fidelityConfig.goal}</span> atendimentos concluídos e ganhe: <span className="font-bold" style={{ color: fidelityConfig.walletCardColor || '#6366f1' }}>{fidelityConfig.reward}</span>
                   </p>
 
                   {/* Grid de Carimbos */}
@@ -394,12 +437,17 @@ export default function ConfirmarPresenca() {
                           key={i}
                           className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold transition-all ${
                             isStamped
-                              ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-md shadow-amber-500/10 animate-in zoom-in-75 duration-300'
+                              ? 'border-amber-500 text-amber-400 shadow-md shadow-amber-500/10 animate-in zoom-in-75 duration-300'
                               : 'bg-black/40 border-white/10 text-gray-600 border-dashed'
                           }`}
+                          style={isStamped ? {
+                            backgroundColor: `${fidelityConfig.walletCardColor || '#6366f1'}30`,
+                            borderColor: fidelityConfig.walletCardColor || '#6366f1',
+                            color: fidelityConfig.walletTextColor || '#ffffff'
+                          } : {}}
                         >
                           {isStamped ? (
-                            <Star size={16} className="text-amber-400 fill-amber-400" />
+                            <Star size={16} style={{ color: fidelityConfig.walletCardColor || '#6366f1', fill: fidelityConfig.walletCardColor || '#6366f1' }} />
                           ) : (
                             <span>{i + 1}</span>
                           )}
@@ -417,6 +465,36 @@ export default function ConfirmarPresenca() {
                       Você possui {completedCount} {completedCount === 1 ? 'carimbo' : 'carimbos'}. Faltam {fidelityConfig.goal - completedCount} para ganhar!
                     </p>
                   )}
+
+                  {/* Carteiras Digitais (Apple & Google Wallet) - Loyalty Card */}
+                  <div className="border-t border-white/5 pt-3.5 space-y-2">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Salvar Cartão de Fidelidade no Celular</span>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <a
+                        href={`${crmApiUrl}/api/portal_handler?action=public_get_wallet_pass&type=fidelity&orgId=${orgId}&clientId=${clientId || ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md decoration-none shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.1,16.67C20.08,16.74 19.67,18.11 18.71,19.5M15.97,4.17C16.63,3.37 17.07,2.28 16.95,1C16,1.04 14.9,1.6 14.24,2.38C13.68,3.04 13.19,4.14 13.34,5.39C14.39,5.47 15.4,4.88 15.97,4.17Z" />
+                        </svg>
+                        <span>Apple Wallet</span>
+                      </a>
+                      <a
+                        href={`${crmApiUrl}/api/portal_handler?action=public_get_wallet_pass&type=fidelity&orgId=${orgId}&clientId=${clientId || ''}&platform=google`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md decoration-none shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                          <path fill="#34A853" d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                        </svg>
+                        <span>Google Wallet</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -499,20 +577,27 @@ export default function ConfirmarPresenca() {
                 </p>
               </div>
 
-              {/* Botão para falar direto no WhatsApp do estabelecimento para reagendar */}
-              <div className="pt-2">
+              {/* Botões de Ação para Reagendamento */}
+              <div className="pt-2 space-y-2.5">
+                <button
+                  onClick={() => navigate(`/agendar/${orgId}`)}
+                  className="w-full py-4 bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-primary-500/10 cursor-pointer border-0"
+                >
+                  <Calendar className="w-4.5 h-4.5" />
+                  <span>Reagendar Online agora</span>
+                </button>
+
                 <button
                   onClick={() => {
-                    // Direciona para o WhatsApp de suporte ou geral
                     toast.info('Redirecionando para o atendimento...');
                     setTimeout(() => {
                       window.location.href = `https://wa.me/?text=Olá, gostaria de reagendar meu serviço de ${appointment?.serviceName} que estava agendado para o dia ${appointment?.date ? new Date(appointment.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''}.`;
                     }, 1000);
                   }}
-                  className="w-full py-4 bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-primary-500/10 cursor-pointer"
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer border-0"
                 >
-                  <MessageSquare size={14} />
-                  <span>Reagendar via WhatsApp</span>
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Falar com Estabelecimento (WhatsApp)</span>
                 </button>
               </div>
             </div>
