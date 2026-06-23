@@ -4,6 +4,16 @@ import { doc, onSnapshot, setDoc, collection, updateDoc } from 'firebase/firesto
 import { Award, Sparkles, Edit2, Check, X, Users, Search, Phone, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
+const COLOR_PRESETS = [
+  { name: 'Dourado Premium', card: '#b89430', text: '#ffffff' },
+  { name: 'Roxo Moderno', card: '#6366f1', text: '#ffffff' },
+  { name: 'Rosa Beauty', card: '#ec4899', text: '#ffffff' },
+  { name: 'Verde Natural', card: '#10b981', text: '#ffffff' },
+  { name: 'Azul Corporate', card: '#2563eb', text: '#ffffff' },
+  { name: 'Dark Minimalista', card: '#1e293b', text: '#e2e8f0' },
+  { name: 'Vermelho Clássico', card: '#dc2626', text: '#ffffff' }
+];
+
 interface PortalFidelityProps {
   orgId: string;
   clientId: string;
@@ -244,6 +254,40 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
                 />
               </div>
             </div>
+
+            {/* Modelos de Cores Prontos (Presets) */}
+            {fidelityActive && (
+              <div className="pt-4 border-t border-white/5 space-y-2 animate-in fade-in duration-300">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Modelos de Cores Prontos (Presets)</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {COLOR_PRESETS.map((preset) => {
+                    const isSelected = walletCardColor === preset.card && walletTextColor === preset.text;
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setWalletCardColor(preset.card);
+                          setWalletTextColor(preset.text);
+                          toast.info(`Modelo "${preset.name}" selecionado!`);
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between h-[64px] ${
+                          isSelected
+                            ? 'border-primary-500 bg-primary-500/10 ring-2 ring-primary-500/20'
+                            : 'border-white/5 bg-black/20 hover:border-white/10'
+                        }`}
+                      >
+                        <span className="text-[9px] font-bold text-white block truncate">{preset.name}</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="w-3.5 h-3.5 rounded-full border border-white/10" style={{ backgroundColor: preset.card }} />
+                          <span className="text-[8px] text-gray-400 font-mono">Aa</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-white/5 mt-4">
               <div className="space-y-1.5">

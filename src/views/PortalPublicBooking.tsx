@@ -458,7 +458,13 @@ export default function PortalPublicBooking() {
       localStorage.setItem('hubcrm_client_name', clientName.trim());
       localStorage.setItem('hubcrm_client_phone', clientPhone.trim());
 
-      const requiresSignal = expediente?.pixRequiredForBooking && expediente?.pixBookingAmount > 0 && !usePackageCredit;
+      const serviceRequiresSignal = selectedService?.pixRequired && selectedService?.pixAmount > 0;
+      const globalRequiresSignal = expediente?.pixRequiredForBooking && expediente?.pixBookingAmount > 0;
+      const requiresSignal = (serviceRequiresSignal || globalRequiresSignal) && !usePackageCredit;
+      const signalAmount = serviceRequiresSignal 
+        ? selectedService.pixAmount 
+        : (globalRequiresSignal ? expediente.pixBookingAmount : 0);
+
       const payload: any = {
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
@@ -473,7 +479,7 @@ export default function PortalPublicBooking() {
         clientId: detectedClientId || '',
         paymentStatus: requiresSignal ? 'signal_pending' : 'pending',
         pixSignalRequired: requiresSignal || false,
-        pixSignalAmount: requiresSignal ? expediente.pixBookingAmount : 0
+        pixSignalAmount: requiresSignal ? signalAmount : 0
       };
 
       if (usePackageCredit && selectedPackageId) {

@@ -167,6 +167,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [serviceName, setServiceName] = useState('');
   const [serviceDuration, setServiceDuration] = useState(30);
   const [servicePrice, setServicePrice] = useState('');
+  const [servicePixRequired, setServicePixRequired] = useState(false);
+  const [servicePixAmount, setServicePixAmount] = useState('');
   const [isSubmittingService, setIsSubmittingService] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -535,7 +537,9 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         price: Number(servicePrice.replace(',', '.')),
         materials: selectedServiceMaterials,
         isActive: true,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        pixRequired: servicePixRequired,
+        pixAmount: servicePixRequired ? Number(servicePixAmount.replace(',', '.')) || 0 : 0
       };
 
       if (editingServiceId) {
@@ -552,6 +556,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       setServiceName('');
       setServicePrice('');
       setServiceDuration(30);
+      setServicePixRequired(false);
+      setServicePixAmount('');
       setEditingServiceId(null);
       setSelectedServiceMaterials([]);
       setCurrentSelectedMaterialId('');
@@ -569,6 +575,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setServiceName(srv.name);
     setServiceDuration(srv.durationMinutes);
     setServicePrice(srv.price.toString());
+    setServicePixRequired(srv.pixRequired || false);
+    setServicePixAmount(srv.pixAmount?.toString() || '');
     setSelectedServiceMaterials(srv.materials || []);
   };
 
@@ -1800,6 +1808,33 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 </div>
               </div>
 
+              {/* Configuração de Sinal Pix Específico do Serviço */}
+              <div className="p-4 bg-black/30 border border-white/5 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Exigir Sinal Pix</span>
+                  <input
+                    type="checkbox"
+                    checked={servicePixRequired}
+                    onChange={(e) => setServicePixRequired(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/10 text-primary-500 bg-black/40 focus:ring-primary-500 focus:ring-offset-black cursor-pointer"
+                  />
+                </div>
+                {servicePixRequired && (
+                  <div className="space-y-1 animate-in fade-in duration-200">
+                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Valor do Sinal (R$)</label>
+                    <input
+                      type="text"
+                      value={servicePixAmount}
+                      onChange={(e) => setServicePixAmount(e.target.value)}
+                      placeholder="Ex: 20,00"
+                      className="w-full px-3 py-2 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-lg text-xs outline-none transition-all placeholder-gray-700 font-bold"
+                      required={servicePixRequired}
+                    />
+                    <span className="text-[8px] text-gray-500 block leading-tight">Este valor será cobrado no momento do agendamento público online deste serviço.</span>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2 pt-2 border-t border-white/5">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Insumos Utilizados (Opcional)</label>
                 
@@ -1893,6 +1928,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       setServiceName('');
                       setServicePrice('');
                       setServiceDuration(30);
+                      setServicePixRequired(false);
+                      setServicePixAmount('');
                       setSelectedServiceMaterials([]);
                       setCurrentSelectedMaterialId('');
                       setCurrentSelectedMaterialQty('');
@@ -1924,9 +1961,17 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                   <div key={srv.id} className="bg-black/20 border border-white/5 hover:border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 transition-all">
                     <div className="space-y-1 min-w-0">
                       <h4 className="font-bold text-white truncate text-sm">{srv.name}</h4>
-                      <p className="text-xs text-gray-400 flex items-center gap-1">
+                      <p className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
                         <span>{srv.durationMinutes} min</span> &bull; 
                         <span className="text-primary-400 font-bold">R$ {srv.price?.toFixed(2).replace('.', ',')}</span>
+                        {srv.pixRequired && srv.pixAmount > 0 && (
+                          <>
+                            &bull; 
+                            <span className="px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/25 rounded text-[9px] text-orange-400 font-bold font-sans">
+                              Sinal Pix: R$ {srv.pixAmount?.toFixed(2).replace('.', ',')}
+                            </span>
+                          </>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
