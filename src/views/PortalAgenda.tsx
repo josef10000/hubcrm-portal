@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { 
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
-  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight
+  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight, Upload, Loader2
 } from 'lucide-react';
 import { Offer, Client } from '../types';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import CustomSelect from '../components/CustomSelect';
 import PortalPackages from '../components/PortalPackages';
 import PortalFidelity from '../components/PortalFidelity';
 import { generateStaticPix } from '../lib/pix';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -90,6 +91,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [bioAvatarUrl, setBioAvatarUrl] = useState('');
   const [bioLinks, setBioLinks] = useState<any[]>([]);
   const [bioShowBooking, setBioShowBooking] = useState(true);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Estados para Configurações do Pix
   const [pixKey, setPixKey] = useState('');
@@ -939,6 +941,23 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     } catch (e) {
       console.error(e);
       toast.error('Erro ao salvar configurações do Mini-Site.');
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const secureUrl = await uploadToCloudinary(file);
+      setBioAvatarUrl(secureUrl);
+      toast.success('Imagem da logo carregada com sucesso! Não esqueça de salvar as alterações da Bio.');
+    } catch (err) {
+      console.error('[Mini-site] Upload da logo falhou:', err);
+      toast.error('Erro ao fazer upload da logo da empresa.');
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
@@ -2701,15 +2720,65 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                   </div>
 
                   <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">URL do Logotipo / Avatar (Imagem Quadrada)</label>
-                      <input
-                        type="text"
-                        value={bioAvatarUrl}
-                        onChange={(e) => setBioAvatarUrl(e.target.value)}
-                        placeholder="https://exemplo.com/sua-logo.png"
-                        className="w-full px-3 py-2.5 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700"
-                      />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Logotipo / Avatar da Empresa</label>
+                      
+                      <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-black/30 border border-white/10 rounded-2xl">
+                        {/* Preview */}
+                        <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-black/50 flex items-center justify-center shrink-0">
+                          {isUploadingLogo ? (
+                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-15">
+                              <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
+                            </div>
+                          ) : null}
+                          
+                          {bioAvatarUrl ? (
+                            <img src={bioAvatarUrl} alt="Logo Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <Globe className="w-6 h-6 text-gray-600" />
+                          )}
+                        </div>
+
+                        {/* Botão de Upload e URL Input */}
+                        <div className="flex-1 space-y-2 w-full">
+                          <div className="flex gap-2">
+                            <label className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none">
+                              <Upload size={14} className="text-primary-400" />
+                              <span>{isUploadingLogo ? 'Carregando...' : 'Enviar Imagem (Logo)'}</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleLogoUpload} 
+                                className="hidden" 
+                                disabled={isUploadingLogo || !isEditingBio}
+                              />
+                            </label>
+                            
+                            {bioAvatarUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setBioAvatarUrl('')}
+                                className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                disabled={isUploadingLogo || !isEditingBio}
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Ou digite a URL da Imagem</span>
+                            <input
+                              type="text"
+                              value={bioAvatarUrl}
+                              onChange={(e) => setBioAvatarUrl(e.target.value)}
+                              placeholder="https://exemplo.com/sua-logo.png"
+                              disabled={isUploadingLogo || !isEditingBio}
+                              className="w-full px-3 py-2 bg-black/50 border border-white/10 focus:border-primary-500 text-white rounded-xl text-[10px] outline-none transition-all placeholder-gray-700 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="flex items-center gap-3 pt-2">
