@@ -68,6 +68,7 @@ export default function PortalPublicBooking() {
   // Estados do Pix
   const [pixConfig, setPixConfig] = useState<any>(null);
   const [pixCode, setPixCode] = useState<string>('');
+  const [showVoluntaryPix, setShowVoluntaryPix] = useState(false);
 
   // 1. Carrega dados básicos (Organização, Serviços e Expediente)
   useEffect(() => {
@@ -139,23 +140,34 @@ export default function PortalPublicBooking() {
     loadData();
   }, [orgId]);
 
-  // Gera o código Pix Copia e Cola apenas se o sinal Pix for obrigatório
+  // Gera o código Pix Copia e Cola se o sinal Pix for obrigatório OU se for pagamento voluntário
   useEffect(() => {
-    if (!pixConfig || !successBooking || !successBooking.pixSignalRequired || successBooking.paymentMethod === 'pacote' || successBooking.pixSignalAmount <= 0) return;
+    if (!pixConfig || !successBooking || successBooking.paymentMethod === 'pacote') return;
+    
+    const isSignal = successBooking.pixSignalRequired && successBooking.pixSignalAmount > 0;
+    const isVoluntary = showVoluntaryPix && successBooking.price > 0;
+    
+    if (!isSignal && !isVoluntary) {
+      setPixCode('');
+      return;
+    }
+    
+    const amount = isSignal ? successBooking.pixSignalAmount : successBooking.price;
     
     try {
       const code = generateStaticPix({
         key: pixConfig.pixKey,
         name: pixConfig.pixName || 'Empresa',
         city: pixConfig.pixCity || 'Sao Paulo',
-        amount: successBooking.pixSignalAmount,
+        amount: amount,
         txid: successBooking.id ? successBooking.id.substring(0, 25) : '***'
       });
       setPixCode(code);
     } catch (e) {
       console.error('Erro ao gerar código Pix:', e);
+      setPixCode('');
     }
-  }, [pixConfig, successBooking]);
+  }, [pixConfig, successBooking, showVoluntaryPix]);
 
   // Carrega todos os agendamentos do mês atual para calcular a disponibilidade de cada dia de forma eficiente
   useEffect(() => {
@@ -518,7 +530,7 @@ export default function PortalPublicBooking() {
     const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     // Mensagem a enviar
-    const message = `Olá! Acabei de solicitar o agendamento de *${successBooking.serviceName}* para o dia *${dateFormatted}* às *${successBooking.time}* pelo link da bio. Nome: *${successBooking.clientName}*. Pode confirmar para mim?`;
+    const message = `Olá! Acabei de solicitar o agendamento de *${successBooking.serviceName}* para o dia *${dateFormatted}* às *${successBooking.time}* pelo link da bio. Nome: *${successBooking.clientName}*. Gostaria de confirmar ou tirar uma dúvida.`;
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     
     window.open(url, '_blank');
@@ -537,7 +549,12 @@ export default function PortalPublicBooking() {
 
     const dateObj = new Date(successBooking.date + 'T12:00:00');
     const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    const message = `Olá! Fiz a solicitação de agendamento de *${successBooking.serviceName}* para o dia *${dateFormatted}* às *${successBooking.time}*.\n\nRealizei o pagamento do Pix no valor de *R$ ${successBooking.price.toFixed(2).replace('.', ',')}*. Segue o comprovante de pagamento.`;
+    
+    const isSignal = successBooking.pixSignalRequired && successBooking.pixSignalAmount > 0;
+    const amount = isSignal ? successBooking.pixSignalAmount : successBooking.price;
+    const typeLabel = isSignal ? 'sinal de garantia' : 'pagamento integral';
+    
+    const message = `Olá! Fiz a solicitação de agendamento de *${successBooking.serviceName}* para o dia *${dateFormatted}* às *${successBooking.time}*.\n\nRealizei o pagamento do Pix no valor de *R$ ${amount.toFixed(2).replace('.', ',')}* correspondente ao *${typeLabel}*. Segue o comprovante de pagamento.`;
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     
     window.open(url, '_blank');
@@ -685,54 +702,111 @@ export default function PortalPublicBooking() {
                 <span>Confirmar Pagamento (Enviar Comprovante)</span>
               </button>
             </div>
-          ) : (
-            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-5 text-center space-y-4 animate-in fade-in duration-300">
-              <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Agendamento Solicitado!</h3>
-                <p className="text-[10px] text-gray-400 leading-relaxed font-sans max-w-xs mx-auto">
-                  Sua vaga está pré-reservada para o dia <span className="text-white font-bold">{successBooking.date ? new Date(successBooking.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span> às <span className="text-white font-bold">{successBooking.time}</span>.
+          ) : showVoluntaryPix && pixCode ? (
+            <div className="bg-black/30 border border-white/5 rounded-3xl p-5 space-y-4 text-left animate-in fade-in duration-300">
+              <div className="text-center space-y-1">
+                <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans">
+                  <DollarSign className="text-primary-400" size={14} />
+                  Pagar Valor Total com Pix
+                </h3>
+                <p className="text-[10px] text-gray-500 text-center font-sans">
+                  Realize o pagamento voluntário do valor total de R$ {successBooking.price?.toFixed(2).replace('.', ',')}.
                 </p>
-                {successBooking.price > 0 && (
-                  <p className="text-[10px] text-emerald-500/80 font-bold font-sans mt-2">
-                    O pagamento de R$ {successBooking.price?.toFixed(2).replace('.', ',')} será realizado diretamente no local.
+              </div>
+              
+              {/* QR Code */}
+              <div className="bg-white p-2.5 rounded-2xl w-40 h-40 mx-auto flex items-center justify-center border border-white/10">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixCode)}`} 
+                  alt="Pix QR Code" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              {/* Pix Copia e Cola */}
+              <div className="space-y-1">
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Pix Copia e Cola</span>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={pixCode}
+                    className="flex-1 px-3 py-2 bg-black/40 border border-white/10 text-white text-[10px] font-mono rounded-xl outline-none select-all truncate"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixCode);
+                      toast.success('Código Pix copiado!');
+                    }}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-0 shrink-0"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+
+              {/* Botão de Confirmação WhatsApp */}
+              <button
+                type="button"
+                onClick={handleOpenWhatsAppPix}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/10 cursor-pointer border-0 mt-2 hover:scale-[1.02] justify-center"
+              >
+                <MessageSquare size={16} />
+                <span>Confirmar Pagamento (Enviar Comprovante)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowVoluntaryPix(false)}
+                className="w-full py-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer border-0 mt-1"
+              >
+                Voltar para Opção de Pagar no Local
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-5 text-center space-y-4 animate-in fade-in duration-300">
+                <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Agendamento Solicitado!</h3>
+                  <p className="text-[10px] text-gray-400 leading-relaxed font-sans max-w-xs mx-auto">
+                    Sua vaga está pré-reservada para o dia <span className="text-white font-bold">{successBooking.date ? new Date(successBooking.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span> às <span className="text-white font-bold">{successBooking.time}</span>.
                   </p>
+                  {successBooking.price > 0 && (
+                    <p className="text-[10px] text-emerald-500/80 font-bold font-sans mt-2">
+                      O pagamento de R$ {successBooking.price?.toFixed(2).replace('.', ',')} será realizado diretamente no local.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Botões de Suporte e Pagamento Opcional */}
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsApp}
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/10 cursor-pointer border-0 hover:scale-[1.02]"
+                >
+                  <MessageSquare size={16} />
+                  <span>Dúvidas / Falar no WhatsApp</span>
+                </button>
+
+                {successBooking.price > 0 && pixConfig && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVoluntaryPix(true)}
+                    className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-white/20 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border-0"
+                  >
+                    <DollarSign size={14} className="text-primary-400" />
+                    <span>Prefiro pagar com Pix agora</span>
+                  </button>
                 )}
               </div>
             </div>
           )}
-
-          {/* Carteiras Digitais (Apple & Google Wallet) - Event Ticket */}
-          <div className="border-t border-white/5 pt-4 space-y-2.5">
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Adicionar ao seu celular</span>
-            <div className="flex flex-wrap gap-2.5 justify-center">
-              <a
-                href={`${import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br'}/api/portal_handler?action=public_get_wallet_pass&type=appointment&orgId=${orgId}&id=${successBooking.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md decoration-none shrink-0"
-              >
-                <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.1,16.67C20.08,16.74 19.67,18.11 18.71,19.5M15.97,4.17C16.63,3.37 17.07,2.28 16.95,1C16,1.04 14.9,1.6 14.24,2.38C13.68,3.04 13.19,4.14 13.34,5.39C14.39,5.47 15.4,4.88 15.97,4.17Z" />
-                </svg>
-                <span>Apple Wallet</span>
-              </a>
-              <a
-                href={`${import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br'}/api/portal_handler?action=public_get_wallet_pass&type=appointment&orgId=${orgId}&id=${successBooking.id}&platform=google`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md decoration-none shrink-0"
-              >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                  <path fill="#34A853" d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-                </svg>
-                <span>Google Wallet</span>
-              </a>
-            </div>
-          </div>
 
           <button
             onClick={() => navigate(`/bio/${orgId}`)}

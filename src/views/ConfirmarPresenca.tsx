@@ -466,35 +466,6 @@ export default function ConfirmarPresenca() {
                     </p>
                   )}
 
-                  {/* Carteiras Digitais (Apple & Google Wallet) - Loyalty Card */}
-                  <div className="border-t border-white/5 pt-3.5 space-y-2">
-                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Salvar Cartão de Fidelidade no Celular</span>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <a
-                        href={`${crmApiUrl}/api/portal_handler?action=public_get_wallet_pass&type=fidelity&orgId=${orgId}&clientId=${clientId || ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md decoration-none shrink-0"
-                      >
-                        <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.1,16.67C20.08,16.74 19.67,18.11 18.71,19.5M15.97,4.17C16.63,3.37 17.07,2.28 16.95,1C16,1.04 14.9,1.6 14.24,2.38C13.68,3.04 13.19,4.14 13.34,5.39C14.39,5.47 15.4,4.88 15.97,4.17Z" />
-                        </svg>
-                        <span>Apple Wallet</span>
-                      </a>
-                      <a
-                        href={`${crmApiUrl}/api/portal_handler?action=public_get_wallet_pass&type=fidelity&orgId=${orgId}&clientId=${clientId || ''}&platform=google`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 bg-black border border-white/10 hover:border-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md decoration-none shrink-0"
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                          <path fill="#34A853" d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-                        </svg>
-                        <span>Google Wallet</span>
-                      </a>
-                    </div>
-                  </div>
                 </div>
               )}
 
