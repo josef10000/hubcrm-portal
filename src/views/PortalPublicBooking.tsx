@@ -139,17 +139,16 @@ export default function PortalPublicBooking() {
     loadData();
   }, [orgId]);
 
-  // Gera o código Pix Copia e Cola
+  // Gera o código Pix Copia e Cola apenas se o sinal Pix for obrigatório
   useEffect(() => {
-    if (!pixConfig || !successBooking || successBooking.paymentMethod === 'pacote' || (successBooking.price <= 0 && !successBooking.pixSignalRequired)) return;
+    if (!pixConfig || !successBooking || !successBooking.pixSignalRequired || successBooking.paymentMethod === 'pacote' || successBooking.pixSignalAmount <= 0) return;
     
     try {
-      const amount = successBooking.pixSignalRequired ? successBooking.pixSignalAmount : successBooking.price;
       const code = generateStaticPix({
         key: pixConfig.pixKey,
         name: pixConfig.pixName || 'Empresa',
         city: pixConfig.pixCity || 'Sao Paulo',
-        amount: amount,
+        amount: successBooking.pixSignalAmount,
         txid: successBooking.id ? successBooking.id.substring(0, 25) : '***'
       });
       setPixCode(code);
@@ -632,17 +631,15 @@ export default function PortalPublicBooking() {
             )}
           </div>
 
-          {pixCode ? (
+          {successBooking.pixSignalRequired && pixCode ? (
             <div className="bg-black/30 border border-white/5 rounded-3xl p-5 space-y-4 text-left animate-in fade-in duration-300">
               <div className="text-center space-y-1">
                 <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5 font-sans">
                   <DollarSign className="text-primary-400" size={14} />
-                  {successBooking.pixSignalRequired ? 'Garanta sua Vaga com o Sinal Pix' : 'Garanta sua Vaga com Pix'}
+                  Garanta sua Vaga com o Sinal Pix
                 </h3>
                 <p className="text-[10px] text-gray-500 text-center font-sans">
-                  {successBooking.pixSignalRequired 
-                    ? `Realize o pagamento do sinal de R$ ${successBooking.pixSignalAmount?.toFixed(2).replace('.', ',')} para validar o agendamento.` 
-                    : 'Pague o Pix e envie o comprovante pelo WhatsApp abaixo.'}
+                  Realize o pagamento do sinal de R$ {successBooking.pixSignalAmount?.toFixed(2).replace('.', ',')} para validar o agendamento.
                 </p>
               </div>
               
@@ -689,22 +686,22 @@ export default function PortalPublicBooking() {
               </button>
             </div>
           ) : (
-            <>
-              <div className="bg-primary-500/10 border border-primary-500/20 p-4 rounded-2xl text-xs text-primary-400 leading-relaxed text-left flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <span>
-                  <strong>Atenção:</strong> Seu agendamento precisa ser validado. Clique no botão abaixo para nos enviar uma mensagem rápida no WhatsApp e finalizar a confirmação.
-                </span>
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-5 text-center space-y-4 animate-in fade-in duration-300">
+              <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
               </div>
-
-              <button
-                onClick={handleOpenWhatsApp}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl flex items-center justify-center gap-2 cursor-pointer text-sm"
-              >
-                <Phone size={18} />
-                <span>Confirmar via WhatsApp</span>
-              </button>
-            </>
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Agendamento Solicitado!</h3>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-sans max-w-xs mx-auto">
+                  Sua vaga está pré-reservada para o dia <span className="text-white font-bold">{successBooking.date ? new Date(successBooking.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}</span> às <span className="text-white font-bold">{successBooking.time}</span>.
+                </p>
+                {successBooking.price > 0 && (
+                  <p className="text-[10px] text-emerald-500/80 font-bold font-sans mt-2">
+                    O pagamento de R$ {successBooking.price?.toFixed(2).replace('.', ',')} será realizado diretamente no local.
+                  </p>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Carteiras Digitais (Apple & Google Wallet) - Event Ticket */}
