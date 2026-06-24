@@ -81,6 +81,20 @@ const getTabTheme = (tabId: string) => {
         mobileColor: 'text-pink-400',
         mobileIndicator: 'bg-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.6)]'
       };
+    case 'services':
+      return {
+        color: 'text-orange-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(249,115,22,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-orange-500/40 from-orange-500/25 to-orange-500/5',
+        mobileColor: 'text-orange-400',
+        mobileIndicator: 'bg-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.6)]'
+      };
+    case 'support':
+      return {
+        color: 'text-sky-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(14,165,233,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-sky-500/40 from-sky-500/25 to-sky-500/5',
+        mobileColor: 'text-sky-400',
+        mobileIndicator: 'bg-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.6)]'
+      };
     default:
       return {
         color: 'text-primary-400',
@@ -545,7 +559,7 @@ export default function ClientPortalLayout() {
         {/* Content Title Header */}
         <header className="hidden lg:flex items-center justify-between px-10 pt-8 shrink-0">
           <div>
-            <h2 className="text-xl font-black text-white">
+            <h2 className="text-2xl font-black text-white">
               {navItems.find(i => i.id === activeTab)?.label || 'Dashboard'}
             </h2>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">
@@ -628,7 +642,7 @@ export default function ClientPortalLayout() {
 
       {/* 1. Floating Dock (Desktop Only) */}
       <nav className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id);
           return (
@@ -652,7 +666,7 @@ export default function ClientPortalLayout() {
               <item.icon size={20} className="transition-transform group-hover:scale-110" />
               
               {/* Tooltip Estilizado */}
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2.5 py-1 bg-black/95 border border-white/10 text-[9px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100">
                 {item.label}
               </span>
             </button>
