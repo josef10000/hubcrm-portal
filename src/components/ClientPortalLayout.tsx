@@ -22,7 +22,8 @@ import {
   FileText,
   Video,
   Settings,
-  BookOpen
+  BookOpen,
+  Package
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
@@ -31,6 +32,7 @@ import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import OnboardingTour from './OnboardingTour';
 
 // Importando as views
 import PortalHome from '../views/PortalHome';
@@ -285,7 +287,7 @@ export default function ClientPortalLayout() {
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'agenda_settings', label: 'Configurações', icon: Settings },
     { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
-    { id: 'management', label: 'Meu Negócio', icon: Briefcase },
+    { id: 'management', label: 'Estoque & Negócio', icon: Package },
     { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
@@ -294,7 +296,7 @@ export default function ClientPortalLayout() {
       { id: 'services', label: 'Marketplace', icon: ShoppingBag }
     ] : []),
     { id: 'docs', label: 'Documentos', icon: Files },
-    { id: 'support', label: 'Atendimento', icon: MessageCircle },
+    { id: 'support', label: 'Ajuda & Suporte', icon: MessageCircle },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
 
@@ -367,7 +369,7 @@ export default function ClientPortalLayout() {
       {/* Minimal Top Bar (Desktop & Mobile) */}
       <header className="fixed top-0 left-0 right-0 h-16 bg-[#05070a]/60 backdrop-blur-xl border-b border-white/10 z-40 flex items-center justify-between px-6 md:px-10 select-none">
         {/* Esquerda: Logo e Nome do Cliente */}
-        <div className="flex items-center gap-3">
+        <div id="tour-logo" className="flex items-center gap-3">
           <img 
             src="https://i.imgur.com/zCvL7xy.png" 
             alt="Hub Symples Logo" 
@@ -425,6 +427,7 @@ export default function ClientPortalLayout() {
 
           {/* Notificações (Sininho) */}
           <button 
+            id="tour-notifications"
             onClick={() => setActiveTab(client && !client.isCourtesy ? 'support' : 'home')}
             className="relative p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group cursor-pointer"
             title={announcement ? "Ver Comunicados" : "Atendimento"}
@@ -436,7 +439,7 @@ export default function ClientPortalLayout() {
           </button>
 
           {/* Avatar & Dropdown de Perfil (Apenas Desktop) */}
-          <div className="relative hidden lg:block">
+          <div id="tour-profile" className="relative hidden lg:block">
             <button 
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-xs border border-white/10 shadow-lg cursor-pointer overflow-hidden"
@@ -472,6 +475,14 @@ export default function ClientPortalLayout() {
                     </button>
 
                     <button 
+                      onClick={() => { setActiveTab('agenda_settings'); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                    >
+                      <Settings size={14} className="text-gray-500" />
+                      Configurações da Agenda
+                    </button>
+
+                    <button 
                       onClick={() => { setActiveTab('docs'); setIsProfileDropdownOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
                     >
@@ -504,7 +515,7 @@ export default function ClientPortalLayout() {
                       className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
                     >
                       <MessageCircle size={14} className="text-gray-500" />
-                      Atendimento
+                      Ajuda & Suporte
                     </button>
 
                     <div className="h-px bg-white/5 my-1" />
@@ -641,7 +652,7 @@ export default function ClientPortalLayout() {
       </main>
 
       {/* 1. Floating Dock (Desktop Only) */}
-      <nav className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
+      <nav id="tour-dock" className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id);
@@ -840,7 +851,15 @@ export default function ClientPortalLayout() {
                   className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
                 >
                   <MessageCircle size={20} className="text-sky-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Suporte</span>
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Ajuda & Suporte</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('management'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <Package size={20} className="text-cyan-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Estoque & Negócio</span>
                 </button>
 
                 {/* Agenda Settings (Mobile) */}
@@ -875,6 +894,8 @@ export default function ClientPortalLayout() {
           </>
         )}
       </AnimatePresence>
+      {/* Onboarding Tour */}
+      <OnboardingTour setActiveTab={setActiveTab} />
     </div>
   );
 }

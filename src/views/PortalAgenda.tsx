@@ -1225,11 +1225,16 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
                 {(() => {
                   if (subTab === 'timeline') return <Clock size={18} />;
-                  return <Scissors size={18} />;
+                  if (subTab === 'services') return <Scissors size={18} />;
+                  return <Settings size={18} />;
                 })()}
               </div>
               <span>
-                {subTab === 'timeline' ? 'Linha do Tempo' : 'Gerenciar Serviços'}
+                {(() => {
+                  if (subTab === 'timeline') return 'Linha do Tempo';
+                  if (subTab === 'services') return 'Gerenciar Serviços';
+                  return 'Configurações';
+                })()}
               </span>
               <ChevronDown 
                 size={16} 
@@ -1271,6 +1276,21 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     <Scissors size={16} className={subTab === 'services' ? 'text-primary-400' : 'text-gray-500'} />
                     Gerenciar Serviços
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubTab('settings');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                      subTab === 'settings' 
+                        ? 'bg-primary-500/15 text-primary-400 font-black' 
+                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                    }`}
+                  >
+                    <Settings size={16} className={subTab === 'settings' ? 'text-primary-400' : 'text-gray-500'} />
+                    Configurações
+                  </button>
                 </div>
               </>
             )}
@@ -1295,6 +1315,15 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             >
               <Scissors size={14} />
               Gerenciar Serviços
+            </button>
+            <button
+              onClick={() => setSubTab('settings')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors snap-align-start shrink-0 ${
+                subTab === 'settings' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Settings size={14} />
+              Configurações
             </button>
           </div>
         </>

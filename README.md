@@ -50,9 +50,11 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Central de Arquivos:** Visualização e download de contratos, laudos e arquivos anexados ao cadastro do cliente pelo painel administrativo.
 *   **Assinatura Digital de Contratos:** Assinatura digital eletrônica integrada com coleta automática de IP do signatário, User Agent do navegador e registro de logs de auditoria no Firestore.
 
-### 6. 💬 Atendimento & Central de Suporte (`PortalSupport.tsx`)
-*   **Chamados de Suporte:** Abertura e acompanhamento de chamados categorizados por assunto e urgência.
-*   **Histórico de Interações:** Chat dinâmico de conversação e indicação visual imediata na sidebar para novas respostas de administradores.
+### 6. 💬 Atendimento, Central de FAQ & Guia Interativo (`PortalSupport.tsx`)
+*   **Central de FAQ Interativa:** Base de conhecimento com busca por texto livre e filtros em chips por categorias (Geral, Agenda, Estoque, Pix & QR Code) para respostas instantâneas, usando acordeões interativos de expansão suave.
+*   **Guia de Onboarding Interativo (`OnboardingTour.tsx`):** Tour virtual de boas-vindas com 4 etapas (Logo, Barra de Ferramentas, Alertas de Chamados e Menu do Perfil) utilizando máscara escura de spotlight dinâmico em SVG. Pode ser reinicializado pelo usuário a qualquer momento na Central de FAQ.
+*   **Chamados de Suporte:** Abertura e acompanhamento de chamados categorizados por assunto e urgência com suporte para anexar imagens.
+*   **Histórico de Interações:** Chat dinâmico de conversação e tréplica direta com o consultor.
 
 ### 7. 👤 Perfil, Autenticação e Ativação
 *   **Perfil do Usuário (`PortalProfile.tsx`):** Edição de avatar integrado com Cloudinary, nome social e WhatsApp com controle de edição (backup local e modo leitura estática).
