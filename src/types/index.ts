@@ -102,21 +102,32 @@ export interface GrowthAsset {
   category?: string;
 }
 
+export interface ArticleBlock {
+  type: 'paragraph' | 'heading' | 'quote' | 'cta';
+  text?: string;
+  ctaText?: string;
+  ctaAction?: string;
+}
+
 export interface BlogPost {
   id: string;
   title: string;
   excerpt: string;
-  content: string;
+  content?: string;
   category: 'Gestão' | 'Vendas' | 'Finanças' | 'Marketing' | 'Geral';
-  imageUrl?: string;
+  imageUrl: string;
   publishedAt: string;
   readTime: string;
-  likes?: number;
-  views?: number;
+  likes: number;
+  views: number;
   author: {
     name: string;
     role: string;
-    avatarUrl?: string;
+    avatarUrl: string;
   };
+  blocks: ArticleBlock[];
+  createdAt: any;
+  status?: 'draft' | 'published';
 }
+
 

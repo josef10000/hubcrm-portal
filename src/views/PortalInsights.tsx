@@ -17,23 +17,15 @@ import {
   ArrowRight,
   ChevronLeft
 } from 'lucide-react';
-import { BlogPost } from '../types';
+import { BlogPost, ArticleBlock } from '../types';
 import { toast } from 'sonner';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, query, where, orderBy, doc, updateDoc, increment } from 'firebase/firestore';
 
 interface PortalInsightsProps {
   setActiveTab: (tab: string) => void;
-  // Preparado para receber orgId ou props do Firestore futuramente
   orgId?: string;
   clientId?: string;
-}
-
-// Interface estendida para suportar blocos ricos no conteúdo dos artigos
-interface ArticleBlock {
-  type: 'paragraph' | 'heading' | 'list' | 'quote' | 'cta';
-  text?: string;
-  items?: string[];
-  ctaText?: string;
-  ctaAction?: string; // Para redirecionar para abas do portal
 }
 
 interface RichBlogPost extends Omit<BlogPost, 'content'> {
@@ -45,307 +37,62 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedPost, setSelectedPost] = useState<RichBlogPost | null>(null);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
-  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
-  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(false); // Simulação de busca do Firestore
+  const [posts, setPosts] = useState<RichBlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Artigos ricos iniciais (MOCK - Opção 1 aprovada pelo usuário)
-  const insightsData: RichBlogPost[] = [
-    {
-      id: 'reduzir-faltas-no-shows',
-      title: '5 Estratégias Práticas para Reduzir Faltas e No-Shows de Clientes na sua Agenda',
-      excerpt: 'Faltas e cancelamentos de última hora são os maiores vilões do faturamento de profissionais de serviços. Aprenda a blindar sua agenda usando confirmação ativa e sinal Pix.',
-      category: 'Vendas',
-      imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=600&auto=format&fit=crop',
-      publishedAt: '24 Jun 2026',
-      readTime: '4 min',
-      author: {
-        name: 'Equipe Hub Symples',
-        role: 'Consultoria de Crescimento',
-        avatarUrl: 'https://i.imgur.com/zCvL7xy.png'
-      },
-      blocks: [
-        {
-          type: 'paragraph',
-          text: 'Se você trabalha com agendamentos, conhece bem essa dor: o horário está reservado, você organizou seus materiais, reservou sua equipe, mas o cliente simplesmente não aparece e nem avisa. Esse horário perdido representa um prejuízo direto no seu caixa, pois o tempo é um insumo que você não pode estocar.'
-        },
-        {
-          type: 'paragraph',
-          text: 'Felizmente, no-shows não são uma fatalidade incontrolável. Existem técnicas comportamentais e financeiras que reduzem a taxa de faltas de mais de 25% para menos de 3%. Abaixo, estruturamos as 5 estratégias mais eficientes aplicáveis hoje mesmo no seu negócio.'
-        },
-        {
-          type: 'heading',
-          text: '1. O Poder do Compromisso Financeiro (Sinal Pix Obrigatório)'
-        },
-        {
-          type: 'paragraph',
-          text: 'A psicologia humana funciona por aversão à perda. Quando o agendamento é 100% gratuito e sem garantias, o cliente sente que não tem nada a perder se faltar. Ao cobrar um pequeno sinal de reserva (por exemplo, 20% do valor do serviço ou um valor fixo de R$ 20), você cria um gatilho de comprometimento.'
-        },
-        {
-          type: 'paragraph',
-          text: 'No Portal Hub, você pode habilitar o Sinal Pix Obrigatório. Assim, quando um cliente tenta agendar pelo seu link público, o slot de horário só é confirmado após a detecção do pagamento via Pix copia-e-cola gerado na hora.'
-        },
-        {
-          type: 'cta',
-          ctaText: 'Configurar Sinal Pix Obrigatório na Agenda',
-          ctaAction: 'agenda_settings'
-        },
-        {
-          type: 'heading',
-          text: '2. Confirmação Ativa via WhatsApp'
-        },
-        {
-          type: 'paragraph',
-          text: 'Muitas vezes a falta ocorre por simples esquecimento. Enviar lembretes prévios é obrigatório, mas a forma de enviar faz a diferença. Mensagens informativas ("Seu agendamento é amanhã") são ignoradas. Prefira mensagens de confirmação ativa com tags dinâmicas que exigem resposta, contendo o link de confirmação do Portal Hub.'
-        },
-        {
-          type: 'quote',
-          text: 'O tempo de um profissional de serviços é o seu produto mais valioso. Quando um cliente falta sem avisar, você perde um estoque de tempo que nunca mais poderá ser recuperado.'
-        },
-        {
-          type: 'heading',
-          text: '3. Facilite o Reagendamento Autônomo'
-        },
-        {
-          type: 'paragraph',
-          text: 'Se o cliente percebe que não vai conseguir comparecer, ele muitas vezes tem vergonha de ligar ou mandar mensagem para cancelar, optando pelo no-show silencioso. A solução é dar a ele uma saída fácil.'
-        },
-        {
-          type: 'paragraph',
-          text: 'O link de confirmação de presença do Portal Hub oferece uma rota pública onde o cliente, além de confirmar presencialmente, pode clicar em "Solicitar Reagendamento". Ele escolhe outra data no seu calendário online sem precisar falar com ninguém, liberando a vaga antiga para outro interessado.'
-        },
-        {
-          type: 'heading',
-          text: '4. Estabeleça uma Política de Cancelamento Clara'
-        },
-        {
-          type: 'paragraph',
-          text: 'Crie uma regra formal de cancelamento (ex: tolerância de 15 minutos e prazo de 12 horas de antecedência para remarcações sem perda do sinal). Deixe essa política visível na bio do seu agendamento e nas mensagens automáticas. A clareza gera respeito profissional.'
-        },
-        {
-          type: 'heading',
-          text: '5. Crie um Histórico de Fidelidade e Faltas'
-        },
-        {
-          type: 'paragraph',
-          text: 'Acompanhe a recorrência dos clientes. Na sua Timeline Diária no Portal Hub, o sistema exibe badges de progresso de fidelidade. Clientes frequentes que valorizam seu tempo merecem prioridade, enquanto faltadores reincidentes devem ser bloqueados para reservas públicas automáticas, exigindo agendamento manual ou sinal completo (100% do valor) antecipadamente.'
-        }
-      ]
-    },
-    {
-      id: 'precificacao-inteligente-lucro',
-      title: 'Como Precificar seus Serviços de Forma Inteligente e Calcular seu Lucro Líquido Real',
-      excerpt: 'Muitos empreendedores definem preços olhando apenas para a concorrência e acabam pagando para trabalhar. Aprenda a calcular sua hora com base nos custos fixos e variáveis.',
-      category: 'Finanças',
-      imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=600&auto=format&fit=crop',
-      publishedAt: '20 Jun 2026',
-      readTime: '5 min',
-      author: {
-        name: 'Equipe Hub Symples',
-        role: 'Consultoria Financeira',
-        avatarUrl: 'https://i.imgur.com/zCvL7xy.png'
-      },
-      blocks: [
-        {
-          type: 'paragraph',
-          text: 'Definir o preço de um serviço é um dos maiores desafios de um empreendedor. Se cobrar caro demais, perde clientes; se cobrar barato demais, trabalha sem parar e não vê a cor do dinheiro. O erro comum é copiar o preço do concorrente sem conhecer a própria realidade financeira.'
-        },
-        {
-          type: 'paragraph',
-          text: 'Cada negócio tem um custo de operação único. A sua precificação deve cobrir seus custos fixos, pagar seus custos variáveis (insumos), remunerar suas horas de trabalho e, acima de tudo, deixar lucro livre para o caixa da empresa crescer.'
-        },
-        {
-          type: 'heading',
-          text: 'Passo 1: Levante os Custos Fixos Mensais'
-        },
-        {
-          type: 'paragraph',
-          text: 'Custo fixo é tudo o que você paga para manter a porta aberta, mesmo se não atender nenhum cliente. Isso inclui aluguel, energia, água, internet, assinatura de sistemas (como o Portal Hub), taxas bancárias e o seu pró-labore (o salário do dono). Nunca misture despesas pessoais com despesas da empresa!'
-        },
-        {
-          type: 'heading',
-          text: 'Passo 2: Defina as Horas Produtivas Disponíveis'
-        },
-        {
-          type: 'paragraph',
-          text: 'Você não trabalha 24 horas por dia. Calcule quantas horas reais de atendimento você consegue realizar no mês. Por exemplo: 8 horas por dia, de segunda a sexta (20 dias), equivale a 160 horas por mês. Contudo, considere uma taxa de ocupação realista de 70% (112 horas de atendimento faturável), pois o restante do tempo é gasto com administrativo, limpeza e marketing.'
-        },
-        {
-          type: 'quote',
-          text: 'Faturamento é vaidade, lucro é sanidade. Não adianta ter a agenda lotada e fazer muito barulho se, no final do mês, o seu caixa termina no vermelho.'
-        },
-        {
-          type: 'heading',
-          text: 'Passo 3: Determine o Custo de Sua Hora de Trabalho'
-        },
-        {
-          type: 'paragraph',
-          text: 'Divida o valor total dos seus custos fixos pelas horas faturáveis disponíveis. Exemplo: se seus custos fixos somam R$ 4.500 e você atende 112 horas, o custo básico de sua hora operacional é R$ 40,17. Ou seja, cada hora que você passa atendendo custa R$ 40,17 à empresa apenas para empatar.'
-        },
-        {
-          type: 'heading',
-          text: 'Passo 4: Calcule os Custos Variáveis do Serviço'
-        },
-        {
-          type: 'paragraph',
-          text: 'Custos variáveis são os insumos consumidos em cada atendimento (produtos químicos, descartáveis, energia extra, taxas do cartão). Se você gasta R$ 15 em produtos para fazer um determinado atendimento, este é o seu custo variável.'
-        },
-        {
-          type: 'cta',
-          ctaText: 'Acessar Calculadora de Orçamentos do Portal',
-          ctaAction: 'management'
-        },
-        {
-          type: 'heading',
-          text: 'Passo 5: Adicione a Margem de Lucro'
-        },
-        {
-          type: 'paragraph',
-          text: 'O lucro não é o seu salário (pró-labore), mas sim o valor que fica na conta da empresa para investimentos, reservas de emergência e distribuição de dividendos. Se você deseja uma margem de lucro líquido de 20%, deve aplicar o markup correto sobre o custo operacional somado ao variável.'
-        },
-        {
-          type: 'paragraph',
-          text: 'Para simplificar essa conta sem precisar ser um expert em matemática financeira, utilize o módulo "Meu Negócio" no Portal Hub, que conta com a Calculadora de Orçamentos Dinâmica e a Projeção de DRE de Caixa no CRM Financeiro para você acompanhar sua lucratividade em tempo real.'
-        }
-      ]
-    },
-    {
-      id: 'fidelizacao-clientes-ltv',
-      title: 'O Poder da Recorrência: Como Reativar Clientes Inativos e Gamificar com Cartão Fidelidade',
-      excerpt: 'Conquistar um novo cliente custa até 7 vezes mais caro do que vender para quem já confia em você. Aprenda como criar um fluxo de reativação inteligente e usar fidelização recorrente.',
-      category: 'Marketing',
-      imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=600&auto=format&fit=crop',
-      publishedAt: '15 Jun 2026',
-      readTime: '4 min',
-      author: {
-        name: 'Equipe Hub Symples',
-        role: 'Consultoria de LTV',
-        avatarUrl: 'https://i.imgur.com/zCvL7xy.png'
-      },
-      blocks: [
-        {
-          type: 'paragraph',
-          text: 'A maioria dos negócios de serviços foca 90% de sua energia em atrair novos clientes através de anúncios ou redes sociais. Mas a verdade financeira é assustadora: reter e aumentar a frequência de compra dos clientes que você já possui é infinitamente mais barato e lucrativo.'
-        },
-        {
-          type: 'paragraph',
-          text: 'Se um cliente faz um serviço a cada 60 dias, e você consegue convencê-lo a vir a cada 30 dias com um Clube de Fidelidade, você dobra o faturamento gerado por esse cliente no ano sem gastar um centavo em marketing de atração. Isso é aumentar o LTV (Lifetime Value).'
-        },
-        {
-          type: 'heading',
-          text: '1. Diagnóstico de Clientes Inativos (Quem sumiu?)'
-        },
-        {
-          type: 'paragraph',
-          text: 'O primeiro passo é identificar os clientes inativos. Divida-os em faixas temporais: inativos há mais de 30 dias, 45 dias e 60 dias. No painel inicial do Portal Hub, a inteligência analisa seus agendamentos antigos e exibe uma lista automatizada de clientes em risco de evasão.'
-        },
-        {
-          type: 'cta',
-          ctaText: 'Ver Painel de Reativação na Dashboard',
-          ctaAction: 'home'
-        },
-        {
-          type: 'heading',
-          text: '2. Abordagem Atenciosa e Script de Resgate'
-        },
-        {
-          type: 'paragraph',
-          text: 'Ao entrar em contato com um cliente sumido pelo WhatsApp, nunca pareça desesperado por vendas. Faça uma abordagem amigável, demonstre atenção e, opcionalmente, ofereça uma vantagem exclusiva para o retorno.'
-        },
-        {
-          type: 'quote',
-          text: 'O cliente que já comprou de você confia no seu trabalho. Muitas vezes, ele só precisa de um lembrete atencioso e personalizado no WhatsApp para voltar a agendar.'
-        },
-        {
-          type: 'heading',
-          text: '3. A Gamificação do Clube de Fidelidade Digital'
-        },
-        {
-          type: 'paragraph',
-          text: 'Substitua os antigos cartões de papel que os clientes sempre perdem por um Cartão Fidelidade Digital integrado. No Portal Hub, você parametriza o número de carimbos necessários (ex: 10 visitas) e define o prêmio (ex: R$ 30 de desconto ou um serviço complementar).'
-        },
-        {
-          type: 'paragraph',
-          text: 'Cada vez que o cliente realiza um atendimento registrado como "Concluído" no portal, o sistema adiciona automaticamente um carimbo digital ao cadastro dele. O cliente pode consultar o cartão fidelidade dele em tempo real na sua página de Bio Link digitando apenas o número de WhatsApp.'
-        },
-        {
-          type: 'heading',
-          text: '4. Pacotes de Crédito Recorrentes'
-        },
-        {
-          type: 'paragraph',
-          text: 'Outra ferramenta fantástica de LTV é o Pacote de Clientes. Vender pacotes (como "compre 10 sessões, pague 8") garante fluxo de caixa imediato para o seu negócio e trava o cliente com você no longo prazo. À medida que ele agenda online, os créditos são deduzidos automaticamente na conclusão do atendimento.'
-        }
-      ]
-    }
-  ];
-
-  // Simulação de delay ao carregar (caráter preparatório para requisições dinâmicas à API no futuro)
+  // Escutar artigos em tempo real do Firestore
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-      
-      // Inicializar curtidas/visualizações de memória local
-      const savedLikes = localStorage.getItem('hub_portal_likes');
-      const savedViews = localStorage.getItem('hub_portal_views');
-      
-      const parsedLikes = savedLikes ? JSON.parse(savedLikes) : {};
-      const parsedViews = savedViews ? JSON.parse(savedViews) : {};
-      
-      setLikedPosts(parsedLikes);
-      
-      // Mock inicial de visualizações/curtidas
-      const initialLikes: Record<string, number> = {
-        'reduzir-faltas-no-shows': 42,
-        'precificacao-inteligente-lucro': 29,
-        'fidelizacao-clientes-ltv': 35
-      };
-      
-      const initialViews: Record<string, number> = {
-        'reduzir-faltas-no-shows': 158,
-        'precificacao-inteligente-lucro': 114,
-        'fidelizacao-clientes-ltv': 137
-      };
-      
-      // Soma os dados persistidos localmente
-      Object.keys(initialLikes).forEach(id => {
-        if (parsedLikes[id]) {
-          initialLikes[id] += 1;
-        }
-      });
-      
-      Object.keys(initialViews).forEach(id => {
-        if (parsedViews[id]) {
-          initialViews[id] = Math.max(initialViews[id], parsedViews[id]);
-        } else {
-          parsedViews[id] = initialViews[id] + Math.floor(Math.random() * 5);
-          initialViews[id] = parsedViews[id];
-        }
-      });
-      
-      localStorage.setItem('hub_portal_views', JSON.stringify(parsedViews));
-      setLikeCounts(initialLikes);
-      setViewCounts(initialViews);
-    }, 400);
+    const q = query(
+      collection(db, 'blog_posts'),
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc')
+    );
 
-    return () => clearTimeout(timer);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedPosts: RichBlogPost[] = [];
+      snapshot.forEach((doc) => {
+        loadedPosts.push({
+          id: doc.id,
+          ...doc.data()
+        } as RichBlogPost);
+      });
+      setPosts(loadedPosts);
+      setLoading(false);
+
+      // Sincronizar curtidas locais
+      const savedLikes = localStorage.getItem('hub_portal_likes');
+      const parsedLikes = savedLikes ? JSON.parse(savedLikes) : {};
+      setLikedPosts(parsedLikes);
+    }, (error) => {
+      console.error('Erro ao carregar artigos do Firestore:', error);
+      toast.error('Não foi possível carregar os artigos de dicas e insights.');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleLike = (postId: string, e: React.MouseEvent) => {
+  const handleLike = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const alreadyLiked = likedPosts[postId];
     const newLiked = { ...likedPosts, [postId]: !alreadyLiked };
     setLikedPosts(newLiked);
     localStorage.setItem('hub_portal_likes', JSON.stringify(newLiked));
     
-    setLikeCounts(prev => ({
-      ...prev,
-      [postId]: alreadyLiked ? (prev[postId] || 1) - 1 : (prev[postId] || 0) + 1
-    }));
+    // Atualiza contagem local de forma otimista no estado local (atualizado em tempo real pelo listener)
+    try {
+      const docRef = doc(db, 'blog_posts', postId);
+      await updateDoc(docRef, {
+        likes: increment(alreadyLiked ? -1 : 1)
+      });
 
-    if (!alreadyLiked) {
-      toast.success('Você curtiu este artigo! Obrigado pelo feedback.');
+      if (!alreadyLiked) {
+        toast.success('Você curtiu este artigo! Obrigado pelo feedback.');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar curtida no Firestore:', error);
+      toast.error('Erro ao registrar curtida.');
     }
   };
 
@@ -367,37 +114,46 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
     }
   };
 
-  const openPost = (post: RichBlogPost) => {
-    // Incrementa visualização local
-    const currentViews = viewCounts[post.id] || 0;
-    const newViews = currentViews + 1;
-    setViewCounts(prev => ({ ...prev, [post.id]: newViews }));
+  const openPost = async (post: RichBlogPost) => {
+    setSelectedPost(post);
     
+    // Incrementa visualização apenas uma vez por sessão/máquina
     const savedViews = localStorage.getItem('hub_portal_views');
     const parsedViews = savedViews ? JSON.parse(savedViews) : {};
-    parsedViews[post.id] = newViews;
-    localStorage.setItem('hub_portal_views', JSON.stringify(parsedViews));
-
-    setSelectedPost(post);
+    
+    if (!parsedViews[post.id]) {
+      parsedViews[post.id] = true;
+      localStorage.setItem('hub_portal_views', JSON.stringify(parsedViews));
+      
+      try {
+        const docRef = doc(db, 'blog_posts', post.id);
+        await updateDoc(docRef, {
+          views: increment(1)
+        });
+      } catch (error) {
+        console.error('Erro ao incrementar visualização no Firestore:', error);
+      }
+    }
   };
 
   // Filtragem e Busca dos Artigos
-  const filteredPosts = insightsData.filter(post => {
+  const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           post.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || post.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const featuredPost = insightsData[0];
-  const categories = ['Todos', 'Vendas', 'Finanças', 'Marketing'];
+  const featuredPost = posts[0];
+  const categories = ['Todos', 'Vendas', 'Finanças', 'Marketing', 'Gestão', 'Geral'];
 
   const getCategoryClass = (cat: string) => {
     switch (cat) {
       case 'Vendas': return 'bg-amber-500/10 border-amber-500/20 text-amber-400';
       case 'Finanças': return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
       case 'Marketing': return 'bg-purple-500/10 border-purple-500/20 text-purple-400';
-      default: return 'bg-blue-500/10 border-blue-500/20 text-blue-400';
+      case 'Gestão': return 'bg-blue-500/10 border-blue-500/20 text-blue-400';
+      default: return 'bg-gray-500/10 border-gray-500/20 text-gray-400';
     }
   };
 
@@ -497,7 +253,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                           </span>
                         </div>
                         
-                        <h4 className="text-xl lg:text-2xl font-extrabold text-white group-hover:text-primary-400 transition-colors leading-snug">
+                        <h4 className="text-xl lg:text-2xl font-extrabold text-white group-hover:text-primary-400 transition-colors leading-snug text-left">
                           {featuredPost.title}
                         </h4>
                         
@@ -531,7 +287,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                 {/* Grid de Artigos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredPosts.map(post => {
-                    const isFeatured = post.id === featuredPost.id && searchTerm === '' && selectedCategory === 'Todos';
+                    const isFeatured = featuredPost && post.id === featuredPost.id && searchTerm === '' && selectedCategory === 'Todos';
                     if (isFeatured) return null; // Não duplica o destaque no grid
                     
                     const isLiked = likedPosts[post.id];
@@ -589,7 +345,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                               className={`flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px] font-semibold ${isLiked ? 'text-primary-400' : ''}`}
                             >
                               <ThumbsUp size={12} className={isLiked ? 'fill-current' : ''} />
-                              {likeCounts[post.id] || 0}
+                              {post.likes || 0}
                             </button>
                             <button 
                               onClick={(e) => handleShare(post, e)}
@@ -638,7 +394,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                 </span>
                 <div className="flex gap-4">
                   <span className="text-[10px] text-gray-400 flex items-center gap-1"><Clock size={12} /> {selectedPost.readTime}</span>
-                  <span className="text-[10px] text-gray-400 flex items-center gap-1"><Eye size={12} /> {viewCounts[selectedPost.id] || 0} visualizações</span>
+                  <span className="text-[10px] text-gray-400 flex items-center gap-1"><Eye size={12} /> {selectedPost.views || 0} visualizações</span>
                 </div>
               </div>
             </div>
@@ -667,7 +423,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
 
               {/* Corpo do Artigo Renderizado por Blocos */}
               <div className="space-y-6 text-gray-300 text-sm md:text-base leading-relaxed text-left">
-                {selectedPost.blocks.map((block, idx) => {
+                {selectedPost.blocks && selectedPost.blocks.map((block, idx) => {
                   switch (block.type) {
                     case 'paragraph':
                       return (
@@ -706,7 +462,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                               if (block.ctaAction) {
                                 setActiveTab(block.ctaAction);
                                 setSelectedPost(null);
-                                toast.info(`Redirecionando você para a seção de ${block.ctaText}...`);
+                                toast.info(`Redirecionando você para a seção...`);
                               }
                             }}
                             className="px-4 py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer shadow-lg shadow-primary-500/15 w-full md:w-auto justify-center"
@@ -742,7 +498,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                     }`}
                   >
                     <ThumbsUp size={14} className={likedPosts[selectedPost.id] ? 'fill-current' : ''} />
-                    {likedPosts[selectedPost.id] ? 'Curtido!' : 'Curtir Artigo'} ({likeCounts[selectedPost.id] || 0})
+                    {likedPosts[selectedPost.id] ? 'Curtido!' : 'Curtir Artigo'} ({selectedPost.likes || 0})
                   </button>
 
                   <button
