@@ -901,60 +901,64 @@ interface DockItemProps {
 }
 
 function DockItem({ mouseX, isSelected, theme, onClick, label, icon: Icon }: DockItemProps) {
-  const ref = React.useRef<HTMLButtonElement>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
 
   const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
 
-  const widthTransform = useTransform(distance, [-150, 0, 150], [48, 68, 48]);
-  const heightTransform = useTransform(distance, [-150, 0, 150], [48, 68, 48]);
+  const widthTransform = useTransform(distance, [-150, 0, 150], [48, 70, 48]);
+  const heightTransform = useTransform(distance, [-150, 0, 150], [48, 70, 48]);
 
   const width = useSpring(widthTransform, {
     mass: 0.1,
-    stiffness: 220,
-    damping: 16,
+    stiffness: 250,
+    damping: 18,
   });
   const height = useSpring(heightTransform, {
     mass: 0.1,
-    stiffness: 220,
-    damping: 16,
+    stiffness: 250,
+    damping: 18,
   });
 
-  const iconSize = useTransform(distance, [-150, 0, 150], [20, 28, 20]);
+  const iconSize = useTransform(distance, [-150, 0, 150], [20, 30, 20]);
   const iconSizeSpring = useSpring(iconSize, {
     mass: 0.1,
-    stiffness: 220,
-    damping: 16,
+    stiffness: 250,
+    damping: 18,
   });
 
   return (
-    <motion.button
-      ref={ref}
-      style={{ width, height }}
-      onClick={onClick}
-      className={`
-        relative flex items-center justify-center transition-all duration-300 group cursor-pointer active:scale-95 outline-none rounded-2xl shrink-0
-        hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
-        ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
-      `}
+    <div 
+      ref={ref} 
+      className="relative w-12 h-12 flex items-end justify-center shrink-0"
     >
-      {isSelected && (
-        <motion.div 
-          layoutId="activeDockTabIndicator"
-          className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        />
-      )}
-      
-      <motion.div style={{ width: iconSizeSpring, height: iconSizeSpring }} className="shrink-0 flex items-center justify-center">
-        <Icon className="w-full h-full" />
-      </motion.div>
-      
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
-        {label}
-      </span>
-    </motion.button>
+      <motion.button
+        style={{ width, height }}
+        onClick={onClick}
+        className={`
+          absolute bottom-0 flex items-center justify-center transition-all duration-300 group cursor-pointer active:scale-95 outline-none rounded-2xl shrink-0 shadow-lg
+          hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
+          ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
+        `}
+      >
+        {isSelected && (
+          <motion.div 
+            layoutId="activeDockTabIndicator"
+            className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+        
+        <motion.div style={{ width: iconSizeSpring, height: iconSizeSpring }} className="shrink-0 flex items-center justify-center">
+          <Icon className="w-full h-full" />
+        </motion.div>
+        
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
+          {label}
+        </span>
+      </motion.button>
+    </div>
   );
 }
