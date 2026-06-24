@@ -72,7 +72,7 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 ### 9. 📱 Navegação Global e Layout "App-First" (Estilo Linear/Vercel)
 *   **Remoção de Sidebar:** Substituição da antiga barra lateral por uma navegação limpa, focada em reter e guiar o usuário em tarefas diárias.
 *   **Minimal Top Bar (Cabeçalho Superior Fixo):** Exibe a logo do Hub Symples, nome do cliente, seletor minimalista de planos/assinaturas, notificações dinâmicas e menu flutuante do perfil com acessos administrativos.
-*   **Floating Dock (Desktop):** Dock centralizado flutuante na parte inferior com efeito hover de escala e tooltips para acesso rápido às ferramentas operacionais diárias (Home, Agenda, CRM, Meu Negócio e Growth Hub) e indicador ativo com animação spring do Framer Motion.
+*   **Floating Dock Magnético (Desktop):** Dock flutuante premium inspirado no macOS com efeito magnético de zoom parabólico contínuo (os botões e ícones expandem dinamicamente no hover baseados na proximidade do cursor), tooltips de alta legibilidade, mais espaçamento e indicador ativo com transição elástica spring.
 *   **Bottom Bar & Bottom Sheet Gaveta (Mobile):** Barra inferior compacta com 5 botões de navegação e menu deslizante de baixo para cima (drawer/gaveta) contendo acessos secundários e troca de planos.
 
 ---

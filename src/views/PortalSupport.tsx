@@ -87,8 +87,8 @@ export default function PortalSupport({ client, requests, onViewTicket }: Portal
     {
       id: 'a2',
       category: 'agenda',
-      question: 'Consigo sincronizar a agenda do portal com o Google Agenda?',
-      answer: 'Sim! Na seção de Configurações de Agenda, selecione a sub-aba "Google Calendar" para vincular sua conta Google. Uma vez ativada, todos os novos agendamentos e alterações feitos no portal serão transmitidos em tempo real para a sua conta do Google, garantindo que você nunca perca um compromisso.'
+      question: 'Como meu cliente confirma, cancela ou paga o agendamento?',
+      answer: 'O portal gera um link exclusivo para cada agendamento feito. Você pode enviar esse link para o cliente pelo WhatsApp. Ao clicar, ele acessa uma página pública onde pode confirmar a presença, realizar um reagendamento autônomo (evitando que você perca o cliente), conferir o progresso do seu cartão fidelidade e pagar o sinal ou valor integral via Pix.'
     },
     {
       id: 'e1',

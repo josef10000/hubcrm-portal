@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -200,6 +200,7 @@ export default function ClientPortalLayout() {
   const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mouseX = useMotionValue(Infinity);
 
   useEffect(() => {
     if (activeTab === 'growth') {
@@ -652,35 +653,25 @@ export default function ClientPortalLayout() {
       </main>
 
       {/* 1. Floating Dock (Desktop Only) */}
-      <nav id="tour-dock" className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
+      <nav 
+        id="tour-dock" 
+        onMouseMove={(e) => mouseX.set(e.pageX)}
+        onMouseLeave={() => mouseX.set(Infinity)}
+        className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] px-6 h-22 items-end pb-3.5 gap-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.6)] select-none transition-all duration-300 hover:border-white/15"
+      >
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id);
           return (
-            <button
+            <DockItem
               key={item.id}
+              mouseX={mouseX}
+              isSelected={isSelected}
+              theme={theme}
               onClick={() => setActiveTab(item.id)}
-              className={`
-                relative w-12 h-12 flex items-center justify-center transition-all duration-500 group cursor-pointer active:scale-95 outline-none rounded-2xl
-                hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
-                ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
-              `}
-              title={item.label}
-            >
-              {isSelected && (
-                <motion.div 
-                  layoutId="activeDockTabIndicator"
-                  className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <item.icon size={20} className="transition-transform group-hover:scale-110" />
-              
-              {/* Tooltip Estilizado */}
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100">
-                {item.label}
-              </span>
-            </button>
+              label={item.label}
+              icon={item.icon}
+            />
           );
         })}
       </nav>
@@ -897,5 +888,73 @@ export default function ClientPortalLayout() {
       {/* Onboarding Tour */}
       <OnboardingTour setActiveTab={setActiveTab} />
     </div>
+  );
+}
+
+interface DockItemProps {
+  mouseX: any;
+  isSelected: boolean;
+  theme: any;
+  onClick: () => void;
+  label: string;
+  icon: any;
+}
+
+function DockItem({ mouseX, isSelected, theme, onClick, label, icon: Icon }: DockItemProps) {
+  const ref = React.useRef<HTMLButtonElement>(null);
+
+  const distance = useTransform(mouseX, (val: number) => {
+    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    return val - bounds.x - bounds.width / 2;
+  });
+
+  const widthTransform = useTransform(distance, [-150, 0, 150], [48, 68, 48]);
+  const heightTransform = useTransform(distance, [-150, 0, 150], [48, 68, 48]);
+
+  const width = useSpring(widthTransform, {
+    mass: 0.1,
+    stiffness: 220,
+    damping: 16,
+  });
+  const height = useSpring(heightTransform, {
+    mass: 0.1,
+    stiffness: 220,
+    damping: 16,
+  });
+
+  const iconSize = useTransform(distance, [-150, 0, 150], [20, 28, 20]);
+  const iconSizeSpring = useSpring(iconSize, {
+    mass: 0.1,
+    stiffness: 220,
+    damping: 16,
+  });
+
+  return (
+    <motion.button
+      ref={ref}
+      style={{ width, height }}
+      onClick={onClick}
+      className={`
+        relative flex items-center justify-center transition-all duration-300 group cursor-pointer active:scale-95 outline-none rounded-2xl shrink-0
+        hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
+        ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
+      `}
+    >
+      {isSelected && (
+        <motion.div 
+          layoutId="activeDockTabIndicator"
+          className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        />
+      )}
+      
+      <motion.div style={{ width: iconSizeSpring, height: iconSizeSpring }} className="shrink-0 flex items-center justify-center">
+        <Icon className="w-full h-full" />
+      </motion.div>
+      
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
+        {label}
+      </span>
+    </motion.button>
   );
 }
