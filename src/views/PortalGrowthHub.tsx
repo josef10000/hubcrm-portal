@@ -15,25 +15,29 @@ import {
   ArrowUpRight,
   ChevronDown,
   Play,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { Client, GrowthAsset } from '../types';
 import { toast } from 'sonner';
+import PortalInsights from './PortalInsights';
 
-type TabId = 'brand' | 'templates' | 'sales' | 'trainings';
+type TabId = 'brand' | 'insights' | 'templates' | 'sales' | 'trainings';
 
 interface PortalGrowthHubProps {
   client: Client | null;
   growthAssets: GrowthAsset[];
   activeSubTab: TabId;
   setActiveSubTab: (tab: TabId) => void;
+  setActiveTab: (tab: string) => void;
 }
 
 export default function PortalGrowthHub({ 
   client, 
   growthAssets, 
   activeSubTab, 
-  setActiveSubTab 
+  setActiveSubTab,
+  setActiveTab
 }: PortalGrowthHubProps) {
   const [copiedColorIndex, setCopiedColorIndex] = useState<number | null>(null);
   const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null);
@@ -136,6 +140,7 @@ export default function PortalGrowthHub({
 
   const tabs = [
     { id: 'brand', label: 'Cofre da Marca', icon: Palette },
+    { id: 'insights', label: 'Dicas & Insights', icon: BookOpen },
     { id: 'templates', label: 'Templates Rápidos', icon: Layout },
     { id: 'sales', label: 'Arsenal de Vendas', icon: FileText },
     { id: 'trainings', label: 'Treinamentos', icon: Video },
@@ -427,6 +432,22 @@ export default function PortalGrowthHub({
                   </div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeSubTab === 'insights' && (
+            <motion.div
+              key="insights"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+            >
+              <PortalInsights 
+                setActiveTab={setActiveTab} 
+                orgId={client?.id}
+                clientId={client?.id}
+              />
             </motion.div>
           )}
 

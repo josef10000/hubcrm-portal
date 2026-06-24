@@ -21,7 +21,8 @@ import {
   Layout,
   FileText,
   Video,
-  Settings
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
@@ -129,11 +130,17 @@ export default function ClientPortalLayout() {
   
   const [activeTab, setActiveTab] = useState('home');
   const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
-  const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'templates' | 'sales' | 'trainings'>('brand');
+  const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'insights' | 'templates' | 'sales' | 'trainings'>('brand');
 
   useEffect(() => {
     if (activeTab === 'growth') {
       setIsGrowthExpanded(true);
+      
+      const redirectedSubTab = localStorage.getItem('redirect_growth_subtab');
+      if (redirectedSubTab) {
+        setGrowthSubTab(redirectedSubTab as any);
+        localStorage.removeItem('redirect_growth_subtab');
+      }
     }
   }, [activeTab]);
 
@@ -418,6 +425,7 @@ export default function ClientPortalLayout() {
                         >
                           {[
                             { subId: 'brand', label: 'Cofre da Marca', icon: Palette },
+                            { subId: 'insights', label: 'Dicas & Insights', icon: BookOpen },
                             { subId: 'templates', label: 'Templates Rápidos', icon: Layout },
                             { subId: 'sales', label: 'Arsenal de Vendas', icon: FileText },
                             { subId: 'trainings', label: 'Treinamentos', icon: Video },
@@ -631,6 +639,7 @@ export default function ClientPortalLayout() {
                   growthAssets={growthAssets} 
                   activeSubTab={growthSubTab}
                   setActiveSubTab={setGrowthSubTab}
+                  setActiveTab={setActiveTab}
                 />
               )}
               {activeTab === 'finance' && (

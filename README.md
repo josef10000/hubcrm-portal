@@ -65,6 +65,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Agendamento Online Público (`/agendar/:orgId`):** Fluxo de reserva externa onde clientes selecionam serviços, data/hora e solicitam pré-reservas. Possui **detecção automática de créditos ativos**, permitindo agendar debitando diretamente de pacotes de crédito do cliente.
 *   **Reativação de Clientes Inativos (LTV):** Análise na Dashboard (`PortalHome.tsx`) que detecta clientes inativos há mais de 30 dias com gatilhos rápidos para reativação por WhatsApp.
 *   **Arsenal de Vendas e Templates:** Cofre de ativos de marca, scripts de vendas com cópia instantânea e vídeos de treinamento em Lightbox com reprodução fluida e efeito desfocado (*backdrop-blur*).
+*   **Central de Insights & Dicas (Blog do Empreendedor - `PortalInsights.tsx`):** Portal de conteúdo educativo integrado ao Hub de Crescimento com artigos focados em gestão, vendas, finanças e marketing para escalar o negócio de parceiros, com leitor imersivo, curtidas persistentes locais, compartilhamento fácil no WhatsApp e links inteligentes que integram diretamente com outras seções do Portal Hub (Dica de Crescimento).
+
 
 ---
 

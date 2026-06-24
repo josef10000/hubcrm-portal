@@ -102,3 +102,21 @@ export interface GrowthAsset {
   category?: string;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  category: 'Gestão' | 'Vendas' | 'Finanças' | 'Marketing' | 'Geral';
+  imageUrl?: string;
+  publishedAt: string;
+  readTime: string;
+  likes?: number;
+  views?: number;
+  author: {
+    name: string;
+    role: string;
+    avatarUrl?: string;
+  };
+}
+
