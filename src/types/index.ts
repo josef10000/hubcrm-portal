@@ -96,7 +96,7 @@ export interface SupportTicket {
 export interface GrowthAsset {
   id: string;
   title: string;
-  type: 'video' | 'pdf' | 'script' | 'template';
+  type: 'video' | 'pdf' | 'script' | 'template' | 'audio';
   url?: string;
   content?: string;
   category?: string;
@@ -129,6 +129,7 @@ export interface BlogPost {
   createdAt: any;
   status?: 'draft' | 'published';
   featured?: boolean;
+  audioUrl?: string;
 }
 
 

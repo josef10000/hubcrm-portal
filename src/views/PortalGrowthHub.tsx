@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Rocket, 
@@ -15,12 +15,136 @@ import {
   ArrowUpRight,
   ChevronDown,
   Play,
+  Pause,
+  Volume2,
   X,
   BookOpen
 } from 'lucide-react';
 import { Client, GrowthAsset } from '../types';
 import { toast } from 'sonner';
 import PortalInsights from './PortalInsights';
+
+function AudioCard({ asset }: { asset: GrowthAsset }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  return (
+    <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex flex-col justify-between gap-5 group premium-card-hover text-left shadow-xl animate-in fade-in duration-300">
+      {asset.url && (
+        <audio
+          ref={audioRef}
+          src={asset.url}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
+        />
+      )}
+
+      {/* Identificação / Categoria */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="px-2.5 py-1 bg-[#f97316]/10 border border-[#f97316]/20 rounded-full text-[9px] font-black text-[#f97316] uppercase tracking-widest">
+            {asset.category || 'Mini Podcast'}
+          </span>
+          
+          {/* Velocidade */}
+          <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 px-2 py-0.5 rounded-lg">
+            {[1, 1.5, 2].map((rate) => (
+              <button
+                key={rate}
+                onClick={() => setPlaybackRate(rate)}
+                className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider transition-all cursor-pointer ${
+                  playbackRate === rate
+                    ? 'bg-[#f97316] text-white shadow-sm'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {rate}x
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <h4 className="font-bold text-white text-base leading-snug group-hover:text-[#f97316] transition-colors mt-2">{asset.title}</h4>
+        <p className="text-gray-500 text-xs leading-relaxed line-clamp-2 mt-1">
+          {asset.content || 'Ouça agora esse conteúdo em formato de áudio curto / podcast.'}
+        </p>
+      </div>
+
+      {/* Controles do Player */}
+      <div className="flex items-center gap-3 bg-black/40 border border-white/5 p-3 rounded-2xl">
+        <button
+          onClick={() => {
+            if (audioRef.current) {
+              if (isPlaying) {
+                audioRef.current.pause();
+              } else {
+                audioRef.current.play().catch(console.error);
+              }
+            }
+          }}
+          className="p-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-[#f97316]/25 shrink-0"
+        >
+          {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+        </button>
+
+        {/* Progresso */}
+        <div className="flex-1 flex items-center gap-2">
+          <span className="text-[9px] font-mono text-gray-400 w-7 text-right shrink-0">{formatTime(currentTime)}</span>
+          <input
+            type="range"
+            min={0}
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleProgressChange}
+            className="flex-1 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-500 focus:outline-none"
+            style={{
+              background: `linear-gradient(to right, #f97316 0%, #f97316 ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) 100%)`
+            }}
+          />
+          <span className="text-[9px] font-mono text-gray-400 w-7 shrink-0">{formatTime(duration)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type TabId = 'brand' | 'insights' | 'templates' | 'sales' | 'trainings';
 
@@ -89,6 +213,7 @@ export default function PortalGrowthHub({
   const templateAssets = growthAssets.filter(asset => asset.type === 'template');
   const scriptAssets = growthAssets.filter(asset => asset.type === 'script');
   const videoAssets = growthAssets.filter(asset => asset.type === 'video');
+  const audioAssets = growthAssets.filter(asset => asset.type === 'audio');
 
   // Função auxiliar para copiar texto
   const handleCopyText = async (text: string, id: string, isColor = false, colorIndex?: number) => {
@@ -569,85 +694,111 @@ export default function PortalGrowthHub({
               transition={{ duration: 0.25 }}
               className="space-y-8"
             >
-              {videoAssets.length === 0 ? (
+              {videoAssets.length === 0 && audioAssets.length === 0 ? (
                 <div className="relative bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-12 text-center overflow-hidden">
                   {/* Brilho Radial de Fundo */}
                   <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)]" />
                   <Video className="relative z-10 w-12 h-12 text-primary-400/80 mx-auto mb-4 animate-pulse" strokeWidth={1} />
                   <h4 className="relative z-10 text-white font-bold mb-2">Nenhum Treinamento Disponível</h4>
                   <p className="relative z-10 text-gray-500 text-xs max-w-sm mx-auto leading-relaxed">
-                    Nenhuma videoaula ou material complementar em vídeo disponível atualmente.
+                    Nenhuma videoaula ou material complementar em áudio/vídeo disponível atualmente.
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {videoAssets.map((asset) => {
-                    const youtubeId = asset.url ? getYouTubeId(asset.url) : null;
-                    const thumbnailUrl = youtubeId ? getYouTubeThumbnail(asset.url) : null;
-                    return (
-                      <div 
-                        key={asset.id}
-                        className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group premium-card-hover"
-                      >
-                        {/* Player / Preview */}
-                        <div className="w-full aspect-video bg-black relative overflow-hidden">
-                          {youtubeId ? (
+                <div className="space-y-10">
+                  {/* Seção de Vídeos se houver */}
+                  {videoAssets.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-white text-left flex items-center gap-2">
+                        <Video className="text-[#f97316] w-5 h-5" />
+                        Videoaulas
+                      </h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {videoAssets.map((asset) => {
+                          const youtubeId = asset.url ? getYouTubeId(asset.url) : null;
+                          const thumbnailUrl = youtubeId ? getYouTubeThumbnail(asset.url) : null;
+                          return (
                             <div 
-                              onClick={() => setActiveVideoId(youtubeId)}
-                              className="w-full h-full relative cursor-pointer group/thumb"
+                              key={asset.id}
+                              className="bg-white/[0.03] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col justify-between shadow-2xl relative group premium-card-hover"
                             >
-                              {/* Imagem de Capa do YouTube */}
-                              <img 
-                                src={thumbnailUrl || ''} 
-                                alt={asset.title} 
-                                className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
-                              />
-                              {/* Overlay de Degradê Escuro */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 group-hover/thumb:from-black/90 transition-all" />
-                              
-                              {/* Botão Play Centralizado */}
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="p-4 bg-primary-500 text-white rounded-full shadow-lg shadow-primary-500/30 transform group-hover/thumb:scale-110 group-hover/thumb:bg-primary-600 transition-all duration-300">
-                                  <Play size={24} fill="currentColor" className="ml-0.5" />
+                              {/* Player / Preview */}
+                              <div className="w-full aspect-video bg-black relative overflow-hidden">
+                                {youtubeId ? (
+                                  <div 
+                                    onClick={() => setActiveVideoId(youtubeId)}
+                                    className="w-full h-full relative cursor-pointer group/thumb"
+                                  >
+                                    {/* Imagem de Capa do YouTube */}
+                                    <img 
+                                      src={thumbnailUrl || ''} 
+                                      alt={asset.title} 
+                                      className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+                                    />
+                                    {/* Overlay de Degradê Escuro */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 group-hover/thumb:from-black/90 transition-all" />
+                                    
+                                    {/* Botão Play Centralizado */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="p-4 bg-primary-500 text-white rounded-full shadow-lg shadow-primary-500/30 transform group-hover/thumb:scale-110 group-hover/thumb:bg-primary-600 transition-all duration-300">
+                                        <Play size={24} fill="currentColor" className="ml-0.5" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-4 bg-gradient-to-br from-black/60 to-black/20">
+                                    <Video size={40} className="text-gray-600" />
+                                    <span className="text-gray-400 text-xs font-medium max-w-xs leading-relaxed">
+                                      Este treinamento está disponível em uma plataforma externa.
+                                    </span>
+                                    {asset.url && (
+                                      <a 
+                                        href={asset.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-5 py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-[#f97316]/10"
+                                      >
+                                        Acessar Vídeo Externo
+                                        <ExternalLink size={12} />
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Detalhes do Vídeo */}
+                              <div className="p-6">
+                                <div className="flex justify-between items-start mb-2">
+                                  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                                    {asset.category || 'Treinamento Estratégico'}
+                                  </span>
                                 </div>
+                                <h4 className="font-bold text-white text-base leading-snug line-clamp-1">{asset.title}</h4>
+                                <p className="text-gray-500 text-xs mt-2 leading-relaxed line-clamp-2">
+                                  {asset.content || 'Aprenda estratégias valiosas criadas para impulsionar suas conversões e elevar o nível das suas operações comerciais.'}
+                                </p>
                               </div>
                             </div>
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-4 bg-gradient-to-br from-black/60 to-black/20">
-                              <Video size={40} className="text-gray-600" />
-                              <span className="text-gray-400 text-xs font-medium max-w-xs leading-relaxed">
-                                Este treinamento está disponível em uma plataforma externa.
-                              </span>
-                              {asset.url && (
-                                <a 
-                                  href={asset.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-primary-500/10"
-                                >
-                                  Acessar Vídeo Externo
-                                  <ExternalLink size={12} />
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Detalhes do Vídeo */}
-                        <div className="p-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                              {asset.category || 'Treinamento Estratégico'}
-                            </span>
-                          </div>
-                          <h4 className="font-bold text-white text-base leading-snug line-clamp-1">{asset.title}</h4>
-                          <p className="text-gray-500 text-xs mt-2 leading-relaxed line-clamp-2">
-                            {asset.content || 'Aprenda estratégias valiosas criadas para impulsionar suas conversões e elevar o nível das suas operações comerciais.'}
-                          </p>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
+                  {/* Seção de Podcasts/Áudios se houver */}
+                  {audioAssets.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-white/5">
+                      <h3 className="text-lg font-bold text-white text-left flex items-center gap-2">
+                        <Volume2 className="text-[#f97316] w-5 h-5" />
+                        Podcasts e Áudio-Resumos
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {audioAssets.map((asset) => (
+                          <AudioCard key={asset.id} asset={asset} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>

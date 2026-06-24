@@ -15,7 +15,10 @@ import {
   Copy,
   TrendingUp,
   ArrowRight,
-  ChevronLeft
+  ChevronLeft,
+  Play,
+  Pause,
+  Volume2
 } from 'lucide-react';
 import { BlogPost, ArticleBlock } from '../types';
 import { toast } from 'sonner';
@@ -39,6 +42,55 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [posts, setPosts] = useState<RichBlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Estados do Player de Áudio
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  // Monitora mudança de artigo para pausar e resetar o player de áudio anterior
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaybackRate(1);
+  }, [selectedPost?.id]);
+
+  // Efeito para ajustar o playbackRate no elemento de áudio real
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
+
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  };
 
   // Escutar artigos em tempo real do Firestore
   useEffect(() => {
@@ -445,6 +497,89 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
                   <span className="text-[9px] text-gray-500 font-mono ml-auto">Publicado em: {selectedPost.publishedAt}</span>
                 </div>
               </div>
+
+              {/* Player de Áudio Premium / Mini Podcast */}
+              {selectedPost.audioUrl && (
+                <div className="bg-gradient-to-r from-primary-500/10 via-primary-500/5 to-white/[0.02] border border-white/10 p-5 rounded-[2rem] flex flex-col gap-4 shadow-xl animate-in fade-in duration-300">
+                  <audio
+                    ref={audioRef}
+                    src={selectedPost.audioUrl}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                    onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                    onEnded={() => {
+                      setIsPlaying(false);
+                      setCurrentTime(0);
+                    }}
+                  />
+                  
+                  {/* Info & Velocidade */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-primary-500/10 text-primary-400 border border-primary-500/20 rounded-xl">
+                        <Volume2 size={16} className={isPlaying ? "animate-bounce" : ""} />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[9px] text-[#f97316] font-black uppercase tracking-widest block">Áudio-Resumo / Podcast</span>
+                        <span className="text-xs text-gray-300 font-bold mt-0.5 block">Ouça a versão em áudio deste artigo</span>
+                      </div>
+                    </div>
+                    
+                    {/* Velocidade */}
+                    <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 px-2.5 py-1.5 rounded-xl">
+                      {[1, 1.5, 2].map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={() => setPlaybackRate(rate)}
+                          className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider transition-all cursor-pointer ${
+                            playbackRate === rate
+                              ? 'bg-[#f97316] text-white shadow-md'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          {rate.toFixed(1)}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Controles do Player */}
+                  <div className="flex items-center gap-4 bg-black/30 border border-white/5 p-3 rounded-2xl">
+                    <button
+                      onClick={() => {
+                        if (audioRef.current) {
+                          if (isPlaying) {
+                            audioRef.current.pause();
+                          } else {
+                            audioRef.current.play().catch(console.error);
+                          }
+                        }
+                      }}
+                      className="p-3 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-primary-500/25 shrink-0"
+                    >
+                      {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
+                    </button>
+
+                    {/* Barra de Progresso */}
+                    <div className="flex-1 flex items-center gap-3">
+                      <span className="text-[10px] font-mono text-gray-400 w-8 text-right shrink-0">{formatTime(currentTime)}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={duration || 100}
+                        value={currentTime}
+                        onChange={handleProgressChange}
+                        className="flex-1 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-500 focus:outline-none"
+                        style={{
+                          background: `linear-gradient(to right, #f97316 0%, #f97316 ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) ${(currentTime / (duration || 1)) * 100}%, rgba(255, 255, 255, 0.1) 100%)`
+                        }}
+                      />
+                      <span className="text-[10px] font-mono text-gray-400 w-8 shrink-0">{formatTime(duration)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Corpo do Artigo Renderizado por Blocos */}
               <div className="space-y-6 text-gray-300 text-sm md:text-base leading-relaxed text-left">
