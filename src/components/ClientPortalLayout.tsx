@@ -52,7 +52,10 @@ const getTabTheme = (tabId: string) => {
         color: 'text-indigo-400',
         activeGlow: 'shadow-[0_0_30px_rgba(99,102,241,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-indigo-500/40 from-indigo-500/25 to-indigo-500/5',
         mobileColor: 'text-indigo-400',
-        mobileIndicator: 'bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]'
+        mobileIndicator: 'bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]',
+        glowColor: '99, 102, 241',
+        hexStart: '#818cf8',
+        hexEnd: '#4f46e5'
       };
     case 'agenda':
     case 'agenda_settings':
@@ -60,49 +63,70 @@ const getTabTheme = (tabId: string) => {
         color: 'text-emerald-400',
         activeGlow: 'shadow-[0_0_30px_rgba(16,185,129,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-emerald-500/40 from-emerald-500/25 to-emerald-500/5',
         mobileColor: 'text-emerald-400',
-        mobileIndicator: 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.6)]'
+        mobileIndicator: 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.6)]',
+        glowColor: '16, 185, 129',
+        hexStart: '#34d399',
+        hexEnd: '#059669'
       };
     case 'crm_finance':
       return {
         color: 'text-amber-400',
         activeGlow: 'shadow-[0_0_30px_rgba(245,158,11,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-amber-500/40 from-amber-500/25 to-amber-500/5',
         mobileColor: 'text-amber-400',
-        mobileIndicator: 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+        mobileIndicator: 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.6)]',
+        glowColor: '245, 158, 11',
+        hexStart: '#fbbf24',
+        hexEnd: '#d97706'
       };
     case 'management':
       return {
         color: 'text-cyan-400',
         activeGlow: 'shadow-[0_0_30px_rgba(6,182,212,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-cyan-500/40 from-cyan-500/25 to-cyan-500/5',
         mobileColor: 'text-cyan-400',
-        mobileIndicator: 'bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]'
+        mobileIndicator: 'bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]',
+        glowColor: '6, 182, 212',
+        hexStart: '#22d3ee',
+        hexEnd: '#0891b2'
       };
     case 'growth':
       return {
         color: 'text-pink-400',
         activeGlow: 'shadow-[0_0_30px_rgba(236,72,153,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-pink-500/40 from-pink-500/25 to-pink-500/5',
         mobileColor: 'text-pink-400',
-        mobileIndicator: 'bg-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.6)]'
+        mobileIndicator: 'bg-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.6)]',
+        glowColor: '236, 72, 153',
+        hexStart: '#f472b6',
+        hexEnd: '#db2777'
       };
     case 'services':
       return {
         color: 'text-orange-400',
         activeGlow: 'shadow-[0_0_30px_rgba(249,115,22,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-orange-500/40 from-orange-500/25 to-orange-500/5',
         mobileColor: 'text-orange-400',
-        mobileIndicator: 'bg-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.6)]'
+        mobileIndicator: 'bg-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.6)]',
+        glowColor: '249, 115, 22',
+        hexStart: '#fb923c',
+        hexEnd: '#ea580c'
       };
     case 'support':
       return {
         color: 'text-sky-400',
         activeGlow: 'shadow-[0_0_30px_rgba(14,165,233,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-sky-500/40 from-sky-500/25 to-sky-500/5',
         mobileColor: 'text-sky-400',
-        mobileIndicator: 'bg-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.6)]'
+        mobileIndicator: 'bg-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.6)]',
+        glowColor: '14, 165, 233',
+        hexStart: '#38bdf8',
+        hexEnd: '#0284c7'
       };
     default:
       return {
         color: 'text-primary-400',
         activeGlow: 'shadow-[0_0_30px_rgba(249,115,22,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-primary-500/40 from-primary-500/25 to-primary-500/5',
         mobileColor: 'text-primary-400',
-        mobileIndicator: 'bg-primary-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]'
+        mobileIndicator: 'bg-primary-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]',
+        glowColor: '249, 115, 22',
+        hexStart: '#fb923c',
+        hexEnd: '#ea580c'
       };
   }
 };
@@ -929,6 +953,11 @@ function DockItem({ mouseX, isSelected, theme, onClick, label, icon: Icon }: Doc
     damping: 18,
   });
 
+  const gradientId = `gradient-${label.toLowerCase().replace(/\s+/g, '-')}`;
+  const glowRGB = theme.glowColor || '249, 115, 22';
+  const colorStart = theme.hexStart || '#f97316';
+  const colorEnd = theme.hexEnd || '#ea580c';
+
   return (
     <div 
       ref={ref} 
@@ -938,24 +967,72 @@ function DockItem({ mouseX, isSelected, theme, onClick, label, icon: Icon }: Doc
         style={{ width, height }}
         onClick={onClick}
         className={`
-          absolute bottom-0 flex items-center justify-center transition-all duration-300 group cursor-pointer active:scale-95 outline-none rounded-2xl shrink-0 shadow-lg
-          hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
+          absolute bottom-0 flex items-center justify-center cursor-pointer active:scale-95 outline-none rounded-none shrink-0 group
           ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
         `}
       >
+        {/* SVG da Gota de Vidro no Fundo */}
+        <svg 
+          viewBox="0 0 100 100" 
+          className="absolute inset-0 w-full h-full transition-all duration-500"
+          style={{
+            filter: isSelected 
+              ? `drop-shadow(0 8px 16px rgba(${glowRGB}, 0.35)) drop-shadow(0 0 8px rgba(${glowRGB}, 0.2))` 
+              : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))'
+          }}
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop 
+                offset="0%" 
+                stopColor={colorStart} 
+                stopOpacity={isSelected ? 0.35 : 0.04} 
+              />
+              <stop 
+                offset="100%" 
+                stopColor={colorEnd} 
+                stopOpacity={isSelected ? 0.08 : 0.01} 
+              />
+            </linearGradient>
+          </defs>
+          <path 
+            d="M50 12 C62 33 78 48 78 68 A28 28 0 0 1 22 68 C22 48 38 33 50 12 Z" 
+            fill={`url(#${gradientId})`}
+            stroke={isSelected ? colorStart : "rgba(255,255,255,0.08)"}
+            strokeWidth={isSelected ? 2 : 1}
+            strokeOpacity={isSelected ? 0.6 : 0.4}
+            className="transition-all duration-300 group-hover:stroke-opacity-80"
+          />
+          {/* Brilho Superior Refração Vidro (Luz vindo do topo) */}
+          <path 
+            d="M32 60 C32 50 42 42 50 42 C51 42 52 43 52 44 C52 45 51 46 50 46 C44 46 36 52 36 60 C36 61 35 62 34 62 C33 62 32 61 32 60 Z" 
+            fill="rgba(255,255,255,0.12)"
+            className="transition-opacity duration-300 group-hover:opacity-100 opacity-60"
+          />
+        </svg>
+
+        {/* Ícone centralizado na Gota */}
+        <motion.div 
+          style={{ width: iconSizeSpring, height: iconSizeSpring }} 
+          className="relative z-10 shrink-0 flex items-center justify-center transition-transform group-hover:translate-y-[-2px]"
+        >
+          <Icon className="w-full h-full" />
+        </motion.div>
+
+        {/* Indicador de Seleção no pé da gota */}
         {isSelected && (
           <motion.div 
-            layoutId="activeDockTabIndicator"
-            className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            layoutId="activeDockDot"
+            className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-white shadow-lg z-10"
+            style={{
+              boxShadow: `0 0 10px ${colorStart}, 0 0 20px ${colorStart}`
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
           />
         )}
         
-        <motion.div style={{ width: iconSizeSpring, height: iconSizeSpring }} className="shrink-0 flex items-center justify-center">
-          <Icon className="w-full h-full" />
-        </motion.div>
-        
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
+        {/* Tooltip Estilizado */}
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-5 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
           {label}
         </span>
       </motion.button>
