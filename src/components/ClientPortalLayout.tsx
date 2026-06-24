@@ -274,7 +274,9 @@ export default function ClientPortalLayout() {
     { id: 'management', label: 'Meu Negócio', icon: Briefcase },
     { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
     ...(client && !client.isCourtesy ? [
-      { id: 'finance', label: 'Faturas Hub', icon: CreditCard },
+      { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
+    ] : []),
+    ...(client ? [
       { id: 'services', label: 'Marketplace', icon: ShoppingBag }
     ] : []),
     { id: 'docs', label: 'Documentos', icon: Files },
@@ -464,22 +466,23 @@ export default function ClientPortalLayout() {
                     </button>
 
                     {client && !client.isCourtesy && (
-                      <>
-                        <button 
-                          onClick={() => { setActiveTab('finance'); setIsProfileDropdownOpen(false); }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
-                        >
-                          <CreditCard size={14} className="text-gray-500" />
-                          Faturas Hub
-                        </button>
-                        <button 
-                          onClick={() => { setActiveTab('services'); setIsProfileDropdownOpen(false); }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
-                        >
-                          <ShoppingBag size={14} className="text-gray-500" />
-                          Marketplace
-                        </button>
-                      </>
+                      <button 
+                        onClick={() => { setActiveTab('finance'); setIsProfileDropdownOpen(false); }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                      >
+                        <CreditCard size={14} className="text-gray-500" />
+                        Faturas Hub
+                      </button>
+                    )}
+
+                    {client && (
+                      <button 
+                        onClick={() => { setActiveTab('services'); setIsProfileDropdownOpen(false); }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                      >
+                        <ShoppingBag size={14} className="text-gray-500" />
+                        Marketplace
+                      </button>
                     )}
 
                     <button 
@@ -799,23 +802,23 @@ export default function ClientPortalLayout() {
                 </button>
 
                 {client && !client.isCourtesy && (
-                  <>
-                    <button
-                      onClick={() => { setActiveTab('finance'); setIsMobileMenuOpen(false); }}
-                      className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                    >
-                      <CreditCard size={20} className="text-emerald-400" />
-                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Faturas</span>
-                    </button>
+                  <button
+                    onClick={() => { setActiveTab('finance'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <CreditCard size={20} className="text-emerald-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Faturas</span>
+                  </button>
+                )}
 
-                    <button
-                      onClick={() => { setActiveTab('services'); setIsMobileMenuOpen(false); }}
-                      className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                    >
-                      <ShoppingBag size={20} className="text-amber-400" />
-                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Marketplace</span>
-                    </button>
-                  </>
+                {client && (
+                  <button
+                    onClick={() => { setActiveTab('services'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <ShoppingBag size={20} className="text-amber-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Marketplace</span>
+                  </button>
                 )}
 
                 <button

@@ -128,6 +128,7 @@ export interface BlogPost {
   blocks: ArticleBlock[];
   createdAt: any;
   status?: 'draft' | 'published';
+  featured?: boolean;
 }
 
 

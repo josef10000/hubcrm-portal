@@ -169,7 +169,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
     return matchesSearch && matchesCategory;
   });
 
-  const featuredPost = posts[0];
+  const featuredPost = posts.find(p => p.featured) || posts[0];
   const categories = ['Todos', 'Vendas', 'Finanças', 'Marketing', 'Gestão', 'Geral'];
 
   const getCategoryClass = (cat: string) => {
