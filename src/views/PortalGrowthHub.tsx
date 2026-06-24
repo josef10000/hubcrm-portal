@@ -172,58 +172,9 @@ export default function PortalGrowthHub({
         </div>
       </div>
 
-      {/* Selector Mobile (Custom Dropdown) */}
-      <div className="relative block md:hidden w-full mb-6 z-30">
-        <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full pl-12 pr-10 py-4 bg-[#0d0e12]/80 backdrop-blur-xl border border-white/10 hover:border-white/20 text-white rounded-2xl text-xs font-black uppercase tracking-wider outline-none transition-all cursor-pointer flex items-center justify-between text-left relative"
-        >
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
-            {(() => {
-              const ActiveIcon = tabs.find(t => t.id === activeSubTab)?.icon || Palette;
-              return <ActiveIcon size={18} />;
-            })()}
-          </div>
-          <span>{tabs.find(t => t.id === activeSubTab)?.label}</span>
-          <ChevronDown 
-            size={16} 
-            className={`text-gray-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180 text-primary-400' : ''}`} 
-          />
-        </button>
-
-        {isDropdownOpen && (
-          <>
-            <div className="fixed inset-0 z-20 cursor-default" onClick={() => setIsDropdownOpen(false)} />
-            <div className="absolute top-full left-0 right-0 mt-2 z-30 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-2xl flex flex-col space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
-              {tabs.map((tab) => {
-                const TabIcon = tab.icon;
-                const isActive = activeSubTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveSubTab(tab.id);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                      isActive 
-                        ? 'bg-primary-500/15 text-primary-400 font-black' 
-                        : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                    }`}
-                  >
-                    <TabIcon size={16} className={isActive ? 'text-primary-400' : 'text-gray-500'} />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Tabs (Desktop) - Oculto em favor da navegação por submenu na sidebar */}
+      {/* Pills de Navegação Horizontal (Desktop & Mobile) */}
       <div 
-        className="border-b border-white/10 pb-px hidden overflow-x-auto gap-2 w-full no-scrollbar"
+        className="flex overflow-x-auto gap-2 pb-2 w-full no-scrollbar scroll-smooth"
         style={{ 
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
@@ -238,18 +189,18 @@ export default function PortalGrowthHub({
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
               className={`
-                px-5 py-4 text-xs font-black uppercase tracking-wider border-b-2 flex items-center gap-2.5 transition-all duration-300 relative whitespace-nowrap outline-none shrink-0
+                px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-full border flex items-center gap-2 transition-all duration-300 relative whitespace-nowrap outline-none shrink-0 cursor-pointer active:scale-95 z-10
                 ${isActive 
-                  ? 'border-primary-500 text-white' 
-                  : 'border-transparent text-gray-500 hover:text-gray-300'}
+                  ? 'text-white border-primary-500/30' 
+                  : 'border-white/5 text-gray-500 hover:text-gray-300 bg-white/5 hover:bg-white/10'}
               `}
             >
-              <Icon size={16} className={isActive ? 'text-primary-400' : 'text-gray-500'} />
-              {tab.label}
+              <Icon size={14} className={isActive ? 'text-primary-400' : 'text-gray-500'} />
+              <span>{tab.label}</span>
               {isActive && (
                 <motion.div 
-                  layoutId="activeSubTabIndicator" 
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" 
+                  layoutId="activeGrowthTabIndicator" 
+                  className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-full -z-10" 
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}

@@ -132,6 +132,11 @@ export default function ClientPortalLayout() {
   const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
   const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'insights' | 'templates' | 'sales' | 'trainings'>('brand');
 
+  // Novos estados para a navegação App-First
+  const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     if (activeTab === 'growth') {
       setIsGrowthExpanded(true);
@@ -286,276 +291,186 @@ export default function ClientPortalLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans relative">
       <Toaster position="top-right" theme="dark" />
       
       {/* Background Gradients */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px]" />
       </div>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-black/50 backdrop-blur-xl border-b border-white/10 z-50 flex items-center justify-between px-6">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-primary-500 font-bold uppercase tracking-widest">Portal Hub</span>
-          <h1 className="text-sm font-bold text-white">
-            {navItems.find(i => i.id === activeTab)?.label}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="relative p-2 hover:bg-white/5 rounded-xl transition-colors">
-            <Bell size={20} className="text-gray-400" />
-            {(announcement || hasUnreadSupport) && <span className="absolute top-2 right-2 w-2 h-2 bg-primary-500 rounded-full border-2 border-black animate-pulse" />}
-          </button>
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
-            <Menu size={24} />
-          </button>
-        </div>
-      </div>
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-[60] w-72 bg-[#05070a]/60 backdrop-blur-[35px] border-r border-white/10 transform transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        <div className="flex flex-col h-full p-6 relative z-10">
-          <div className="flex items-center justify-between mb-10 lg:mb-12">
-            <div className="flex items-center gap-3">
-              <img 
-                src="https://i.imgur.com/zCvL7xy.png" 
-                alt="Hub Symples Logo" 
-                className="w-10 h-10 object-contain drop-shadow-lg" 
-              />
-              <div className="flex flex-col">
-                <span className="font-bold text-lg leading-none">Portal <span className="text-primary-500">Hub</span></span>
-              </div>
-            </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-gray-400">
-              <X size={20} />
-            </button>
+      {/* Minimal Top Bar (Desktop & Mobile) */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-[#05070a]/60 backdrop-blur-xl border-b border-white/10 z-40 flex items-center justify-between px-6 md:px-10 select-none">
+        {/* Esquerda: Logo e Nome do Cliente */}
+        <div className="flex items-center gap-3">
+          <img 
+            src="https://i.imgur.com/zCvL7xy.png" 
+            alt="Hub Symples Logo" 
+            className="w-8 h-8 object-contain drop-shadow-lg cursor-pointer" 
+            onClick={() => setActiveTab('home')}
+          />
+          <div className="flex flex-col text-left">
+            <span className="font-bold text-sm leading-none">Portal <span className="text-primary-500">Hub</span></span>
+            <span className="text-[10px] text-gray-500 mt-0.5 max-w-[120px] md:max-w-none truncate">{client.name}</span>
           </div>
+        </div>
 
-          {/* Subscription Selector */}
+        {/* Direita: Troca de Plano, Notificações, Perfil */}
+        <div className="flex items-center gap-4 relative">
+          {/* Seletor de Assinaturas (Dropdown Minimalista) */}
           {allClients.length > 1 && (
-            <div className="mb-8 relative z-10">
-              <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] mb-3 px-2">Suas Assinaturas</p>
-              <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
-                {allClients.map((sub) => {
-                  const isActive = activeClientId === sub.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => setActiveClientId(sub.id)}
-                      className={`
-                        w-full flex flex-col items-start p-3.5 rounded-2xl transition-all duration-300 border text-left relative overflow-hidden group/sub
-                        ${isActive 
-                          ? 'bg-[#0a0c10]/60 border-primary-500/30 text-white shadow-[0_4px_20px_rgba(0,0,0,0.4)]' 
-                          : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:border-white/10'}
-                      `}
-                    >
-                      {isActive && (
-                        <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-primary-500/10 to-transparent pointer-events-none" />
-                      )}
-                      <span className={`text-xs font-bold truncate w-full transition-colors ${isActive ? 'text-white' : 'group-hover/sub:text-white'}`}>{sub.plan}</span>
-                      <span className="text-[9px] opacity-50 font-mono mt-0.5 truncate w-full">{sub.id.toUpperCase()}</span>
-                      {isActive && (
-                        <div className="mt-2 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                          <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Ativa</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="relative">
+              <button 
+                onClick={() => setIsPlanDropdownOpen(!isPlanDropdownOpen)}
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 hover:border-white/20 rounded-xl text-[10px] font-bold text-gray-300 transition-all cursor-pointer select-none"
+              >
+                <span>{allClients.find(c => c.id === activeClientId)?.plan || 'Minhas Assinaturas'}</span>
+                <ChevronDown size={12} className={`text-gray-500 transition-transform ${isPlanDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {/* Dropdown de Planos */}
+              <AnimatePresence>
+                {isPlanDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-45" onClick={() => setIsPlanDropdownOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-1">
+                      {allClients.map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setActiveClientId(sub.id);
+                            setIsPlanDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-[10px] font-bold transition-colors cursor-pointer ${
+                            activeClientId === sub.id 
+                              ? 'bg-primary-500/10 text-primary-400' 
+                              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <span className="block truncate">{sub.plan}</span>
+                          <span className="block text-[8px] opacity-40 font-mono mt-0.5">{sub.id.toUpperCase()}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          <nav className="flex-1 space-y-2 relative z-10">
-            {navItems.map((item) => {
-              const isGrowth = item.id === 'growth';
-              const isSelected = activeTab === item.id;
+          {/* Notificações (Sininho) */}
+          <button 
+            onClick={() => setActiveTab(client && !client.isCourtesy ? 'support' : 'home')}
+            className="relative p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group cursor-pointer"
+            title={announcement ? "Ver Comunicados" : "Atendimento"}
+          >
+            <Bell size={16} className="text-gray-400 group-hover:text-white" />
+            {(announcement || hasUnreadSupport) && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
+            )}
+          </button>
 
-              if (isGrowth) {
-                return (
-                  <div key={item.id} className="space-y-1">
-                    <button
-                      onClick={() => {
-                        setActiveTab('growth');
-                        setIsGrowthExpanded(!isGrowthExpanded);
-                      }}
-                      className={`
-                        w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative
-                        ${isSelected 
-                          ? 'bg-white/5 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)] font-semibold' 
-                          : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'}
-                      `}
+          {/* Avatar & Dropdown de Perfil */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-xs border border-white/10 shadow-lg cursor-pointer overflow-hidden"
+            >
+              {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
+                <img 
+                  src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                (userProfile?.displayName || userProfile?.name || client.name).charAt(0).toUpperCase()
+              )}
+            </button>
+
+            {/* Menu Dropdown de Perfil Desktop */}
+            <AnimatePresence>
+              {isProfileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-45" onClick={() => setIsProfileDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-3 py-2 text-left border-b border-white/5 mb-1 pb-2">
+                      <p className="text-xs font-bold text-white truncate">{userProfile?.displayName || userProfile?.name || client.name}</p>
+                      <p className="text-[9px] text-gray-500 truncate lowercase">{userProfile?.email || client.email}</p>
+                    </div>
+
+                    <button 
+                      onClick={() => { setActiveTab('profile'); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
                     >
-                      {isSelected && (
-                        <motion.div 
-                          layoutId="activePortalTabBg"
-                          className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-2xl -z-10"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                      {isSelected && (
-                        <motion.div 
-                          layoutId="activePortalTabIndicator"
-                          className="absolute left-0 top-[15%] bottom-[15%] w-[3px] bg-primary-400 rounded-r-full shadow-[0_0_8px_currentColor] text-primary-400 z-10"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                      <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
-                      <span className="font-medium">{item.label}</span>
-                      <ChevronDown 
-                        size={16} 
-                        className={`ml-auto text-gray-500 transition-transform duration-300 ${isGrowthExpanded ? 'rotate-180 text-primary-400' : 'group-hover:text-gray-300'}`} 
-                      />
+                      <User size={14} className="text-gray-500" />
+                      Editar Perfil
                     </button>
 
-                    <AnimatePresence initial={false}>
-                      {isGrowthExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden pl-4 pr-1 py-1 space-y-1 flex flex-col border-l border-white/5 ml-6"
+                    <button 
+                      onClick={() => { setActiveTab('docs'); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                    >
+                      <Files size={14} className="text-gray-500" />
+                      Documentos
+                    </button>
+
+                    {client && !client.isCourtesy && (
+                      <>
+                        <button 
+                          onClick={() => { setActiveTab('finance'); setIsProfileDropdownOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
                         >
-                          {[
-                            { subId: 'brand', label: 'Cofre da Marca', icon: Palette },
-                            { subId: 'insights', label: 'Dicas & Insights', icon: BookOpen },
-                            { subId: 'templates', label: 'Templates Rápidos', icon: Layout },
-                            { subId: 'sales', label: 'Arsenal de Vendas', icon: FileText },
-                            { subId: 'trainings', label: 'Treinamentos', icon: Video },
-                          ].map((subItem) => {
-                            const isSubActive = isSelected && growthSubTab === subItem.subId;
-                            const SubIcon = subItem.icon;
-                            return (
-                              <button
-                                key={subItem.subId}
-                                onClick={() => {
-                                  setActiveTab('growth');
-                                  setGrowthSubTab(subItem.subId as any);
-                                  setIsSidebarOpen(false);
-                                }}
-                                className={`
-                                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-300 text-left relative group/subitem cursor-pointer
-                                  ${isSubActive 
-                                    ? 'text-white font-semibold' 
-                                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'}
-                                `}
-                              >
-                                {isSubActive && (
-                                  <motion.div 
-                                    layoutId="activePortalSubTabBg"
-                                    className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-xl -z-10"
-                                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                                  />
-                                )}
-                                <SubIcon size={14} className={`transition-colors ${isSubActive ? 'text-primary-400' : 'text-gray-600 group-hover/subitem:text-primary-400'}`} />
-                                <span>{subItem.label}</span>
-                              </button>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <CreditCard size={14} className="text-gray-500" />
+                          Faturas Hub
+                        </button>
+                        <button 
+                          onClick={() => { setActiveTab('services'); setIsProfileDropdownOpen(false); }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                        >
+                          <ShoppingBag size={14} className="text-gray-500" />
+                          Marketplace
+                        </button>
+                      </>
+                    )}
+
+                    <button 
+                      onClick={() => { setActiveTab('support'); setIsProfileDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                    >
+                      <MessageCircle size={14} className="text-gray-500" />
+                      Atendimento
+                    </button>
+
+                    <div className="h-px bg-white/5 my-1" />
+
+                    <button 
+                      onClick={async () => {
+                        setIsProfileDropdownOpen(false);
+                        try {
+                          await auth.signOut();
+                          localStorage.removeItem('portalToken');
+                          toast.success('Você saiu da área restrita.');
+                          setActiveTab('home');
+                        } catch (e) {
+                          toast.error('Erro ao sair.');
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer flex items-center gap-2.5"
+                    >
+                      <LogOut size={14} />
+                      Sair da Conta
+                    </button>
                   </div>
-                );
-              }
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsSidebarOpen(false);
-                  }}
-                  className={`
-                    w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative
-                    ${isSelected 
-                      ? 'bg-white/5 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)] font-semibold' 
-                      : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'}
-                  `}
-                >
-                  {isSelected && (
-                    <motion.div 
-                      layoutId="activePortalTabBg"
-                      className="absolute inset-0 bg-primary-500/10 border border-primary-500/20 rounded-2xl -z-10"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  {isSelected && (
-                    <motion.div 
-                      layoutId="activePortalTabIndicator"
-                      className="absolute left-0 top-[15%] bottom-[15%] w-[3px] bg-primary-400 rounded-r-full shadow-[0_0_8px_currentColor] text-primary-400 z-10"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  <item.icon size={20} className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-primary-400' : 'group-hover:text-primary-400'}`} />
-                  <span className="font-medium">{item.label}</span>
-                  {item.id === 'support' && hasUnreadSupport && (
-                    <span className="ml-auto w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] animate-pulse" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto pt-6 border-t border-white/10 space-y-3 relative z-10">
-            <div 
-              onClick={() => setActiveTab('profile')}
-              className="flex items-center gap-3 p-4 bg-[#0a0c10]/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-inner cursor-pointer hover:bg-white/5 transition-all group"
-            >
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${
-                client.status === 'Ativo'
-                  ? 'border-2 border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                  : 'border-2 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-              }`}>
-                {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
-                  <img src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  (userProfile?.displayName || userProfile?.name || client.name).charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className="flex flex-col overflow-hidden text-left">
-                <span className="font-semibold truncate text-sm text-white group-hover:text-primary-400 transition-colors">{userProfile?.displayName || userProfile?.name || client.name}</span>
-                <span className="text-[10px] text-gray-500 truncate lowercase mb-0.5">{userProfile?.email || client.email}</span>
-                <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border w-fit ${
-                  client.status === 'Ativo'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                }`}>
-                  Plano {client.status}
-                </span>
-              </div>
-            </div>
-            {currentUser && (
-              <button
-                onClick={async () => {
-                  try {
-                    await auth.signOut();
-                    localStorage.removeItem('portalToken');
-                    toast.success('Você saiu da área restrita.');
-                    setActiveTab('home');
-                  } catch (e) {
-                    toast.error('Erro ao sair.');
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl transition-all text-xs font-bold uppercase tracking-wider"
-              >
-                <LogOut size={14} />
-                Sair
-              </button>
-            )}
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden pt-16 lg:pt-0 relative">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col pt-16 relative z-10 w-full min-h-screen">
         <AnimatePresence>
           {switching && (
             <motion.div 
@@ -576,40 +491,27 @@ export default function ClientPortalLayout() {
           )}
         </AnimatePresence>
 
-        {/* Top Header */}
-        <header className="hidden lg:flex items-center justify-between px-10 h-24 shrink-0">
+        {/* Content Title Header */}
+        <header className="hidden lg:flex items-center justify-between px-10 pt-8 shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-white">
-              {navItems.find(i => i.id === activeTab)?.label}
+            <h2 className="text-xl font-black text-white">
+              {navItems.find(i => i.id === activeTab)?.label || 'Dashboard'}
             </h2>
-            <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mt-1">
-              Seja bem-vindo, {client.name.split(' ')[0]}
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+              Operações do Negócio
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
-              <Bell size={20} className="text-gray-400 group-hover:text-white" />
-              {(announcement || hasUnreadSupport) && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-500 rounded-full border-2 border-[#050505] animate-pulse" />}
-            </button>
-            <div className="h-8 w-px bg-white/10 mx-2" />
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Status do Plano</span>
-              <span className={`text-xs font-bold ${client.status === 'Ativo' ? 'text-emerald-400' : 'text-yellow-400'}`}>
-                {client.status}
-              </span>
-            </div>
           </div>
         </header>
 
         {/* View Container */}
-        <div className="flex-1 overflow-y-auto px-4 lg:px-10 pb-32 lg:pb-10 custom-scrollbar relative">
+        <div className="flex-1 px-4 lg:px-10 pt-6 pb-28 lg:pb-32 custom-scrollbar relative">
           <AnimatePresence mode="popLayout">
             <motion.div
               key={activeTab + activeClientId}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               className="h-full"
             >
               {activeTab === 'home' && (
@@ -673,44 +575,236 @@ export default function ClientPortalLayout() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-center justify-around px-2 print:hidden">
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'support'].includes(item.id)).map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`
-              flex flex-col items-center gap-1 p-2 transition-all duration-300 relative
-              ${activeTab === item.id ? 'text-primary-500' : 'text-gray-500'}
-            `}
-          >
-            <div className="relative">
-              <item.icon size={20} />
-              {item.id === 'support' && hasUnreadSupport && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary-500 rounded-full border-2 border-black animate-pulse" />
+      {/* 1. Floating Dock (Desktop Only) */}
+      <nav className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth'].includes(item.id)).map((item) => {
+          const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`
+                relative p-3 rounded-full transition-all duration-300 group cursor-pointer active:scale-95 outline-none
+                ${isSelected ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'}
+              `}
+              title={item.label}
+            >
+              {isSelected && (
+                <motion.div 
+                  layoutId="activeDockTabIndicator"
+                  className="absolute inset-0 bg-white/5 border border-white/10 rounded-full -z-10"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
               )}
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
-            {activeTab === item.id && (
-              <motion.div 
-                layoutId="activeIndicatorMobile"
-                className="absolute -top-2 w-10 h-1 bg-primary-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-              />
-            )}
-          </button>
-        ))}
+              <item.icon size={20} className="transition-transform group-hover:scale-115" />
+              
+              {/* Tooltip Estilizado */}
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2.5 py-1 bg-black/95 border border-white/10 text-[9px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100">
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Overlay for mobile sidebar */}
+      {/* 2. Mobile Bottom Navigation Bar (Mobile Only) */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-black/85 backdrop-blur-2xl border-t border-white/10 z-40 flex items-center justify-around px-2 pb-safe select-none">
+        {[
+          { id: 'home', label: 'Home', icon: LayoutDashboard },
+          { id: 'agenda', label: 'Agenda', icon: Calendar },
+          { id: 'crm_finance', label: 'Finanças', icon: DollarSign },
+          { id: 'growth', label: 'Crescer', icon: Rocket },
+        ].map((item) => {
+          const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`
+                flex flex-col items-center justify-center p-2 rounded-xl transition-all active:scale-95 cursor-pointer relative
+                ${isSelected ? 'text-primary-500' : 'text-gray-500'}
+              `}
+            >
+              <item.icon size={20} className="transition-transform" />
+              <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">{item.label}</span>
+              {isSelected && (
+                <motion.div 
+                  layoutId="activeIndicatorMobile"
+                  className="absolute -top-2 w-8 h-0.5 bg-primary-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                />
+              )}
+            </button>
+          );
+        })}
+        {/* Botão Menu do Mobile (Foto de Perfil ou ☰) */}
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="flex flex-col items-center justify-center p-2 rounded-xl active:scale-95 cursor-pointer text-gray-500 hover:text-white"
+        >
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+            {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
+              <img 
+                src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} 
+                alt="Avatar" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <Menu size={14} className="text-white" />
+            )}
+          </div>
+          <span className="text-[9px] font-bold mt-1 tracking-wider uppercase">Menu</span>
+        </button>
+      </nav>
+
+      {/* 3. Mobile Bottom Sheet Menu (Gaveta) */}
       <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
-          />
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 lg:hidden"
+            />
+            
+            {/* Drawer Gaveta */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="fixed bottom-0 left-0 right-0 bg-[#07090c]/95 border-t border-white/10 rounded-t-[2.5rem] z-50 p-6 flex flex-col gap-6 lg:hidden max-h-[85vh] overflow-y-auto select-none pb-8"
+            >
+              {/* Drag Handle Indicator */}
+              <div className="w-12 h-1 bg-white/10 rounded-full mx-auto shrink-0" />
+
+              {/* Informações do Usuário */}
+              <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-sm border border-white/10 overflow-hidden shrink-0">
+                  {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
+                    <img src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    (userProfile?.displayName || userProfile?.name || client.name).charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="flex flex-col text-left overflow-hidden">
+                  <span className="font-bold text-sm text-white truncate">{userProfile?.displayName || userProfile?.name || client.name}</span>
+                  <span className="text-[10px] text-gray-500 truncate lowercase">{userProfile?.email || client.email}</span>
+                </div>
+                <span className={`ml-auto text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0 ${
+                  client.status === 'Ativo' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                }`}>
+                  {client.status}
+                </span>
+              </div>
+
+              {/* Seletor de Assinaturas Mobile */}
+              {allClients.length > 1 && (
+                <div className="space-y-2 text-left">
+                  <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Suas Assinaturas</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+                    {allClients.map((sub) => {
+                      const isActive = activeClientId === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setActiveClientId(sub.id);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`px-4 py-2.5 rounded-xl border text-left shrink-0 cursor-pointer active:scale-95 ${
+                            isActive 
+                              ? 'bg-primary-500/10 border-primary-500/30 text-white font-bold' 
+                              : 'bg-white/5 border-transparent text-gray-400'
+                          }`}
+                        >
+                          <span className="text-xs block">{sub.plan}</span>
+                          <span className="text-[8px] opacity-40 font-mono mt-0.5 block">{sub.id.toUpperCase()}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Links de Recursos Secundários */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <User size={20} className="text-violet-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Perfil</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('docs'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <Files size={20} className="text-blue-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Documentos</span>
+                </button>
+
+                {client && !client.isCourtesy && (
+                  <>
+                    <button
+                      onClick={() => { setActiveTab('finance'); setIsMobileMenuOpen(false); }}
+                      className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                    >
+                      <CreditCard size={20} className="text-emerald-400" />
+                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Faturas</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('services'); setIsMobileMenuOpen(false); }}
+                      className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                    >
+                      <ShoppingBag size={20} className="text-amber-400" />
+                      <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Marketplace</span>
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => { setActiveTab('support'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <MessageCircle size={20} className="text-sky-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Suporte</span>
+                </button>
+
+                {/* Agenda Settings (Mobile) */}
+                <button
+                  onClick={() => { setActiveTab('agenda_settings'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <Settings size={20} className="text-gray-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Ajustes</span>
+                </button>
+              </div>
+
+              {/* Botão Sair */}
+              <button
+                onClick={async () => {
+                  setIsMobileMenuOpen(false);
+                  try {
+                    await auth.signOut();
+                    localStorage.removeItem('portalToken');
+                    toast.success('Você saiu da área restrita.');
+                    setActiveTab('home');
+                  } catch (e) {
+                    toast.error('Erro ao sair.');
+                  }
+                }}
+                className="w-full py-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-2xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                <LogOut size={14} />
+                Sair da Conta
+              </button>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

@@ -67,6 +67,11 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Arsenal de Vendas e Templates:** Cofre de ativos de marca, scripts de vendas com cópia instantânea e vídeos de treinamento em Lightbox com reprodução fluida e efeito desfocado (*backdrop-blur*).
 *   **Central de Insights & Dicas (Blog do Empreendedor - `PortalInsights.tsx`):** Portal de conteúdo educativo integrado ao Hub de Crescimento com artigos focados em gestão, vendas, finanças e marketing para escalar o negócio de parceiros, com leitor imersivo, curtidas persistentes locais, compartilhamento fácil no WhatsApp e links inteligentes que integram diretamente com outras seções do Portal Hub (Dica de Crescimento).
 
+### 9. 📱 Navegação Global e Layout "App-First" (Estilo Linear/Vercel)
+*   **Remoção de Sidebar:** Substituição da antiga barra lateral por uma navegação limpa, focada em reter e guiar o usuário em tarefas diárias.
+*   **Minimal Top Bar (Cabeçalho Superior Fixo):** Exibe a logo do Hub Symples, nome do cliente, seletor minimalista de planos/assinaturas, notificações dinâmicas e menu flutuante do perfil com acessos administrativos.
+*   **Floating Dock (Desktop):** Dock centralizado flutuante na parte inferior com efeito hover de escala e tooltips para acesso rápido às ferramentas operacionais diárias (Home, Agenda, CRM, Meu Negócio e Growth Hub) e indicador ativo com animação spring do Framer Motion.
+*   **Bottom Bar & Bottom Sheet Gaveta (Mobile):** Barra inferior compacta com 5 botões de navegação e menu deslizante de baixo para cima (drawer/gaveta) contendo acessos secundários e troca de planos.
 
 ---
 
