@@ -84,6 +84,20 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
     return () => unsubscribe();
   }, []);
 
+  // Se redirecionado a partir de um card da Home, abre o post correspondente automaticamente
+  useEffect(() => {
+    if (posts.length > 0) {
+      const targetPostId = localStorage.getItem('selected_insight_post_id');
+      if (targetPostId) {
+        const found = posts.find(p => p.id === targetPostId);
+        if (found) {
+          openPost(found);
+        }
+        localStorage.removeItem('selected_insight_post_id');
+      }
+    }
+  }, [posts]);
+
   const handleLike = async (postId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const alreadyLiked = likedPosts[postId];

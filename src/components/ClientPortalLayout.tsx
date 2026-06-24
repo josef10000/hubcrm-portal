@@ -43,6 +43,54 @@ import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 
+const getTabTheme = (tabId: string) => {
+  switch (tabId) {
+    case 'home':
+      return {
+        color: 'text-indigo-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(99,102,241,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-indigo-500/40 from-indigo-500/25 to-indigo-500/5',
+        mobileColor: 'text-indigo-400',
+        mobileIndicator: 'bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]'
+      };
+    case 'agenda':
+    case 'agenda_settings':
+      return {
+        color: 'text-emerald-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(16,185,129,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-emerald-500/40 from-emerald-500/25 to-emerald-500/5',
+        mobileColor: 'text-emerald-400',
+        mobileIndicator: 'bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.6)]'
+      };
+    case 'crm_finance':
+      return {
+        color: 'text-amber-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(245,158,11,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-amber-500/40 from-amber-500/25 to-amber-500/5',
+        mobileColor: 'text-amber-400',
+        mobileIndicator: 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+      };
+    case 'management':
+      return {
+        color: 'text-cyan-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(6,182,212,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-cyan-500/40 from-cyan-500/25 to-cyan-500/5',
+        mobileColor: 'text-cyan-400',
+        mobileIndicator: 'bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]'
+      };
+    case 'growth':
+      return {
+        color: 'text-pink-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(236,72,153,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-pink-500/40 from-pink-500/25 to-pink-500/5',
+        mobileColor: 'text-pink-400',
+        mobileIndicator: 'bg-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.6)]'
+      };
+    default:
+      return {
+        color: 'text-primary-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(249,115,22,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-primary-500/40 from-primary-500/25 to-primary-500/5',
+        mobileColor: 'text-primary-400',
+        mobileIndicator: 'bg-primary-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]'
+      };
+  }
+};
+
 export default function ClientPortalLayout() {
   const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
   const navigate = useNavigate();
@@ -307,12 +355,12 @@ export default function ClientPortalLayout() {
           <img 
             src="https://i.imgur.com/zCvL7xy.png" 
             alt="Hub Symples Logo" 
-            className="w-8 h-8 object-contain drop-shadow-lg cursor-pointer" 
+            className="w-10 h-10 lg:w-8 lg:h-8 object-contain drop-shadow-lg cursor-pointer transition-transform hover:scale-105" 
             onClick={() => setActiveTab('home')}
           />
           <div className="flex flex-col text-left">
-            <span className="font-bold text-sm leading-none">Portal <span className="text-primary-500">Hub</span></span>
-            <span className="text-[10px] text-gray-500 mt-0.5 max-w-[120px] md:max-w-none truncate">{client.name}</span>
+            <span className="font-black text-base lg:text-sm leading-none tracking-tight">Portal <span className="text-primary-500">Hub</span></span>
+            <span className="text-[11px] lg:text-[10px] text-gray-500 mt-0.5 max-w-[150px] md:max-w-none truncate">{client.name}</span>
           </div>
         </div>
 
@@ -371,8 +419,8 @@ export default function ClientPortalLayout() {
             )}
           </button>
 
-          {/* Avatar & Dropdown de Perfil */}
-          <div className="relative">
+          {/* Avatar & Dropdown de Perfil (Apenas Desktop) */}
+          <div className="relative hidden lg:block">
             <button 
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center font-bold text-xs border border-white/10 shadow-lg cursor-pointer overflow-hidden"
@@ -579,24 +627,26 @@ export default function ClientPortalLayout() {
       <nav className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-full px-5 py-2.5 items-center gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] select-none">
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
+          const theme = getTabTheme(item.id);
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`
-                relative p-3 rounded-full transition-all duration-300 group cursor-pointer active:scale-95 outline-none
-                ${isSelected ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'}
+                relative w-12 h-12 flex items-center justify-center transition-all duration-500 group cursor-pointer active:scale-95 outline-none rounded-2xl
+                hover:rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] hover:bg-white/[0.05] hover:border-white/10
+                ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
               `}
               title={item.label}
             >
               {isSelected && (
                 <motion.div 
                   layoutId="activeDockTabIndicator"
-                  className="absolute inset-0 bg-white/5 border border-white/10 rounded-full -z-10"
+                  className={`absolute inset-0 rounded-[35%_65%_50%_50%_/_50%_50%_35%_65%] bg-gradient-to-br backdrop-blur-md -z-10 ${theme.activeGlow}`}
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
-              <item.icon size={20} className="transition-transform group-hover:scale-115" />
+              <item.icon size={20} className="transition-transform group-hover:scale-110" />
               
               {/* Tooltip Estilizado */}
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2.5 py-1 bg-black/95 border border-white/10 text-[9px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100">
@@ -616,13 +666,14 @@ export default function ClientPortalLayout() {
           { id: 'growth', label: 'Crescer', icon: Rocket },
         ].map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
+          const theme = getTabTheme(item.id);
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`
                 flex flex-col items-center justify-center p-2 rounded-xl transition-all active:scale-95 cursor-pointer relative
-                ${isSelected ? 'text-primary-500' : 'text-gray-500'}
+                ${isSelected ? theme.mobileColor : 'text-gray-500'}
               `}
             >
               <item.icon size={20} className="transition-transform" />
@@ -630,7 +681,7 @@ export default function ClientPortalLayout() {
               {isSelected && (
                 <motion.div 
                   layoutId="activeIndicatorMobile"
-                  className="absolute -top-2 w-8 h-0.5 bg-primary-500 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                  className={`absolute -top-2 w-8 h-0.5 rounded-full ${theme.mobileIndicator}`}
                 />
               )}
             </button>
@@ -641,7 +692,7 @@ export default function ClientPortalLayout() {
           onClick={() => setIsMobileMenuOpen(true)}
           className="flex flex-col items-center justify-center p-2 rounded-xl active:scale-95 cursor-pointer text-gray-500 hover:text-white"
         >
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+          <div className="w-5 h-5 rounded-full bg-[#0a0c10] flex items-center justify-center border border-white/10 overflow-hidden shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.05)]">
             {(userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl) ? (
               <img 
                 src={userProfile?.photoURL || userProfile?.imageUrl || client.imageUrl} 

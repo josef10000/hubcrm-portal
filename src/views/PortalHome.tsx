@@ -23,7 +23,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, query, where } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -49,6 +49,8 @@ export default function PortalHome({ client, announcement, setActiveTab, support
   ]);
   const [expediente, setExpediente] = useState<any>({});
   const [loadingApps, setLoadingApps] = useState(true);
+  const [recentPost, setRecentPost] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(true);
 
   // Rótulos Dinâmicos
   const labelSingular = expediente?.appointmentLabelSingular || 'Agendamento';
@@ -197,6 +199,47 @@ export default function PortalHome({ client, announcement, setActiveTab, support
 
     return () => unsub();
   }, [orgId]);
+
+  // Escuta o artigo mais recente publicado no blog_posts
+  useEffect(() => {
+    const q = query(
+      collection(db, 'blog_posts'),
+      where('status', '==', 'published')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loadedPosts: any[] = [];
+      snapshot.forEach((doc) => {
+        loadedPosts.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      // Ordenar localmente por createdAt desc (para evitar erro de índice composto em queries compostas sem índice)
+      loadedPosts.sort((a, b) => {
+        const dateA = a.createdAt?.seconds 
+          ? a.createdAt.seconds * 1000 
+          : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const dateB = b.createdAt?.seconds 
+          ? b.createdAt.seconds * 1000 
+          : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return dateB - dateA;
+      });
+
+      if (loadedPosts.length > 0) {
+        setRecentPost(loadedPosts[0]);
+      } else {
+        setRecentPost(null);
+      }
+      setLoadingInsights(false);
+    }, (error) => {
+      console.warn('Erro ao carregar artigos na Home:', error);
+      setLoadingInsights(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const renderWhatsAppText = (templateText: string, app: any) => {
     if (!app) return '';
@@ -695,73 +738,76 @@ export default function PortalHome({ client, announcement, setActiveTab, support
       </div>
 
       {/* Central de Insights do Empreendedor */}
-      <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl space-y-6">
-        <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
-              <BookOpen size={16} className="text-primary-400" />
-              💡 Central de Insights & Dicas
-            </h4>
-            <p className="text-xs text-gray-400">Aprenda estratégias valiosas criadas para impulsionar suas conversões e elevar o nível comercial do seu negócio.</p>
-          </div>
-          <button 
-            onClick={() => {
-              localStorage.setItem('redirect_growth_subtab', 'insights');
-              setActiveTab('growth');
-            }}
-            className="text-xs text-primary-400 hover:text-primary-300 font-bold flex items-center gap-1 group whitespace-nowrap transition-colors cursor-pointer"
-          >
-            Ver Todos os Artigos
-            <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-
-        <div className="p-6">
-          {/* Card do Artigo em Destaque na Home */}
-          <div 
-            onClick={() => {
-              localStorage.setItem('redirect_growth_subtab', 'insights');
-              setActiveTab('growth');
-            }}
-            className="relative bg-black/20 border border-white/5 hover:border-white/10 rounded-[2rem] overflow-hidden group cursor-pointer flex flex-col md:flex-row hover:bg-white/[0.04] transition-all shadow-xl gap-6"
-          >
-            {/* Imagem de Capa do Artigo */}
-            <div className="w-full md:w-[35%] aspect-video md:aspect-auto min-h-[160px] relative overflow-hidden bg-black/30">
-              <img 
-                src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=400&auto=format&fit=crop" 
-                alt="5 Estratégias para Reduzir Faltas" 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/90 via-black/30 to-transparent" />
+      {recentPost && (
+        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl space-y-6">
+          <div className="px-8 py-6 border-b border-white/10 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
+                <BookOpen size={16} className="text-primary-400" />
+                💡 Central de Insights & Dicas
+              </h4>
+              <p className="text-xs text-gray-400">Aprenda estratégias valiosas criadas para impulsionar suas conversões e elevar o nível comercial do seu negócio.</p>
             </div>
+            <button 
+              onClick={() => {
+                localStorage.setItem('redirect_growth_subtab', 'insights');
+                setActiveTab('growth');
+              }}
+              className="text-xs text-primary-400 hover:text-primary-300 font-bold flex items-center gap-1 group whitespace-nowrap transition-colors cursor-pointer"
+            >
+              Ver Todos os Artigos
+              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
 
-            {/* Conteúdo do Artigo */}
-            <div className="flex-1 p-6 flex flex-col justify-between text-left">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[8px] font-black uppercase text-amber-400 tracking-wider">
-                    Vendas
-                  </span>
-                  <span className="text-[9px] text-gray-500 flex items-center gap-1">
-                    <Clock size={10} /> 4 min de leitura
-                  </span>
+          <div className="p-6">
+            {/* Card do Artigo em Destaque na Home */}
+            <div 
+              onClick={() => {
+                localStorage.setItem('redirect_growth_subtab', 'insights');
+                localStorage.setItem('selected_insight_post_id', recentPost.id);
+                setActiveTab('growth');
+              }}
+              className="relative bg-black/20 border border-white/5 hover:border-white/10 rounded-[2rem] overflow-hidden group cursor-pointer flex flex-col md:flex-row hover:bg-white/[0.04] transition-all shadow-xl gap-6"
+            >
+              {/* Imagem de Capa do Artigo */}
+              <div className="w-full md:w-[35%] aspect-video md:aspect-auto min-h-[160px] relative overflow-hidden bg-black/30">
+                <img 
+                  src={recentPost.imageUrl || "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=400&auto=format&fit=crop"} 
+                  alt={recentPost.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/90 via-black/30 to-transparent" />
+              </div>
+
+              {/* Conteúdo do Artigo */}
+              <div className="flex-1 p-6 flex flex-col justify-between text-left">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[8px] font-black uppercase text-amber-400 tracking-wider">
+                      {recentPost.category || 'Geral'}
+                    </span>
+                    <span className="text-[9px] text-gray-500 flex items-center gap-1">
+                      <Clock size={10} /> {recentPost.readTime || '5 min'} de leitura
+                    </span>
+                  </div>
+                  <h5 className="font-extrabold text-white text-sm md:text-base group-hover:text-primary-400 transition-colors leading-snug">
+                    {recentPost.title}
+                  </h5>
+                  <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
+                    {recentPost.description}
+                  </p>
                 </div>
-                <h5 className="font-extrabold text-white text-sm md:text-base group-hover:text-primary-400 transition-colors leading-snug">
-                  5 Estratégias Práticas para Reduzir Faltas e No-Shows de Clientes na sua Agenda
-                </h5>
-                <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
-                  Faltas e cancelamentos de última hora são os maiores vilões do faturamento de profissionais de serviços. Aprenda a blindar sua agenda usando confirmação ativa e sinal Pix.
-                </p>
-              </div>
 
-              <div className="flex items-center gap-1.5 text-primary-400 text-xs font-bold uppercase tracking-wider group-hover:gap-2 transition-all mt-4">
-                Ler Artigo Completo
-                <ChevronRight size={14} className="mt-0.5" />
+                <div className="flex items-center gap-1.5 text-primary-400 text-xs font-bold uppercase tracking-wider group-hover:gap-2 transition-all mt-4">
+                  Ler Artigo Completo
+                  <ChevronRight size={14} className="mt-0.5" />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
