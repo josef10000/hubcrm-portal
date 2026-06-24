@@ -45,8 +45,7 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
     setLoading(true);
     const q = query(
       collection(db, 'blog_posts'),
-      where('status', '==', 'published'),
-      orderBy('createdAt', 'desc')
+      where('status', '==', 'published')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -57,6 +56,18 @@ export default function PortalInsights({ setActiveTab, orgId, clientId }: Portal
           ...doc.data()
         } as RichBlogPost);
       });
+
+      // Ordenar localmente por createdAt desc (Firebase Timestamp ou Date) para evitar erro de índice composto
+      loadedPosts.sort((a, b) => {
+        const dateA = a.createdAt?.seconds 
+          ? a.createdAt.seconds * 1000 
+          : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const dateB = b.createdAt?.seconds 
+          ? b.createdAt.seconds * 1000 
+          : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return dateB - dateA;
+      });
+
       setPosts(loadedPosts);
       setLoading(false);
 
