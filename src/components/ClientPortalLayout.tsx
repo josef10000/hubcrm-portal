@@ -44,6 +44,7 @@ import PortalAgenda from '../views/PortalAgenda';
 import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
+import PortalRecords from '../views/PortalRecords';
 
 const getTabTheme = (tabId: string) => {
   switch (tabId) {
@@ -117,6 +118,16 @@ const getTabTheme = (tabId: string) => {
         glowColor: '14, 165, 233',
         hexStart: '#38bdf8',
         hexEnd: '#0284c7'
+      };
+    case 'records':
+      return {
+        color: 'text-purple-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(168,85,247,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-purple-500/40 from-purple-500/25 to-purple-500/5',
+        mobileColor: 'text-purple-400',
+        mobileIndicator: 'bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.6)]',
+        glowColor: '168, 85, 247',
+        hexStart: '#c084fc',
+        hexEnd: '#a855f7'
       };
     default:
       return {
@@ -314,6 +325,7 @@ export default function ClientPortalLayout() {
     { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
     { id: 'management', label: 'Estoque & Negócio', icon: Package },
     { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
+    { id: 'records', label: 'Prontuários & Fichas', icon: FileText },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
     ] : []),
@@ -663,6 +675,11 @@ export default function ClientPortalLayout() {
                   onViewTicket={handleViewTicket} 
                 />
               )}
+              {activeTab === 'records' && (
+                <PortalRecords 
+                  orgId={orgId || ''} 
+                />
+              )}
               {activeTab === 'profile' && (
                 <PortalProfile 
                   client={client} 
@@ -683,7 +700,7 @@ export default function ClientPortalLayout() {
         onMouseLeave={() => mouseX.set(Infinity)}
         className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] px-6 h-22 items-end pb-3.5 gap-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.6)] select-none transition-all duration-300 hover:border-white/15"
       >
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'services', 'support'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id);
           return (
@@ -875,6 +892,14 @@ export default function ClientPortalLayout() {
                 >
                   <Package size={20} className="text-cyan-400" />
                   <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Estoque & Negócio</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('records'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <FileText size={20} className="text-purple-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Prontuários</span>
                 </button>
 
                 {/* Agenda Settings (Mobile) */}

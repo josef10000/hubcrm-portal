@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
 import { 
@@ -169,6 +169,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [serviceName, setServiceName] = useState('');
   const [serviceDuration, setServiceDuration] = useState(30);
   const [servicePrice, setServicePrice] = useState('');
+  const [serviceCapacity, setServiceCapacity] = useState(1);
   const [servicePixRequired, setServicePixRequired] = useState(false);
   const [servicePixAmount, setServicePixAmount] = useState('');
   const [isSubmittingService, setIsSubmittingService] = useState(false);
@@ -537,6 +538,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         name: serviceName.trim(),
         durationMinutes: Number(serviceDuration),
         price: Number(servicePrice.replace(',', '.')),
+        capacity: Number(serviceCapacity) || 1,
         materials: selectedServiceMaterials,
         isActive: true,
         updatedAt: serverTimestamp(),
@@ -558,6 +560,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       setServiceName('');
       setServicePrice('');
       setServiceDuration(30);
+      setServiceCapacity(1);
       setServicePixRequired(false);
       setServicePixAmount('');
       setEditingServiceId(null);
@@ -577,6 +580,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setServiceName(srv.name);
     setServiceDuration(srv.durationMinutes);
     setServicePrice(srv.price.toString());
+    setServiceCapacity(srv.capacity || 1);
     setServicePixRequired(srv.pixRequired || false);
     setServicePixAmount(srv.pixAmount?.toString() || '');
     setSelectedServiceMaterials(srv.materials || []);
@@ -994,7 +998,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   };
 
   // Gera os slots disponíveis para uma data
-  const getAvailableTimeSlots = (dateStr: string) => {
+  const getAvailableTimeSlots = (dateStr: string, targetServiceId?: string) => {
     if (!dateStr || !expediente || !expediente.businessHours) return [];
 
     const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -1024,14 +1028,47 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       current += interval;
     }
 
+    // Achar o serviço atual sendo agendado
+    const currentService = services.find(s => s.id === targetServiceId);
+    const targetCapacity = currentService?.capacity || 1;
+
     return allSlots.filter(slot => {
-      const hasConflict = appointments.some(app => {
+      // Agendamentos ativos no mesmo dia e horário
+      const apptsAtSlot = appointments.filter(app => {
         if (app.status === 'cancelled') return false;
         if (editingAppointmentId && app.id === editingAppointmentId) return false;
         return app.date === dateStr && app.time === slot;
       });
 
-      return !hasConflict;
+      // Se houver algum bloqueio no horário, está indisponível
+      const hasBlock = apptsAtSlot.some(app => app.serviceId === 'bloqueio');
+      if (hasBlock) return false;
+
+      // Se não houver nenhum agendamento, está totalmente disponível
+      if (apptsAtSlot.length === 0) return true;
+
+      // Se o serviço que está sendo agendado for individual (vagas = 1):
+      // Qualquer agendamento nesse horário impede o agendamento
+      if (targetCapacity === 1) {
+        return false;
+      }
+
+      // Se o serviço que está sendo agendado for coletivo (vagas > 1):
+      // 1. Não pode haver nenhum agendamento de serviço individual (capacity = 1 ou não definido)
+      // 2. Não pode haver nenhum agendamento de um serviço coletivo diferente
+      // 3. O número de agendamentos para o mesmo serviço deve ser menor que a capacidade dele
+      const hasIndividualOrDifferentService = apptsAtSlot.some(app => {
+        const srv = services.find(s => s.id === app.serviceId);
+        const srvCapacity = srv?.capacity || 1;
+        return srvCapacity === 1 || app.serviceId !== targetServiceId;
+      });
+
+      if (hasIndividualOrDifferentService) {
+        return false;
+      }
+
+      const sameServiceApptsCount = apptsAtSlot.filter(app => app.serviceId === targetServiceId).length;
+      return sameServiceApptsCount < targetCapacity;
     });
   };
 
@@ -1170,6 +1207,51 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   };
 
   const appointmentsToday = appointments.filter(app => app.date === selectedDate);
+  const timelineItems = useMemo(() => {
+    const sortedToday = [...appointmentsToday].sort((a, b) => a.time.localeCompare(b.time));
+    const processedIds = new Set<string>();
+    const result: any[] = [];
+
+    sortedToday.forEach(app => {
+      if (processedIds.has(app.id)) return;
+
+      const srv = services.find(s => s.id === app.serviceId);
+      const isColetivo = srv && srv.capacity > 1;
+
+      if (isColetivo && app.serviceId !== 'bloqueio') {
+        const siblings = sortedToday.filter(other => 
+          other.time === app.time && 
+          other.serviceId === app.serviceId && 
+          other.id !== app.id
+        );
+
+        if (siblings.length > 0) {
+          const groupList = [app, ...siblings];
+          groupList.forEach(item => processedIds.add(item.id));
+          result.push({
+            id: `group-${app.time}-${app.serviceId}`,
+            type: 'group',
+            time: app.time,
+            serviceId: app.serviceId,
+            serviceName: app.serviceName || srv.name,
+            service: srv,
+            appointments: groupList
+          });
+          return;
+        }
+      }
+
+      processedIds.add(app.id);
+      result.push({
+        id: app.id,
+        type: 'single',
+        time: app.time,
+        appointment: app
+      });
+    });
+
+    return result;
+  }, [appointmentsToday, services]);
   const todayStrPending = new Date().toISOString().split('T')[0];
   const pendingPublicAppointments = appointments.filter((app: any) => 
     app.origin === 'public_link' && 
@@ -1510,180 +1592,326 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             </div>
           ) : (
             <div className="relative border-l-2 border-primary-500/20 ml-2 pl-4 sm:ml-4 sm:pl-8 space-y-8 py-2">
-              {appointmentsToday.map((app) => (
-                <div key={app.id} className="relative group">
-                  <div className={`absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
-                    app.serviceId === 'bloqueio' ? 'bg-rose-500/50 shadow-none' :
-                    app.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
-                    app.status === 'cancelled' ? 'bg-rose-500' : 
-                    app.status === 'pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 
-                    'bg-primary-500 animate-pulse'
-                  }`} />
+              {timelineItems.map((item) => {
+                if (item.type === 'single') {
+                  const app = item.appointment;
+                  return (
+                    <div key={app.id} className="relative group">
+                      <div className={`absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md transition-colors ${
+                        app.serviceId === 'bloqueio' ? 'bg-rose-500/50 shadow-none' :
+                        app.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                        app.status === 'cancelled' ? 'bg-rose-500' : 
+                        app.status === 'pending' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 
+                        'bg-primary-500 animate-pulse'
+                      }`} />
 
-                  <div className={`bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    app.serviceId === 'bloqueio' ? 'opacity-80 border-rose-500/10 hover:border-rose-500/20 bg-rose-500/[0.02]' : ''
-                  }`}>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-sm font-black text-primary-400 font-mono flex items-center gap-1.5 bg-primary-500/10 px-2.5 py-1 rounded-lg">
-                          <Clock size={12} />
-                          {app.time}
-                        </span>
-                        {app.serviceId === 'bloqueio' ? (
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-rose-500/20 text-rose-400 border-rose-500/30">
-                            BLOQUEADO
-                          </span>
-                        ) : (
-                          <>
-                            {app.paymentStatus === 'signal_pending' && (
-                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse">
-                                SINAL PENDENTE (R$ {app.pixSignalAmount?.toFixed(2).replace('.', ',')})
-                              </span>
-                            )}
-                            {app.paymentStatus === 'signal_paid' && (
-                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-sky-500/20 text-sky-400 border-sky-500/30">
-                                SINAL PAGO
-                              </span>
-                            )}
-                            {app.paymentStatus !== 'signal_pending' && app.paymentStatus !== 'signal_paid' && (
-                              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                                app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                              }`}>
-                                {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
-                              </span>
-                            )}
-                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                              app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                              app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
-                              app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
-                              app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                              'bg-sky-500/20 text-sky-400 border-sky-500/30'
-                            }`}>
-                              {app.status === 'completed' ? 'CONCLUÍDO' :
-                               app.status === 'cancelled' ? 'CANCELADO' :
-                               app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
-                               app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
+                      <div className={`bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                        app.serviceId === 'bloqueio' ? 'opacity-80 border-rose-500/10 hover:border-rose-500/20 bg-rose-500/[0.02]' : ''
+                      }`}>
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-sm font-black text-primary-400 font-mono flex items-center gap-1.5 bg-primary-500/10 px-2.5 py-1 rounded-lg">
+                              <Clock size={12} />
+                              {app.time}
                             </span>
-                            {(() => {
-                              const fidelityCount = getClientFidelityCount(app.clientPhone);
-                              if (fidelityCount > 0) {
-                                return (
-                                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
-                                    ★ Cliente Fiel ({fidelityCount} {fidelityCount === 1 ? 'atendimento' : 'atendimentos'})
+                            {app.serviceId === 'bloqueio' ? (
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-rose-500/20 text-rose-400 border-rose-500/30">
+                                BLOQUEADO
+                              </span>
+                            ) : (
+                              <>
+                                {app.paymentStatus === 'signal_pending' && (
+                                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse">
+                                    SINAL PENDENTE (R$ {app.pixSignalAmount?.toFixed(2).replace('.', ',')})
                                   </span>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </>
-                        )}
-                      </div>
-                      <h3 className="text-base font-bold text-white">{app.clientName}</h3>
-                      {app.serviceId !== 'bloqueio' && (
-                        <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                          <Scissors size={12} className="text-gray-600" />
-                          Serviço: <span className="text-white font-medium">{app.serviceName}</span> &bull; 
-                          <DollarSign size={12} className="text-gray-600 ml-1" /> Valor: <span className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
-                      {/* Botões de Ação Principais */}
-                      {app.serviceId !== 'bloqueio' && (
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                          {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
-                            <button
-                              onClick={() => handleOpenWhatsAppModal(app)}
-                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
-                            >
-                              <Phone size={14} />
-                              Enviar Confirmação
-                            </button>
-                          )}
-
-                          {pixKey && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
-                            <button
-                              onClick={() => handleOpenPixBillingModal(app)}
-                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
-                            >
-                              <DollarSign size={14} />
-                              Cobrar Pix
-                            </button>
-                          )}
-
-                          {app.paymentStatus === 'signal_pending' && app.status !== 'completed' && app.status !== 'cancelled' && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const docRef = doc(db, 'organizations', orgId, 'appointments', app.id);
-                                  await updateDoc(docRef, { paymentStatus: 'signal_paid' });
-                                  toast.success('Sinal Pix confirmado com sucesso!');
-                                } catch (err) {
-                                  toast.error('Erro ao confirmar sinal.');
-                                }
-                              }}
-                              className="flex-1 sm:flex-initial justify-center p-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/20 text-sky-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
-                            >
-                              <Check size={14} />
-                              Confirmar Sinal
-                            </button>
-                          )}
-                          
-                          {app.status !== 'completed' && app.status !== 'cancelled' && (
-                            <>
-                              <button
-                                onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
-                                className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5 cursor-pointer border-0"
-                              >
-                                <Check size={14} />
-                                Finalizar
-                              </button>
-                              <button
-                                onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
-                                className="flex-1 sm:flex-initial justify-center p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
-                              >
-                                <X size={14} />
-                                Cancelar
-                              </button>
-                            </>
-                          )}
-                          {app.status === 'completed' && (
-                            <span className="flex-1 sm:flex-initial justify-center text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
-                              <Check size={14} /> Concluído
-                            </span>
-                          )}
-                          {app.status === 'cancelled' && (
-                            <span className="flex-1 sm:flex-initial justify-center text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
-                              <X size={14} /> Cancelado
-                            </span>
+                                )}
+                                {app.paymentStatus === 'signal_paid' && (
+                                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-sky-500/20 text-sky-400 border-sky-500/30">
+                                    SINAL PAGO
+                                  </span>
+                                )}
+                                {app.paymentStatus !== 'signal_pending' && app.paymentStatus !== 'signal_paid' && (
+                                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                                    app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                  }`}>
+                                    {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
+                                  </span>
+                                )}
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                                  app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                  app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
+                                  app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                                  app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                  'bg-sky-500/20 text-sky-400 border-sky-500/30'
+                                }`}>
+                                  {app.status === 'completed' ? 'CONCLUÍDO' :
+                                   app.status === 'cancelled' ? 'CANCELADO' :
+                                   app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
+                                   app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
+                                </span>
+                                {(() => {
+                                  const fidelityCount = getClientFidelityCount(app.clientPhone);
+                                  if (fidelityCount > 0) {
+                                    return (
+                                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-400 border-amber-500/20 flex items-center gap-1">
+                                        ★ Cliente Fiel ({fidelityCount} {fidelityCount === 1 ? 'atendimento' : 'atendimentos'})
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </>
+                            )}
+                          </div>
+                          <h3 className="text-base font-bold text-white">{app.clientName}</h3>
+                          {app.serviceId !== 'bloqueio' && (
+                            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+                              <Scissors size={12} className="text-gray-600" />
+                              Serviço: <span className="text-white font-medium">{app.serviceName}</span> &bull; 
+                              <DollarSign size={12} className="text-gray-600 ml-1" /> Valor: <span className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
+                            </p>
                           )}
                         </div>
-                      )}
 
-                      {/* Botões de Ação Utilitários */}
-                      <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2 sm:pt-0 sm:border-0 w-full sm:w-auto shrink-0">
-                        <button
-                          onClick={() => handleEditAppointment(app)}
-                          className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
-                          title="Editar agendamento"
-                        >
-                          <Edit2 size={13} className="mr-1 sm:mr-0" />
-                          <span className="sm:hidden text-xs">Editar</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAppointment(app.id)}
-                          className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
-                          title="Excluir agendamento"
-                        >
-                          <Trash2 size={13} className="mr-1 sm:mr-0" />
-                          <span className="sm:hidden text-xs">Excluir</span>
-                        </button>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
+                          {app.serviceId !== 'bloqueio' && (
+                            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                              {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
+                                <button
+                                  onClick={() => handleOpenWhatsAppModal(app)}
+                                  className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
+                                >
+                                  <Phone size={14} />
+                                  Enviar Confirmação
+                                </button>
+                              )}
+
+                              {pixKey && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                                <button
+                                  onClick={() => handleOpenPixBillingModal(app)}
+                                  className="flex-1 sm:flex-initial justify-center p-2.5 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border-0"
+                                >
+                                  <DollarSign size={14} />
+                                  Cobrar Pix
+                                </button>
+                              )}
+
+                              {app.paymentStatus === 'signal_pending' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const docRef = doc(db, 'organizations', orgId, 'appointments', app.id);
+                                      await updateDoc(docRef, { paymentStatus: 'signal_paid' });
+                                      toast.success('Sinal Pix confirmado com sucesso!');
+                                    } catch (err) {
+                                      toast.error('Erro ao confirmar sinal.');
+                                    }
+                                  }}
+                                  className="flex-1 sm:flex-initial justify-center p-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/20 text-sky-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                                >
+                                  <Check size={14} />
+                                  Confirmar Sinal
+                                </button>
+                              )}
+                              
+                              {app.status !== 'completed' && app.status !== 'cancelled' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
+                                    className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 flex items-center gap-1.5 cursor-pointer border-0"
+                                  >
+                                    <Check size={14} />
+                                    Finalizar
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
+                                    className="flex-1 sm:flex-initial justify-center p-2.5 bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                                  >
+                                    <X size={14} />
+                                    Cancelar
+                                  </button>
+                                </>
+                              )}
+                              {app.status === 'completed' && (
+                                <span className="flex-1 sm:flex-initial justify-center text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/20 px-3 py-2 rounded-xl">
+                                  <Check size={14} /> Concluído
+                                </span>
+                              )}
+                              {app.status === 'cancelled' && (
+                                <span className="flex-1 sm:flex-initial justify-center text-rose-400 text-xs font-bold flex items-center gap-1 bg-rose-500/5 border border-rose-500/20 px-3 py-2 rounded-xl">
+                                  <X size={14} /> Cancelado
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2 sm:pt-0 sm:border-0 w-full sm:w-auto shrink-0">
+                            <button
+                              onClick={() => handleEditAppointment(app)}
+                              className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
+                              title="Editar agendamento"
+                            >
+                              <Edit2 size={13} className="mr-1 sm:mr-0" />
+                              <span className="sm:hidden text-xs">Editar</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAppointment(app.id)}
+                              className="p-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 flex-1 sm:flex-initial flex items-center justify-center border-0"
+                              title="Excluir agendamento"
+                            >
+                              <Trash2 size={13} className="mr-1 sm:mr-0" />
+                              <span className="sm:hidden text-xs">Excluir</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                } else {
+                  return (
+                    <div key={item.id} className="relative group">
+                      <div className="absolute -left-[25px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-[#050505] shadow-md bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
+
+                      <div className="bg-purple-500/[0.02] border border-purple-500/10 hover:border-purple-500/20 rounded-2xl p-5 transition-all space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/10 pb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-black text-purple-400 font-mono flex items-center gap-1.5 bg-purple-500/10 px-2.5 py-1 rounded-lg">
+                              <Clock size={12} />
+                              {item.time}
+                            </span>
+                            <h3 className="text-xs font-black text-purple-300 tracking-wide uppercase">Serviço Coletivo</h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-300">{item.serviceName}</span>
+                            <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/30 text-[10px] text-purple-400 rounded-md font-black uppercase tracking-wider">
+                              {item.appointments.length} de {item.service?.capacity || 1} vagas
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {item.appointments.map((app: any) => (
+                            <div key={app.id} className="p-4 bg-black/40 border border-white/5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-bold text-white text-sm">{app.clientName}</h4>
+                                  {app.paymentStatus === 'signal_pending' && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse">
+                                      SINAL PENDENTE (R$ {app.pixSignalAmount?.toFixed(2).replace('.', ',')})
+                                    </span>
+                                  )}
+                                  {app.paymentStatus === 'signal_paid' && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border bg-sky-500/20 text-sky-400 border-sky-500/30">
+                                      SINAL PAGO
+                                    </span>
+                                  )}
+                                  {app.paymentStatus !== 'signal_pending' && app.paymentStatus !== 'signal_paid' && (
+                                    <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                      app.paymentStatus === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                                    }`}>
+                                      {app.paymentStatus === 'paid' ? 'PAGO' : 'NÃO PAGO'}
+                                    </span>
+                                  )}
+                                  <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                    app.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                    app.status === 'cancelled' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
+                                    app.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                                    app.status === 'created' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                                    'bg-sky-500/20 text-sky-400 border-sky-500/30'
+                                  }`}>
+                                    {app.status === 'completed' ? 'CONCLUÍDO' :
+                                     app.status === 'cancelled' ? 'CANCELADO' :
+                                     app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
+                                     app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400">
+                                  Telefone: <span className="text-gray-300 font-medium font-mono">{app.clientPhone}</span> &bull; 
+                                  Valor: <span className="text-gray-300 font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
+                                {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
+                                  <button
+                                    onClick={() => handleOpenWhatsAppModal(app)}
+                                    className="p-2 bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
+                                    title="Enviar Confirmação"
+                                  >
+                                    <Phone size={12} />
+                                  </button>
+                                )}
+                                
+                                {pixKey && app.paymentStatus !== 'paid' && app.paymentMethod !== 'pacote' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                                  <button
+                                    onClick={() => handleOpenPixBillingModal(app)}
+                                    className="p-2 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
+                                    title="Cobrar Pix"
+                                  >
+                                    <DollarSign size={12} />
+                                  </button>
+                                )}
+
+                                {app.paymentStatus === 'signal_pending' && app.status !== 'completed' && app.status !== 'cancelled' && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const docRef = doc(db, 'organizations', orgId, 'appointments', app.id);
+                                        await updateDoc(docRef, { paymentStatus: 'signal_paid' });
+                                        toast.success('Sinal Pix confirmado com sucesso!');
+                                      } catch (err) {
+                                        toast.error('Erro ao confirmar sinal.');
+                                      }
+                                    }}
+                                    className="p-2 bg-sky-500/10 hover:bg-sky-500/25 border border-sky-500/20 text-sky-400 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
+                                    title="Confirmar Sinal"
+                                  >
+                                    <Check size={12} />
+                                  </button>
+                                )}
+
+                                {app.status !== 'completed' && app.status !== 'cancelled' && (
+                                  <>
+                                    <button
+                                      onClick={() => handleUpdateAppointmentStatus(app.id, 'completed')}
+                                      className="px-2 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer border-0 shadow-md shadow-emerald-500/10"
+                                      title="Finalizar"
+                                    >
+                                      <Check size={12} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateAppointmentStatus(app.id, 'cancelled')}
+                                      className="p-2 bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
+                                      title="Cancelar"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </>
+                                )}
+
+                                <button
+                                  onClick={() => handleEditAppointment(app)}
+                                  className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 rounded-lg transition-all cursor-pointer border-0"
+                                  title="Editar"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAppointment(app.id)}
+                                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-all cursor-pointer border-0"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
             </div>
           )
           ) : (
@@ -1827,9 +2055,9 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Duração (minutos)</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Duração</label>
                   <CustomSelect
                     value={serviceDuration}
                     onChange={(val) => setServiceDuration(Number(val))}
@@ -1850,7 +2078,19 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     value={servicePrice}
                     onChange={(e) => setServicePrice(e.target.value)}
                     placeholder="Ex: 85,00"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 font-bold"
+                    className="w-full px-3 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 font-bold"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider" title="Vagas por horário. Use 1 para serviços individuais.">Vagas</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={serviceCapacity}
+                    onChange={(e) => setServiceCapacity(Math.max(1, Number(e.target.value)))}
+                    placeholder="Ex: 1"
+                    className="w-full px-3 py-3 bg-black/40 border border-white/15 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 font-bold"
                     required
                   />
                 </div>
@@ -1976,6 +2216,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       setServiceName('');
                       setServicePrice('');
                       setServiceDuration(30);
+                      setServiceCapacity(1);
                       setServicePixRequired(false);
                       setServicePixAmount('');
                       setSelectedServiceMaterials([]);
@@ -2008,7 +2249,14 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 {services.map((srv) => (
                   <div key={srv.id} className="bg-black/20 border border-white/5 hover:border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 transition-all">
                     <div className="space-y-1 min-w-0">
-                      <h4 className="font-bold text-white truncate text-sm">{srv.name}</h4>
+                      <h4 className="font-bold text-white truncate text-sm flex items-center gap-1.5">
+                        {srv.name}
+                        {srv.capacity > 1 && (
+                          <span className="px-1.5 py-0.5 bg-purple-500/10 border border-purple-500/20 text-[9px] text-purple-400 rounded-md font-bold shrink-0">
+                            Grupo ({srv.capacity} vagas)
+                          </span>
+                        )}
+                      </h4>
                       <p className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
                         <span>{srv.durationMinutes} min</span> &bull; 
                         <span className="text-primary-400 font-bold">R$ {srv.price?.toFixed(2).replace('.', ',')}</span>
@@ -3353,8 +3601,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     onChange={(val) => setNewTime(val)}
                     placeholder="Selecione o horário..."
                     options={[
-                      ...(newDate ? getAvailableTimeSlots(newDate).map(slot => ({ value: slot, label: slot })) : []),
-                      ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate).includes(newTime) 
+                      ...(newDate ? getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).map(slot => ({ value: slot, label: slot })) : []),
+                      ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).includes(newTime) 
                         ? [{ value: newTime, label: `${newTime} (Atual)` }] 
                         : [])
                     ]}

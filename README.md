@@ -22,7 +22,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Clube de Fidelidade Digital (`PortalFidelity.tsx`):** Ativação, parametrização de metas, cores do cartão e descrição de prêmios do cartão fidelidade, e painel de acompanhamento em tempo real do progresso de carimbos acumulados, integrado como sub-aba da Agenda.
 *   **Dedução de Créditos Automatizada:** O sistema debita de forma autônoma 1 sessão do pacote do cliente e registra a movimentação no histórico de visitas quando o atendimento correspondente é finalizado como concluído (`completed`).
 *   **Timeline Interativa & Visão Mensal:** Exibição reativa de compromissos com alternância dinâmica entre a Visão Diária (Timeline) e a Visão Mensal (calendário completo com contagem de agendamentos e indicadores coloridos de status: pendente, confirmado ou agendado).
-*   **Slots de Horários Inteligentes:** Geração de slots de atendimento dinâmicos baseados no expediente e intervalo comercial definidos nas configurações, filtrando conflitos em tempo real, com cache de slots de horários livre em memória local para navegação instantânea.
+*   **Slots de Horários Inteligentes (Serviços Coletivos):** Geração de slots de atendimento dinâmicos baseados no expediente e no tipo de serviço. O sistema suporta **Serviços Coletivos (Vagas em Grupo)** com capacidade máxima configurável (`capacity`). No link de agendamento público, é exibida a quantidade de vagas restantes (Ex: *"Restam 3 vagas"*). A lógica de conflitos previne a sobreposição com serviços individuais.
+*   **Agrupamento Premium de Serviços Coletivos na Timeline:** Na timeline diária do administrador, múltiplos agendamentos do mesmo serviço coletivo no mesmo horário são agrupados automaticamente em um card unificado e elegante de grupo, listando todos os clientes agendados e suas ações individuais para evitar cards encavalados.
 *   **Bloqueio Rápido de Horários:** Atalho para bloquear slots na timeline ("Horário Bloqueado"), impedindo novas reservas no respectivo intervalo.
 *   **Indicador de Fidelidade na Timeline:** Badge que exibe estrelas acumuladas de clientes fiéis baseadas nos atendimentos com status `completed` no Firestore.
 *   **Baixa Automática no Estoque:** Débito automático de materiais do estoque físico e registro de log ao marcar atendimentos como concluídos.
@@ -75,6 +76,13 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Minimal Top Bar (Cabeçalho Superior Fixo):** Exibe a logo do Hub Symples, nome do cliente, seletor minimalista de planos/assinaturas, notificações dinâmicas e menu flutuante do perfil com acessos administrativos.
 *   **Floating Dock Magnético (Desktop):** Dock flutuante premium inspirado no macOS com efeito magnético de zoom parabólico contínuo (os botões e ícones expandem dinamicamente no hover baseados na proximidade do cursor), tooltips de alta legibilidade, mais espaçamento e indicador ativo com transição elástica spring.
 *   **Bottom Bar & Bottom Sheet Gaveta (Mobile):** Barra inferior compacta com 5 botões de navegação e menu deslizante de baixo para cima (drawer/gaveta) contendo acessos secundários e troca de planos.
+
+### 10. 📝 Prontuários & Fichas de Anamnese Customizáveis (`PortalRecords.tsx`)
+*   **Construtor Visual de Templates:** Permite criar e gerenciar modelos personalizados de fichas de anamnese, avaliações físicas e treinos. Suporta perguntas do tipo texto curto, parágrafo, escolha única (Sim/Não) e múltipla escolha com opções dinâmicas.
+*   **Timeline do Histórico do Cliente:** Selecione qualquer cliente da base de dados e confira todo o seu histórico clínico ou estético em uma linha do tempo organizada e reativa.
+*   **Preenchimento de Novas Fichas:** Preencha anamneses para o cliente de forma reativa a partir dos templates de modelos criados na organização.
+*   **Cadastro Rápido de Clientes:** Interface simplificada para cadastrar clientes manualmente, associando-os aos prontuários mesmo antes de possuírem agendamentos.
+*   **Impressão Limpa Otimizada (PDF A4):** Botão de impressão que utiliza folhas no formato A4 e regras CSS de impressão (`@media print`) para gerar prontuários limpos e sem elementos do painel administrativo, ideais para assinatura física do cliente.
 
 ---
 

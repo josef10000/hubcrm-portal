@@ -49,12 +49,12 @@ export default function PortalPublicBooking() {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [slotsCache, setSlotsCache] = useState<Record<string, string[]>>({});
+  const [slotsCache, setSlotsCache] = useState<Record<string, any[]>>({});
   
   // Controle de slots e agendamentos existentes
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [dayAppointments, setDayAppointments] = useState<any[]>([]);
 
   // Estado de Sucesso Final
   const [successBooking, setSuccessBooking] = useState<any>(null);
@@ -204,13 +204,13 @@ export default function PortalPublicBooking() {
   // 2. Sempre que a data escolhida mudar, busca os agendamentos desse dia para descobrir horários ocupados
   useEffect(() => {
     if (!selectedDate || !orgId) {
-      setBookedTimes([]);
+      setDayAppointments([]);
       return;
     }
 
-    const fetchBookedTimes = async () => {
+    const fetchDayAppointments = async () => {
       if (slotsCache[selectedDate]) {
-        setBookedTimes(slotsCache[selectedDate]);
+        setDayAppointments(slotsCache[selectedDate]);
         return;
       }
 
@@ -223,14 +223,18 @@ export default function PortalPublicBooking() {
           where('status', '!=', 'cancelled')
         );
         const snap = await getDocs(q);
-        const times = snap.docs.map(d => d.data().time);
+        const appts = snap.docs.map(d => ({
+          time: d.data().time,
+          serviceId: d.data().serviceId,
+          status: d.data().status
+        }));
         
         setSlotsCache(prev => ({
           ...prev,
-          [selectedDate]: times
+          [selectedDate]: appts
         }));
         
-        setBookedTimes(times);
+        setDayAppointments(appts);
       } catch (e) {
         console.error('Erro ao buscar slots ocupados:', e);
       } finally {
@@ -238,7 +242,7 @@ export default function PortalPublicBooking() {
       }
     };
 
-    fetchBookedTimes();
+    fetchDayAppointments();
   }, [selectedDate, orgId, slotsCache]);
 
   // 3. Calcula e gera slots disponíveis com base no expediente e agendamentos existentes
@@ -262,7 +266,7 @@ export default function PortalPublicBooking() {
     const { open, close } = dayConfig;
     const interval = expediente.slotIntervalMinutes || 30;
 
-    const slots: string[] = [];
+    const slots: any[] = [];
     const [startHour, startMin] = open.split(':').map(Number);
     const [endHour, endMin] = close.split(':').map(Number);
 
@@ -288,16 +292,57 @@ export default function PortalPublicBooking() {
         }
       }
 
-      // Se não for horário passado e não estiver ocupado (bookedTimes)
-      if (!isPast && !bookedTimes.includes(timeStr)) {
-        slots.push(timeStr);
+      if (!isPast) {
+        const targetServiceId = selectedService?.id;
+        const targetCapacity = selectedService?.capacity || 1;
+
+        // Agendamentos ativos nesse slot
+        const apptsAtSlot = dayAppointments.filter(app => app.time === timeStr);
+
+        const hasBlock = apptsAtSlot.some(app => app.serviceId === 'bloqueio');
+        
+        if (!hasBlock) {
+          if (apptsAtSlot.length === 0) {
+            // Horário totalmente livre
+            slots.push({
+              time: timeStr,
+              capacityText: targetCapacity > 1 ? `Restam ${targetCapacity} vagas` : undefined
+            });
+          } else {
+            // Se for individual e tiver agendamentos, está ocupado
+            if (targetCapacity === 1) {
+              // ocupado, não faz nada
+            } else {
+              // Se for coletivo:
+              // 1. Não pode haver serviço individual
+              // 2. Não pode haver serviço coletivo diferente
+              // 3. Reservas do mesmo serviço deve ser menor que a capacidade
+              const hasIndividualOrDifferentService = apptsAtSlot.some(app => {
+                const srv = services.find(s => s.id === app.serviceId);
+                const srvCapacity = srv?.capacity || 1;
+                return srvCapacity === 1 || app.serviceId !== targetServiceId;
+              });
+
+              if (!hasIndividualOrDifferentService) {
+                const sameServiceApptsCount = apptsAtSlot.filter(app => app.serviceId === targetServiceId).length;
+                if (sameServiceApptsCount < targetCapacity) {
+                  const slotsLeft = targetCapacity - sameServiceApptsCount;
+                  slots.push({
+                    time: timeStr,
+                    capacityText: `Restam ${slotsLeft} vagas`
+                  });
+                }
+              }
+            }
+          }
+        }
       }
 
       current.setMinutes(current.getMinutes() + interval);
     }
 
     setAvailableSlots(slots);
-  }, [selectedDate, expediente, bookedTimes]);
+  }, [selectedDate, expediente, dayAppointments, selectedService, services]);
 
   // Busca pacotes ativos do cliente para o serviço selecionado ao digitar o telefone
   useEffect(() => {
@@ -986,21 +1031,33 @@ export default function PortalPublicBooking() {
               ) : availableSlots.length === 0 ? (
                 <p className="text-xs text-gray-500 italic py-2">Não há horários disponíveis para a data selecionada.</p>
               ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                  {availableSlots.map((time) => (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-2 px-3 border rounded-xl text-xs font-mono font-bold transition-all text-center cursor-pointer ${
-                        selectedTime === time 
-                          ? 'bg-primary-500 border-primary-500 text-white shadow-lg shadow-primary-500/20' 
-                          : 'bg-black/20 border-white/5 hover:border-white/10 text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                  {availableSlots.map((slot) => {
+                    const time = typeof slot === 'string' ? slot : slot.time;
+                    const capacityText = typeof slot === 'string' ? null : slot.capacityText;
+                    const isSelected = selectedTime === time;
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setSelectedTime(time)}
+                        className={`py-2.5 px-3 border rounded-xl text-xs font-mono font-bold transition-all text-center cursor-pointer flex flex-col items-center justify-center min-h-[48px] ${
+                          isSelected 
+                            ? 'bg-primary-500 border-primary-500 text-white shadow-lg shadow-primary-500/20' 
+                            : 'bg-black/20 border-white/5 hover:border-white/10 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-xs">{time}</span>
+                        {capacityText && (
+                          <span className={`text-[8px] font-sans font-medium mt-0.5 leading-none transition-colors ${
+                            isSelected ? 'text-white/80' : 'text-gray-500'
+                          }`}>
+                            {capacityText}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
