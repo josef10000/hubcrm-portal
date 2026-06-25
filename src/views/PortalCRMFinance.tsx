@@ -49,7 +49,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   
   // Controle de abas e filtros
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'last_month' | 'all'>('month');
-  const [subTab, setSubTab] = useState<'revenues' | 'expenses' | 'projects'>('revenues');
+  const [subTab, setSubTab] = useState<'revenues' | 'expenses' | 'fixed_expenses' | 'projects'>('revenues');
   const [filterPayment, setFilterPayment] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
@@ -461,7 +461,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
     setExpenseValue('');
     setExpenseCategory('Aluguel');
     setExpenseDate(new Date().toISOString().substring(0, 10));
-    setExpenseType('pontual');
+    setExpenseType(subTab === 'fixed_expenses' ? 'fixo' : 'pontual');
     setExpenseStatus('paid');
     setExpenseAppointmentId('');
     setIsExpenseModalOpen(true);
@@ -683,6 +683,15 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
     } else {
       if (!isDateInPeriod(exp.date)) return false;
     }
+    
+    if (filterPayment === 'paid') return exp.status === 'paid';
+    if (filterPayment === 'unpaid') return exp.status !== 'paid';
+    return true;
+  });
+
+  // Filtragem de Despesas Fixas sem filtro temporal de período
+  const fixedExpensesList = expenses.filter(exp => {
+    if (exp.type !== 'fixo') return false;
     
     if (filterPayment === 'paid') return exp.status === 'paid';
     if (filterPayment === 'unpaid') return exp.status !== 'paid';
@@ -1197,7 +1206,8 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               >
                 <span>
                   {subTab === 'revenues' ? 'Receitas' :
-                   subTab === 'expenses' ? 'Despesas' : 'Lucro por Projeto'}
+                   subTab === 'expenses' ? 'Despesas' :
+                   subTab === 'fixed_expenses' ? 'Despesas Fixas' : 'Lucro por Projeto'}
                 </span>
                 <ChevronDown 
                   size={14} 
@@ -1229,6 +1239,15 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                     </button>
                     <button
                       type="button"
+                      onClick={() => { setSubTab('fixed_expenses'); setFilterPayment('all'); setIsDropdownOpen(false); }}
+                      className={`w-full px-4 py-3 rounded-lg text-left text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
+                        subTab === 'fixed_expenses' ? 'bg-primary-500/15 text-primary-400 font-black' : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                      }`}
+                    >
+                      Despesas Fixas
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => { setSubTab('projects'); setFilterPayment('all'); setIsDropdownOpen(false); }}
                       className={`w-full px-4 py-3 rounded-lg text-left text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer border-0 ${
                         subTab === 'projects' ? 'bg-primary-500/15 text-primary-400 font-black' : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
@@ -1241,7 +1260,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               )}
             </div>
 
-            {/* Seletor de visualização Desktop (Receitas vs Despesas vs Projetos) */}
+            {/* Seletor de visualização Desktop (Receitas vs Despesas vs Despesas Fixas vs Projetos) */}
             <div className="hidden sm:flex p-1 bg-black/40 border border-white/10 rounded-xl w-full sm:w-auto">
               <button
                 type="button"
@@ -1260,6 +1279,15 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 }`}
               >
                 Despesas
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSubTab('fixed_expenses'); setFilterPayment('all'); }}
+                className={`flex-1 sm:flex-initial text-center justify-center px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                  subTab === 'fixed_expenses' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Despesas Fixas
               </button>
               <button
                 type="button"
@@ -1283,8 +1311,8 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
               </button>
             )}
 
-            {/* Botão de Novo Gasto (Apenas na aba Despesas) */}
-            {subTab === 'expenses' && (
+            {/* Botão de Novo Gasto (Apenas nas abas Despesas ou Despesas Fixas) */}
+            {(subTab === 'expenses' || subTab === 'fixed_expenses') && (
               <button
                 onClick={openNewExpenseModal}
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer w-full sm:w-auto"
@@ -1516,6 +1544,90 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                           onClick={() => handleDeleteExpense(exp.id)}
                           className="p-2 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 hover:border-red-500/30 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 inline-flex items-center justify-center"
                           title="Excluir gasto"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+
+        {/* Renderização da Tabela de Despesas Fixas */}
+        {subTab === 'fixed_expenses' && (
+          fixedExpensesList.length === 0 ? (
+            <div className="py-16 text-center bg-black/20 border border-white/5 rounded-2xl">
+              <TrendingDown size={40} className="mx-auto mb-3 text-gray-600" />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nenhuma Despesa Fixa Cadastrada</p>
+              <p className="text-[11px] text-gray-600 mt-1">Registre despesas recorrentes (como aluguel, sistemas, etc.) clicando em "Registrar Gasto" e definindo a frequência como Fixo Mensal.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider font-mono">
+                    <th className="pb-3 font-semibold">Dia de Vencimento</th>
+                    <th className="pb-3 font-semibold">Categoria</th>
+                    <th className="pb-3 font-semibold">Descrição</th>
+                    <th className="pb-3 font-semibold">Valor Contratual</th>
+                    <th className="pb-3 font-semibold">Início do Contrato</th>
+                    <th className="pb-3 font-semibold">Situação</th>
+                    <th className="pb-3 font-semibold text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fixedExpensesList.map((exp) => (
+                    <tr key={exp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 text-xs font-bold font-mono text-white">
+                        Todo dia {new Date(exp.date + 'T12:00:00').getDate()}
+                      </td>
+                      <td className="py-4">
+                        <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                          exp.category === 'Aluguel' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                          exp.category === 'Maquinário' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                          exp.category === 'Ferramentas' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                          exp.category === 'Insumos' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
+                          'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                        }`}>
+                          {exp.category}
+                        </span>
+                      </td>
+                      <td className="py-4 text-xs font-bold text-white">
+                        {exp.description}
+                      </td>
+                      <td className="py-4 text-xs font-bold text-rose-400 font-mono">
+                        R$ {exp.value?.toFixed(2).replace('.', ',')} / mês
+                      </td>
+                      <td className="py-4 text-xs font-medium font-mono text-gray-400">
+                        {exp.date ? new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
+                      </td>
+                      <td className="py-4">
+                        <button
+                          onClick={() => handleToggleExpenseStatus(exp.id, exp.status)}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border cursor-pointer active:scale-95 transition-all ${
+                            exp.status === 'paid' 
+                              ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20' 
+                              : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20'
+                          }`}
+                        >
+                          {exp.status === 'paid' ? 'ATIVO (PAGO)' : 'PENDENTE'}
+                        </button>
+                      </td>
+                      <td className="py-4 text-right space-x-1.5">
+                        <button
+                          onClick={() => openEditExpenseModal(exp)}
+                          className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white rounded-xl transition-all cursor-pointer active:scale-90 inline-flex items-center justify-center"
+                          title="Editar despesa fixa"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExpense(exp.id)}
+                          className="p-2 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 hover:border-red-500/30 text-red-400 hover:text-red-300 rounded-xl transition-all cursor-pointer active:scale-90 inline-flex items-center justify-center"
+                          title="Excluir despesa fixa"
                         >
                           <Trash2 size={13} />
                         </button>
