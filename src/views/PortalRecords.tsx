@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { 
   FileText, Plus, Trash2, Printer, Clock, PlusCircle, Check, List, User, PlusSquare, 
-  ChevronRight, Calendar, X, AlertCircle, FileSpreadsheet, Eye, ChevronDown, CheckSquare, Settings, Edit2
+  ChevronRight, Calendar, X, AlertCircle, FileSpreadsheet, Eye, ChevronDown, CheckSquare, Settings, Edit2, Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
@@ -476,7 +476,7 @@ export default function PortalRecords({ orgId }: PortalRecordsProps) {
           <div>
             <h2 className="text-2xl font-black text-white flex items-center gap-2">
               <FileText className="text-purple-400" size={26} />
-              Prontuários & Fichas
+              Fichas
             </h2>
             <p className="text-xs text-gray-400 mt-1">Gerencie a anamnese, avaliações físicas e prontuários dos seus clientes.</p>
           </div>
@@ -578,6 +578,34 @@ export default function PortalRecords({ orgId }: PortalRecordsProps) {
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">Timeline de anamneses e fichas respondidas.</p>
               </div>
+
+              {selectedClientId && (() => {
+                const currentClient = consolidatedClients.find(c => c.phone.replace(/\D/g, '') === selectedClientId);
+                if (!currentClient) return null;
+                return (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl gap-3 animate-in fade-in duration-200 text-left">
+                    <div className="space-y-1">
+                      <span className="text-[9px] text-purple-400 font-bold uppercase tracking-wider block">Contato do Cliente Selecionado</span>
+                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                        {currentClient.name}
+                        <span className="text-xs text-gray-500 font-mono font-normal">({currentClient.phone})</span>
+                      </h4>
+                      {currentClient.email && (
+                        <p className="text-[10px] text-gray-400">{currentClient.email}</p>
+                      )}
+                    </div>
+                    <a
+                      href={`https://api.whatsapp.com/send?phone=55${currentClient.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer no-underline border-0 hover:scale-[1.02] active:scale-95 text-center shrink-0"
+                    >
+                      <Phone size={12} />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                );
+              })()}
 
               {!selectedClientId ? (
                 <div className="py-20 text-center border border-dashed border-white/10 rounded-[2rem] space-y-2">
