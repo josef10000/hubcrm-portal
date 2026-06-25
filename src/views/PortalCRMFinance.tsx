@@ -1574,7 +1574,6 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                     <th className="pb-3 font-semibold">Descrição</th>
                     <th className="pb-3 font-semibold">Valor Contratual</th>
                     <th className="pb-3 font-semibold">Início do Contrato</th>
-                    <th className="pb-3 font-semibold">Situação</th>
                     <th className="pb-3 font-semibold text-right">Ações</th>
                   </tr>
                 </thead>
@@ -1603,18 +1602,6 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                       </td>
                       <td className="py-4 text-xs font-medium font-mono text-gray-400">
                         {exp.date ? new Date(exp.date + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
-                      </td>
-                      <td className="py-4">
-                        <button
-                          onClick={() => handleToggleExpenseStatus(exp.id, exp.status)}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border cursor-pointer active:scale-95 transition-all ${
-                            exp.status === 'paid' 
-                              ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20' 
-                              : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20'
-                          }`}
-                        >
-                          {exp.status === 'paid' ? 'ATIVO (PAGO)' : 'PENDENTE'}
-                        </button>
                       </td>
                       <td className="py-4 text-right space-x-1.5">
                         <button
@@ -1749,48 +1736,48 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
 
       {/* Modal Glassmorphism de Cadastro e Edição de Gasto */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto py-8 animate-in fade-in duration-200">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative my-auto animate-in fade-in zoom-in duration-300">
             <button
               onClick={() => setIsExpenseModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
 
-            <div className="mb-6 text-left">
-              <h3 className="text-xl font-bold text-white mb-1">
+            <div className="mb-5 text-left">
+              <h3 className="text-lg font-bold text-white mb-0.5">
                 {editingExpenseId ? 'Editar Gasto' : 'Registrar Gasto'}
               </h3>
-              <p className="text-xs text-gray-400 font-medium">
+              <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
                 {editingExpenseId ? 'Ajuste os dados do gasto selecionado.' : 'Informe a saída financeira para ajustar o lucro líquido da empresa.'}
               </p>
             </div>
 
-            <form onSubmit={handleSaveExpense} className="space-y-4 text-left">
+            <form onSubmit={handleSaveExpense} className="space-y-3 text-left">
               {/* Descrição */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição do Gasto</label>
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição do Gasto</label>
                 <input
                   type="text"
                   value={expenseDesc}
                   onChange={(e) => setExpenseDesc(e.target.value)}
                   placeholder="Ex: Compra de insumos capilares"
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                  className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Valor */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor (R$)</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Valor (R$)</label>
                   <input
                     type="text"
                     value={expenseValue}
                     onChange={(e) => setExpenseValue(e.target.value)}
                     placeholder="150,00"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono"
                     required
                   />
                 </div>
@@ -1809,22 +1796,23 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                   />
               </div>
 
-                {/* Tipo de Gasto */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
-                  <CustomSelect
-                    value={expenseType}
-                    onChange={(val) => setExpenseType(val as any)}
-                    options={[
-                      { value: 'pontual', label: 'Gasto Pontual (Único)' },
-                      { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
-                    ]}
-                  />
-                </div>
+              {/* Tipo de Gasto */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
+                <CustomSelect
+                  value={expenseType}
+                  onChange={(val) => setExpenseType(val as any)}
+                  options={[
+                    { value: 'pontual', label: 'Gasto Pontual (Único)' },
+                    { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
+                  ]}
+                />
+              </div>
 
-                {/* Situação */}
+              {/* Situação - Apenas para Gastos Pontuais */}
+              {expenseType === 'pontual' && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
                   <CustomSelect
                     value={expenseStatus}
                     onChange={(val) => setExpenseStatus(val as any)}
@@ -1834,39 +1822,42 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                     ]}
                   />
                 </div>
+              )}
 
               {/* Data (Original de Lançamento ou de início do Gasto Fixo) */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                   {expenseType === 'fixo' ? 'Data de Início do Gasto Fixo' : 'Data do Gasto'}
                 </label>
                 <input
                   type="date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
+                  className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500"
                   required
                 />
                 {expenseType === 'fixo' && (
-                  <p className="text-[9px] text-gray-400 italic mt-0.5">
+                  <p className="text-[8px] text-gray-400 italic mt-0.5 leading-normal">
                     O gasto incidirá automaticamente todo dia {new Date(expenseDate + 'T12:00:00').getDate()} a partir desta data.
                   </p>
                 )}
               </div>
 
-              {/* Vincular a Agendamento (Projeto) */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vincular a Agendamento (Opcional)</label>
-                <CustomSelect
-                  value={expenseAppointmentId}
-                  onChange={(val) => setExpenseAppointmentId(val)}
-                  placeholder="Nenhum (Gasto Geral)"
-                  options={appointments.map(app => ({
-                    value: app.id,
-                    label: `${app.clientName} - ${app.serviceName} (${app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''})`
-                  }))}
-                />
-              </div>
+              {/* Vincular a Agendamento (Projeto) - Apenas para Gastos Pontuais */}
+              {expenseType === 'pontual' && (
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Vincular a Agendamento (Opcional)</label>
+                  <CustomSelect
+                    value={expenseAppointmentId}
+                    onChange={(val) => setExpenseAppointmentId(val)}
+                    placeholder="Nenhum (Gasto Geral)"
+                    options={appointments.map(app => ({
+                      value: app.id,
+                      label: `${app.clientName} - ${app.serviceName} (${app.date ? new Date(app.date + 'T12:00:00').toLocaleDateString('pt-BR') : ''})`
+                    }))}
+                  />
+                </div>
+              )}
 
               {/* Botões de Ação */}
               <div className="flex gap-3 pt-4">
@@ -1902,55 +1893,55 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
 
       {/* Modal Glassmorphism de Cadastro e Edição de Receita */}
       {isRevenueModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto py-8 animate-in fade-in duration-200">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative my-auto animate-in fade-in zoom-in duration-300">
             <button
               onClick={() => setIsRevenueModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
 
-            <div className="mb-6 text-left">
-              <h3 className="text-xl font-bold text-white mb-1">
+            <div className="mb-5 text-left">
+              <h3 className="text-lg font-bold text-white mb-0.5">
                 {editingRevenueId ? 'Editar Receita' : 'Registrar Receita'}
               </h3>
-              <p className="text-xs text-gray-400 font-medium">
+              <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
                 {editingRevenueId ? 'Ajuste os dados da receita selecionada.' : 'Informe a receita financeira para ajustar o faturamento e lucro líquido da empresa.'}
               </p>
             </div>
 
-            <form onSubmit={handleSaveRevenue} className="space-y-4 text-left">
+            <form onSubmit={handleSaveRevenue} className="space-y-3 text-left">
               {/* Descrição */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição da Receita</label>
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição da Receita</label>
                 <input
                   type="text"
                   value={revenueDesc}
                   onChange={(e) => setRevenueDesc(e.target.value)}
                   placeholder="Ex: Consultoria Extra"
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                  className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Valor */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor (R$)</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Valor (R$)</label>
                   <input
                     type="text"
                     value={revenueValue}
                     onChange={(e) => setRevenueValue(e.target.value)}
                     placeholder="150,00"
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono"
                     required
                   />
                 </div>
 
                 {/* Categoria */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Categoria</label>
                   <CustomSelect
                     value={revenueCategory}
                     onChange={(val) => setRevenueCategory(val)}
@@ -1964,22 +1955,23 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                 </div>
               </div>
 
-                {/* Tipo de Receita */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
-                  <CustomSelect
-                    value={revenueType}
-                    onChange={(val) => setRevenueType(val as any)}
-                    options={[
-                      { value: 'pontual', label: 'Receita Pontual (Único)' },
-                      { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
-                    ]}
-                  />
-                </div>
+              {/* Tipo de Receita */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Frequência</label>
+                <CustomSelect
+                  value={revenueType}
+                  onChange={(val) => setRevenueType(val as any)}
+                  options={[
+                    { value: 'pontual', label: 'Receita Pontual (Único)' },
+                    { value: 'fixo', label: 'Fixo Mensal (Recorrente)' }
+                  ]}
+                />
+              </div>
 
-                {/* Situação */}
+              {/* Situação - Apenas para Receitas Pontuais */}
+              {revenueType === 'pontual' && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Situação</label>
                   <CustomSelect
                     value={revenueStatus}
                     onChange={(val) => setRevenueStatus(val as any)}
@@ -1989,21 +1981,22 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
                     ]}
                   />
                 </div>
+              )}
 
               {/* Data */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
                   {revenueType === 'fixo' ? 'Data de Início da Receita Fixa' : 'Data da Receita'}
                 </label>
                 <input
                   type="date"
                   value={revenueDate}
                   onChange={(e) => setRevenueDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500"
+                  className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500"
                   required
                 />
                 {revenueType === 'fixo' && (
-                  <p className="text-[9px] text-gray-400 italic mt-0.5">
+                  <p className="text-[8px] text-gray-400 italic mt-0.5 leading-normal">
                     A receita incidirá automaticamente todo dia {new Date(revenueDate + 'T12:00:00').getDate()} a partir desta data.
                   </p>
                 )}
