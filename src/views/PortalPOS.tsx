@@ -12,6 +12,35 @@ interface PortalPOSProps {
   orgId: string;
 }
 
+// Função utilitária para decodificar metadados no campo name
+const parseNameAndMetadata = (rawName: string) => {
+  let name = rawName || '';
+  let brand = '';
+  let price = 0;
+  let showInPos = false;
+  let sales = 0;
+
+  const metaRegex = /\[(.*?)\]/;
+  const match = name.match(metaRegex);
+  if (match) {
+    const metaString = match[1];
+    name = name.replace(metaRegex, '').trim();
+    
+    const parts = metaString.split('|');
+    parts.forEach(part => {
+      const [key, value] = part.split(':').map(s => s.trim());
+      if (key && value) {
+        if (key === 'brand') brand = value;
+        if (key === 'price') price = Number(value) || 0;
+        if (key === 'pdv') showInPos = value === 'true';
+        if (key === 'sales') sales = Number(value) || 0;
+      }
+    });
+  }
+
+  return { name, brand, price, showInPos, sales };
+};
+
 export default function PortalPOS({ orgId }: PortalPOSProps) {
   const [items, setItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +58,19 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
     const q = query(inventoryRef, orderBy('name', 'asc'));
     
     const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const meta = parseNameAndMetadata(data.name);
+        return {
+          id: d.id,
+          ...data,
+          name: meta.name,
+          brand: meta.brand,
+          price: meta.price,
+          showInPos: meta.showInPos,
+          sales: meta.sales
+        };
+      });
       setItems(list);
       setLoading(false);
     }, (error) => {
@@ -40,9 +81,15 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
     return () => unsub();
   }, [orgId]);
 
-  // Filtra itens favoritos (exibir no PDV) e busca global
-  const posFavorites = items.filter(item => item.showInPos === true);
-  
+  // Filtra itens favoritos (exibir no PDV) + sugestões automáticas baseadas em popularidade (vendas)
+  const manualFavorites = items.filter(item => item.showInPos === true);
+  const autoFavorites = items
+    .filter(item => !item.showInPos && item.sales && item.sales > 0)
+    .sort((a, b) => (b.sales || 0) - (a.sales || 0))
+    .slice(0, 8); // Top 8 mais vendidos não favoritos
+
+  const posFavorites = [...manualFavorites, ...autoFavorites];
+
   const filteredSearchItems = searchQuery.trim() === '' 
     ? [] 
     : items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()) || (item.brand && item.brand.toLowerCase().includes(searchQuery.toLowerCase())));
@@ -75,8 +122,13 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
       const newQty = selectedItem.quantity - sellQuantity;
       const docRef = doc(db, 'organizations', orgId, 'inventory', selectedItem.id);
 
-      // 1. Atualizar estoque
+      // 1. Re-codifica o nome com o contador de vendas (sales) incrementado
+      const newSales = (selectedItem.sales || 0) + sellQuantity;
+      const encodedName = `${selectedItem.name.trim()} [brand: ${(selectedItem.brand || '').trim()} | price: ${selectedItem.price || 0} | pdv: ${selectedItem.showInPos || false} | sales: ${newSales}]`;
+
+      // 2. Atualizar estoque e nome codificado no Firestore
       await updateDoc(docRef, {
+        name: encodedName,
         quantity: newQty,
         updatedAt: serverTimestamp()
       });
@@ -88,7 +140,7 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
 
       await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
         itemId: selectedItem.id,
-        itemName: selectedItem.name,
+        itemName: selectedItem.name, // Salva o nome limpo no log
         type: 'saida',
         quantity: sellQuantity,
         date: serverTimestamp(),
@@ -198,7 +250,7 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
             <Package className="w-12 h-12 text-gray-600 mx-auto" strokeWidth={1} />
             <p className="text-xs text-gray-500 font-bold">Nenhum produto favorito configurado para o PDV.</p>
             <p className="text-[10px] text-gray-500 max-w-md mx-auto">
-              Para cadastrar botões rápidos aqui, edite ou crie produtos no **Estoque de Insumos/Produtos** e marque a opção **"Exibir no PDV"**!
+              Para cadastrar botões rápidos aqui, edite ou crie produtos no **Estoque & Produtos** e marque a opção **"Exibir no PDV"**!
             </p>
           </div>
         ) : (
@@ -216,8 +268,15 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
                       : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:border-primary-500/40 hover:bg-[var(--theme-glass-hover)] hover:-translate-y-1'
                   }`}
                 >
-                  <div className="space-y-1 overflow-hidden w-full">
-                    <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest block truncate">{item.brand || 'Sem Marca'}</span>
+                  <div className="space-y-1 overflow-hidden w-full text-left">
+                    <div className="flex justify-between items-start gap-1 w-full">
+                      <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest block truncate">{item.brand || 'Sem Marca'}</span>
+                      {!item.showInPos && (
+                        <span className="text-[7px] bg-primary-500/10 border border-primary-500/20 text-primary-400 font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0">
+                          Mais Vendido
+                        </span>
+                      )}
+                    </div>
                     <h5 className="text-xs md:text-sm font-black text-white group-hover:text-primary-400 transition-colors line-clamp-2 uppercase leading-snug">{item.name}</h5>
                   </div>
 

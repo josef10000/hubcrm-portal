@@ -24,7 +24,37 @@ interface InventoryItem {
   brand?: string;
   showInPos?: boolean;
   price?: number;
+  sales?: number;
 }
+
+// Função utilitária para codificar/decodificar metadados no campo name
+export const parseNameAndMetadata = (rawName: string) => {
+  let name = rawName || '';
+  let brand = '';
+  let price = 0;
+  let showInPos = false;
+  let sales = 0;
+
+  const metaRegex = /\[(.*?)\]/;
+  const match = name.match(metaRegex);
+  if (match) {
+    const metaString = match[1];
+    name = name.replace(metaRegex, '').trim();
+    
+    const parts = metaString.split('|');
+    parts.forEach(part => {
+      const [key, value] = part.split(':').map(s => s.trim());
+      if (key && value) {
+        if (key === 'brand') brand = value;
+        if (key === 'price') price = Number(value) || 0;
+        if (key === 'pdv') showInPos = value === 'true';
+        if (key === 'sales') sales = Number(value) || 0;
+      }
+    });
+  }
+
+  return { name, brand, price, showInPos, sales };
+};
 
 export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -38,7 +68,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('g');
+  const [unit, setUnit] = useState('un');
   const [minQuantity, setMinQuantity] = useState('');
   const [costPerUnit, setCostPerUnit] = useState('');
   
@@ -65,7 +95,19 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     const q = query(inventoryRef, orderBy('name', 'asc'));
     
     const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const meta = parseNameAndMetadata(data.name);
+        return {
+          id: d.id,
+          ...data,
+          name: meta.name,
+          brand: meta.brand,
+          price: meta.price,
+          showInPos: meta.showInPos,
+          sales: meta.sales
+        } as InventoryItem;
+      });
       setItems(list);
       setLoading(false);
     }, (error) => {
@@ -83,7 +125,16 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     const q = query(logsRef, orderBy('date', 'desc'), limit(30));
     
     const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        // Limpa o nome do item no log se ele contiver metadados codificados
+        const meta = parseNameAndMetadata(data.itemName);
+        return { 
+          id: d.id, 
+          ...data, 
+          itemName: meta.name 
+        };
+      });
       setLogs(list);
     }, (error) => {
       console.error("Erro ao escutar logs de inventário:", error);
@@ -96,7 +147,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     setEditingItemId(null);
     setName('');
     setQuantity('');
-    setUnit('g');
+    setUnit('un');
     setMinQuantity('');
     setCostPerUnit('');
     setBrand('');
@@ -127,15 +178,16 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
 
     setIsSubmitting(true);
     try {
+      // Codifica marca, preço, pdv e sales no próprio campo name, preservando as vendas em caso de edição
+      const currentSales = editingItemId ? (items.find(i => i.id === editingItemId)?.sales || 0) : 0;
+      const encodedName = `${name.trim()} [brand: ${brand.trim()} | price: ${price ? price.replace(',', '.') : '0'} | pdv: ${showInPos} | sales: ${currentSales}]`;
+
       const payload = {
-        name: name.trim(),
+        name: encodedName,
         quantity: Number(quantity),
         unit,
         minQuantity: Number(minQuantity),
         costPerUnit: Number(costPerUnit.replace(',', '.')),
-        brand: brand.trim(),
-        showInPos,
-        price: price ? Number(price.replace(',', '.')) : 0,
         updatedAt: serverTimestamp()
       };
 
@@ -149,7 +201,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         if (diff !== 0) {
           await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
             itemId: editingItemId,
-            itemName: payload.name,
+            itemName: name.trim(), // Salva o nome limpo no log
             type: diff > 0 ? 'entrada' : 'saida',
             quantity: Math.abs(diff),
             date: serverTimestamp(),
@@ -165,7 +217,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
 
         await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
           itemId: docRef.id,
-          itemName: payload.name,
+          itemName: name.trim(), // Salva o nome limpo no log
           type: 'entrada',
           quantity: payload.quantity,
           date: serverTimestamp(),
@@ -175,9 +227,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         toast.success('Produto cadastrado com sucesso!');
       }
       setIsModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Erro ao salvar o produto.');
+      toast.error('Erro ao salvar o produto: ' + (err.message || 'Permissão insuficiente'));
     } finally {
       setIsSubmitting(false);
     }
@@ -338,7 +390,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
             onClick={() => setShowCriticalOnly(!showCriticalOnly)}
             className={`px-5 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border border-0 ${
               showCriticalOnly 
-                ? 'bg-amber-500/15 border-amber-500/35 text-amber-500 font-black' 
+                ? 'bg-amber-500/15 border-amber-500/35 text-amber-400 font-black' 
                 : 'bg-[var(--theme-glass)] border border-[var(--theme-border-subtle)] hover:bg-[var(--theme-glass-hover)] text-gray-500 hover:text-white'
             }`}
           >
@@ -421,9 +473,15 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                       <span className="text-gray-300 font-mono font-bold">{item.minQuantity} {item.unit}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500">Preço de Custo:</span>
+                      <span className="text-gray-500">Custo Unitário:</span>
                       <span className="text-gray-300 font-mono font-bold">
-                        R$ {item.costPerUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {item.costPerUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / {item.unit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Custo do Lote:</span>
+                      <span className="text-gray-400 font-mono text-[11px] font-bold">
+                        R$ {(item.costPerUnit * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -625,7 +683,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (R$) *</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (por {unit}) *</label>
                   <input 
                     type="text" 
                     required
@@ -636,6 +694,16 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   />
                 </div>
               </div>
+
+              {/* Custo total do lote calculado em tempo real */}
+              {Number(quantity) > 0 && Number(costPerUnit.replace(',', '.')) > 0 && (
+                <div className="bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
+                  <span>Custo Total do Lote ({quantity} {unit}):</span>
+                  <span className="font-mono text-white text-xs">
+                    R$ {(Number(quantity) * Number(costPerUnit.replace(',', '.'))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
 
               {/* Preço de Venda e Checkbox PDV */}
               <div className="grid grid-cols-2 gap-4 text-left items-end">

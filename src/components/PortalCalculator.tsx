@@ -17,6 +17,35 @@ import {
   calculateNetProfit
 } from '../utils/calculations';
 
+// Função utilitária para decodificar metadados no campo name
+const parseNameAndMetadata = (rawName: string) => {
+  let name = rawName || '';
+  let brand = '';
+  let price = 0;
+  let showInPos = false;
+  let sales = 0;
+
+  const metaRegex = /\[(.*?)\]/;
+  const match = name.match(metaRegex);
+  if (match) {
+    const metaString = match[1];
+    name = name.replace(metaRegex, '').trim();
+    
+    const parts = metaString.split('|');
+    parts.forEach(part => {
+      const [key, value] = part.split(':').map(s => s.trim());
+      if (key && value) {
+        if (key === 'brand') brand = value;
+        if (key === 'price') price = Number(value) || 0;
+        if (key === 'pdv') showInPos = value === 'true';
+        if (key === 'sales') sales = Number(value) || 0;
+      }
+    });
+  }
+
+  return { name, brand, price, showInPos, sales };
+};
+
 interface PortalCalculatorProps {
   orgId: string;
 }
@@ -62,7 +91,15 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
     const inventoryRef = collection(db, 'organizations', orgId, 'inventory');
     const q = query(inventoryRef, orderBy('name', 'asc'));
     const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const meta = parseNameAndMetadata(data.name);
+        return {
+          id: d.id,
+          ...data,
+          name: meta.name
+        } as InventoryItem;
+      });
       setInventory(list);
     });
     return () => unsub();

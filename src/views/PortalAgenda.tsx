@@ -16,6 +16,7 @@ import PortalPackages from '../components/PortalPackages';
 import PortalFidelity from '../components/PortalFidelity';
 import { generateStaticPix } from '../lib/pix';
 import { uploadToCloudinary } from '../lib/cloudinary';
+import { parseNameAndMetadata } from '../components/PortalInventory';
 
 interface PortalAgendaProps {
   orgId: string;
@@ -414,7 +415,19 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     if (!orgId) return;
     const inventoryRef = collection(db, 'organizations', orgId, 'inventory');
     const unsub = onSnapshot(inventoryRef, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const meta = parseNameAndMetadata(data.name);
+        return {
+          id: d.id,
+          ...data,
+          name: meta.name,
+          brand: meta.brand,
+          price: meta.price,
+          showInPos: meta.showInPos,
+          sales: meta.sales
+        };
+      });
       setInventory(list);
     }, (error) => {
       console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler inventory na Agenda em:", inventoryRef.path, error);

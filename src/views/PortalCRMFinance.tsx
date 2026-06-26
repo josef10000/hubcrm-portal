@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import ConfirmModal from '../components/ConfirmModal';
 import CustomSelect from '../components/CustomSelect';
+import { parseNameAndMetadata } from '../components/PortalInventory';
 
 interface PortalCRMFinanceProps {
   orgId: string;
@@ -191,7 +192,19 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
     if (!orgId) return;
     const inventoryRef = collection(db, 'organizations', orgId, 'inventory');
     const unsub = onSnapshot(inventoryRef, (snapshot) => {
-      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snapshot.docs.map(d => {
+        const data = d.data() as any;
+        const meta = parseNameAndMetadata(data.name);
+        return {
+          id: d.id,
+          ...data,
+          name: meta.name,
+          brand: meta.brand,
+          price: meta.price,
+          showInPos: meta.showInPos,
+          sales: meta.sales
+        };
+      });
       setInventory(list);
     });
     return () => unsub();
