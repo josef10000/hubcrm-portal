@@ -23,10 +23,12 @@ import {
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
 import { generateStaticPix } from '../lib/pix';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function PortalPublicBooking() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
+  usePublicTheme(); // Sincroniza o tema do portal com esta página pública
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

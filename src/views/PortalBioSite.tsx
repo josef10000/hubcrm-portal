@@ -18,12 +18,14 @@ import {
   X,
   Gift
 } from 'lucide-react';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function PortalBioSite() {
   const { orgId } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClientId = searchParams.get('clientId');
+  usePublicTheme(); // Sincroniza o tema do portal com esta página pública
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

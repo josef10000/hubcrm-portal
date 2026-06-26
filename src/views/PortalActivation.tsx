@@ -4,8 +4,10 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { toast, Toaster } from 'sonner';
 import { Key, Globe, Loader2, ShieldAlert, LogOut } from 'lucide-react';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function PortalActivation() {
+  usePublicTheme();
   const navigate = useNavigate();
   const [activationCode, setActivationCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -95,15 +97,15 @@ export default function PortalActivation() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center select-none font-sans">
+      <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center select-none font-sans">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mb-4"></div>
-        <p className="text-gray-400 font-medium animate-pulse">Verificando conta...</p>
+        <p className="text-[var(--theme-text-secondary)] font-medium animate-pulse">Verificando conta...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans select-none text-[var(--theme-text-primary)]">
       <Toaster position="top-right" richColors />
       
       {/* Orbes Decorativas */}
@@ -120,30 +122,30 @@ export default function PortalActivation() {
               <Globe className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">PORTAL HUB</h1>
-          <p className="text-gray-400 text-xs mt-1 uppercase tracking-[0.2em] font-bold">Ativação de Área Restrita</p>
+          <h1 className="text-2xl md:text-3xl font-black text-[var(--theme-text-primary)] tracking-tight">PORTAL HUB</h1>
+          <p className="text-[var(--theme-text-secondary)] text-xs mt-1 uppercase tracking-[0.2em] font-bold">Ativação de Área Restrita</p>
         </div>
 
-        <div className="bg-white/[0.03] backdrop-blur-[35px] border border-white/10 p-8 rounded-[2.5rem] shadow-2xl space-y-6 text-left">
-          <div className="space-y-2 text-center pb-2 border-b border-white/5">
+        <div className="bg-[var(--theme-glass)] backdrop-blur-[35px] border border-[var(--theme-border)] p-8 rounded-[2.5rem] shadow-2xl space-y-6 text-left">
+          <div className="space-y-2 text-center pb-2 border-b border-[var(--theme-border-subtle)]">
             <div className="w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400 mb-3">
               <Key size={22} className="animate-pulse" />
             </div>
-            <h2 className="text-lg font-bold text-white">Insira o Código Único</h2>
-            <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+            <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">Insira o Código Único</h2>
+            <p className="text-xs text-[var(--theme-text-secondary)] max-w-xs mx-auto leading-relaxed">
               Sua conta <strong>{currentUser?.email}</strong> está logada, mas ainda não está associada a nenhuma empresa. Cole o código fornecido pelo suporte.
             </p>
           </div>
 
           <form onSubmit={handleActivation} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Código de Ativação</label>
+              <label className="text-[10px] font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider">Código de Ativação</label>
               <input
                 type="text"
                 value={activationCode}
                 onChange={(e) => setActivationCode(e.target.value)}
                 placeholder="Ex: HUB-A5B2C3"
-                className="w-full px-4 py-3.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-center font-mono font-bold tracking-widest text-lg outline-none transition-all placeholder-gray-700 focus:ring-1 focus:ring-primary-500 uppercase"
+                className="w-full px-4 py-3.5 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] hover:border-[var(--theme-border)]/80 focus:border-primary-500 text-[var(--theme-text-primary)] rounded-xl text-center font-mono font-bold tracking-widest text-lg outline-none transition-all placeholder-gray-700 focus:ring-1 focus:ring-primary-500 uppercase"
                 required
               />
             </div>
@@ -167,9 +169,9 @@ export default function PortalActivation() {
             </button>
           </form>
 
-          <div className="pt-2 flex justify-between items-center text-xs text-gray-500">
+          <div className="pt-2 flex justify-between items-center text-xs text-[var(--theme-text-tertiary)]">
             <div className="flex items-center gap-1">
-              <ShieldAlert size={14} className="text-gray-600" />
+              <ShieldAlert size={14} className="text-[var(--theme-text-tertiary)]" />
               <span>Precisa de ajuda? Fale com o suporte</span>
             </div>
             <button
@@ -182,7 +184,7 @@ export default function PortalActivation() {
           </div>
         </div>
 
-        <p className="text-gray-600 text-[10px] uppercase tracking-widest font-medium">
+        <p className="text-[var(--theme-text-tertiary)] text-[10px] uppercase tracking-widest font-medium">
           Portal Hub &copy; 2026 - Área Restrita
         </p>
       </div>

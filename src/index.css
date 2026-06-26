@@ -18,74 +18,174 @@
   --color-accent-error: var(--color-error);
 }
 
+/* ============================================================
+   DARK MODE (Padrão)
+   ============================================================ */
 @layer base {
   :root {
-    --primary-300: #fcd34d; /* amber-300 */
-    --primary-400: #fbbf24; /* amber-400 */
-    --primary-500: #f97316; /* orange-500 */
-    --primary-600: #ea580c; /* orange-600 */
+    --primary-300: #fcd34d;
+    --primary-400: #fbbf24;
+    --primary-500: #f97316;
+    --primary-600: #ea580c;
     
-    --surface-bg: #030712; /* Fundo escuro premium como padrão */
+    /* Superfícies */
+    --surface-bg: #030712;
     --surface-elevated: #0f172a;
     --surface-glass: rgba(15, 23, 42, 0.7);
+
+    /* Texto */
     --text-main: #f3f4f6;
     --text-muted: #9ca3af;
-    
+    --text-subtle: #6b7280;
+
+    /* Semânticas globais de tema */
+    --theme-bg: #050709;
+    --theme-bg-secondary: #0a0c10;
+    --theme-glass: rgba(255, 255, 255, 0.04);
+    --theme-glass-hover: rgba(255, 255, 255, 0.07);
+    --theme-glass-strong: rgba(10, 12, 16, 0.85);
+    --theme-border: rgba(255, 255, 255, 0.08);
+    --theme-border-subtle: rgba(255, 255, 255, 0.05);
+    --theme-text-primary: #f3f4f6;
+    --theme-text-secondary: #9ca3af;
+    --theme-text-tertiary: #6b7280;
+    --theme-input-bg: rgba(0, 0, 0, 0.2);
+    --theme-input-text: #ffffff;
+    --theme-select-bg: #030712;
+    --theme-select-text: #ffffff;
+    --theme-scrollbar: rgba(249, 115, 22, 0.25);
+    --theme-scrollbar-hover: rgba(249, 115, 22, 0.45);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.15);
+    --theme-shadow: rgba(0, 0, 0, 0.6);
+    --theme-overlay: rgba(0, 0, 0, 0.75);
+
+    /* Gradientes de fundo */
+    --theme-glow-primary: rgba(249, 115, 22, 0.10);
+    --theme-glow-secondary: rgba(59, 130, 246, 0.10);
+
     --color-success: #10b981;
     --color-warning: #f59e0b;
     --color-error: #ef4444;
 
-    background-color: var(--surface-bg);
-    color: var(--text-main);
+    background-color: var(--theme-bg);
+    color: var(--theme-text-primary);
   }
 
-  /* Global Selects & Inputs for Premium Dark Look */
-  select, select option {
-    background-color: #030712 !important;
-    color: #ffffff !important;
+  /* ============================================================
+     LIGHT MODE — Sobrescreve variáveis de tema
+     Glassmorphism claro: fundo warm-off-white, vidro branco
+     ============================================================ */
+  html.light {
+    --surface-bg: #f1ede8;
+    --surface-elevated: #ffffff;
+    --surface-glass: rgba(255, 255, 255, 0.65);
+
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --text-subtle: #9ca3af;
+
+    --theme-bg: #f0ece6;
+    --theme-bg-secondary: #ffffff;
+    --theme-glass: rgba(255, 255, 255, 0.60);
+    --theme-glass-hover: rgba(255, 255, 255, 0.80);
+    --theme-glass-strong: rgba(255, 255, 255, 0.92);
+    --theme-border: rgba(0, 0, 0, 0.07);
+    --theme-border-subtle: rgba(0, 0, 0, 0.04);
+    --theme-text-primary: #111827;
+    --theme-text-secondary: #4b5563;
+    --theme-text-tertiary: #9ca3af;
+    --theme-input-bg: rgba(255, 255, 255, 0.7);
+    --theme-input-text: #111827;
+    --theme-select-bg: #ffffff;
+    --theme-select-text: #111827;
+    --theme-scrollbar: rgba(249, 115, 22, 0.30);
+    --theme-scrollbar-hover: rgba(249, 115, 22, 0.55);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.05);
+    --theme-shadow: rgba(0, 0, 0, 0.12);
+    --theme-overlay: rgba(0, 0, 0, 0.40);
+
+    --theme-glow-primary: rgba(249, 115, 22, 0.08);
+    --theme-glow-secondary: rgba(59, 130, 246, 0.06);
+
+    background-color: var(--theme-bg);
+    color: var(--theme-text-primary);
   }
-  
+
+  /* Inputs/Textareas */
   input, textarea {
-    background-color: rgba(0, 0, 0, 0.2);
-    color: #ffffff;
+    background-color: var(--theme-input-bg);
+    color: var(--theme-input-text);
+  }
+
+  /* Selects */
+  select, select option {
+    background-color: var(--theme-select-bg) !important;
+    color: var(--theme-select-text) !important;
   }
 }
 
 @layer utilities {
-  /* Global Scrollbar Styling */
+  /* ============================================================
+     UTILITÁRIOS DE TEMA — Uso interno nos componentes
+     ============================================================ */
+  .theme-bg { background-color: var(--theme-bg); }
+  .theme-bg-secondary { background-color: var(--theme-bg-secondary); }
+  .theme-glass { background-color: var(--theme-glass); }
+  .theme-glass-hover:hover { background-color: var(--theme-glass-hover); }
+  .theme-text-primary { color: var(--theme-text-primary); }
+  .theme-text-secondary { color: var(--theme-text-secondary); }
+  .theme-border { border-color: var(--theme-border); }
+
+  /* Transição global suave de tema */
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Exceções: elementos que NÃO devem ter transição lenta (ex: animações Framer) */
+  .no-theme-transition,
+  .no-theme-transition * {
+    transition: none !important;
+  }
+
+  /* ============================================================
+     SCROLLBAR 
+     ============================================================ */
   *::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   *::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--theme-scrollbar-track);
   }
   *::-webkit-scrollbar-thumb {
-    background-color: rgba(249, 115, 22, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    background-color: var(--theme-scrollbar);
+    border: 1px solid var(--theme-border-subtle);
     border-radius: 20px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(249, 115, 22, 0.45);
+    background-color: var(--theme-scrollbar-hover);
   }
 
-  /* Specific class for finer control if needed */
   .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--theme-scrollbar-track);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(249, 115, 22, 0.3);
+    background-color: var(--theme-scrollbar);
     border-radius: 20px;
   }
   .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(249, 115, 22, 0.5);
+    background-color: var(--theme-scrollbar-hover);
   }
 
-  /* Card Premium Hover Glow Effect */
+  /* ============================================================
+     CARDS PREMIUM  
+     ============================================================ */
   .premium-card-hover {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
@@ -93,15 +193,17 @@
     transform: translateY(-4px) !important;
     box-shadow: 0 16px 40px -15px rgba(249, 115, 22, 0.12), 0 0 24px -4px rgba(249, 115, 22, 0.04) !important;
     border-color: rgba(249, 115, 22, 0.25) !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: var(--theme-glass-hover) !important;
   }
 
-  /* Soft Background Glow */
+  /* Glow suave primário */
   .soft-glow-primary {
     background: radial-gradient(circle at center, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0) 70%);
   }
 
-  /* Force premium look on selects across browsers */
+  /* ============================================================
+     SELECT — Forçar aparência premium
+     ============================================================ */
   select {
     appearance: none;
     -webkit-appearance: none;
@@ -111,7 +213,9 @@
     background-size: 1.5em;
   }
 
-  /* Utility to hide scrollbars - Forceful */
+  /* ============================================================
+     SCROLLBAR OCULTA
+     ============================================================ */
   .no-scrollbar::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -121,23 +225,79 @@
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
-
   aside *::-webkit-scrollbar, .no-scrollbar *::-webkit-scrollbar {
     display: none !important;
   }
 
-  /* Garantia de Contraste Global - Elementos Selecionados e Botões Primários */
+  /* ============================================================
+     CONTRASTE — Botões primários sempre com texto branco
+     ============================================================ */
   .bg-primary-500,
   [class*="bg-primary-500"] {
     color: #ffffff !important;
   }
-
   .bg-primary-500 *,
   [class*="bg-primary-500"] * {
     color: #ffffff !important;
   }
+
+  /* ============================================================
+     LIGHT MODE — Ajustes específicos de legibilidade
+     ============================================================ */
+  html.light .text-white {
+    color: var(--theme-text-primary) !important;
+  }
+  html.light .text-gray-100,
+  html.light .text-gray-200 {
+    color: #1f2937 !important;
+  }
+  html.light .text-gray-300 {
+    color: #374151 !important;
+  }
+  html.light .text-gray-400 {
+    color: #6b7280 !important;
+  }
+  html.light .text-gray-500 {
+    color: #9ca3af !important;
+  }
+
+  /* Fundos escuros → vidro claro */
+  html.light .bg-\[\#050505\],
+  html.light .bg-\[\#050709\],
+  html.light .bg-\[\#030712\],
+  html.light .bg-\[\#0a0c10\],
+  html.light .bg-\[\#07090c\] {
+    background-color: var(--theme-bg-secondary) !important;
+  }
+
+  /* Glassmorphism escuro → claro */
+  html.light .bg-white\/5 { background-color: rgba(255,255,255,0.60) !important; }
+  html.light .bg-white\/\[0\.03\],
+  html.light .bg-white\/3 { background-color: rgba(255,255,255,0.50) !important; }
+  html.light .bg-black\/30 { background-color: rgba(255,255,255,0.55) !important; }
+  html.light .bg-black\/40 { background-color: rgba(255,255,255,0.60) !important; }
+  html.light .bg-black\/50 { background-color: rgba(255,255,255,0.65) !important; }
+  html.light .bg-black\/60 { background-color: rgba(255,255,255,0.70) !important; }
+  html.light .bg-black\/75,
+  html.light .bg-black\/85 { background-color: rgba(250,248,245,0.92) !important; }
+
+  /* Bordas */
+  html.light .border-white\/5  { border-color: rgba(0,0,0,0.05) !important; }
+  html.light .border-white\/10 { border-color: rgba(0,0,0,0.08) !important; }
+  html.light .border-white\/15 { border-color: rgba(0,0,0,0.10) !important; }
+  html.light .border-white\/20 { border-color: rgba(0,0,0,0.12) !important; }
+
+  /* Header / Navbar fixos */
+  html.light .backdrop-blur-xl,
+  html.light .backdrop-blur-2xl {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
 }
 
+/* ============================================================
+   IMPRESSÃO
+   ============================================================ */
 @media print {
   nav, aside, header {
     display: none !important;

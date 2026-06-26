@@ -84,6 +84,10 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Cadastro Rápido de Clientes:** Interface simplificada para cadastrar clientes manualmente, associando-os aos prontuários mesmo antes de possuírem agendamentos.
 *   **Impressão Limpa Otimizada (PDF A4):** Botão de impressão que utiliza folhas no formato A4 e regras CSS de impressão (`@media print`) para gerar prontuários limpos e sem elementos do painel administrativo, ideais para assinatura física do cliente.
 
+### 11. ☀️ Modo Claro Elegante (Light Mode)
+*   **Design Premium e Suave:** Um modo claro que não inverte as cores por alto contraste, mas que mantém o DNA estético do portal, apresentando um fundo em gradiente off-white/warm-cream (`#f0ece6`), elementos em vidro branco translúcido (*glassmorphism* com `backdrop-blur`) e tipografia escura de alto requinte.
+*   **Sincronização com Páginas Públicas:** Ao alterar o tema no painel autenticado, todas as páginas públicas acessadas pelo cliente final (como Agendamento Público, Confirmar Presença, BioSite, Pagamento Pix e tela de Ativação) se ajustam e acompanham a preferência do tema automaticamente e em tempo real via localStorage broadcast.
+
 ---
 
 ## 🛠️ Stack Tecnológica

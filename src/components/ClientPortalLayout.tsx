@@ -23,8 +23,11 @@ import {
   Video,
   Settings,
   BookOpen,
-  Package
+  Package,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../lib/ThemeContext';
 import { usePortalData } from '../hooks/usePortalData';
 import { usePortalSupport } from '../hooks/usePortalSupport';
 import PortalGrowthHub from '../views/PortalGrowthHub';
@@ -145,6 +148,7 @@ const getTabTheme = (tabId: string) => {
 export default function ClientPortalLayout() {
   const { orgId, clientId } = useParams<{ orgId: string; clientId: string }>();
   const navigate = useNavigate();
+  const { theme, toggleTheme, isLight } = useTheme();
 
   // Salva o token da URL no localStorage para persistencia e limpa a URL para maior segurança
   useEffect(() => {
@@ -394,17 +398,29 @@ export default function ClientPortalLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans relative">
+    <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: 'var(--theme-bg)', color: 'var(--theme-text-primary)' }}>
       <Toaster position="top-right" theme="dark" />
       
       {/* Background Gradients */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px]" />
+        <div 
+          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px]"
+          style={{ backgroundColor: isLight ? 'rgba(249,115,22,0.06)' : 'rgba(249,115,22,0.10)' }}
+        />
+        <div 
+          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px]"
+          style={{ backgroundColor: isLight ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.10)' }}
+        />
       </div>
 
       {/* Minimal Top Bar (Desktop & Mobile) */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-[#05070a]/60 backdrop-blur-xl border-b border-white/10 z-40 flex items-center justify-between px-6 md:px-10 select-none">
+      <header 
+        className="fixed top-0 left-0 right-0 h-16 backdrop-blur-xl z-40 flex items-center justify-between px-6 md:px-10 select-none"
+        style={{
+          backgroundColor: isLight ? 'rgba(240,236,230,0.85)' : 'rgba(5,7,10,0.60)',
+          borderBottom: `1px solid var(--theme-border)`
+        }}
+      >
         {/* Esquerda: Logo e Nome do Cliente */}
         <div id="tour-logo" className="flex items-center gap-3">
           <img 
@@ -414,8 +430,8 @@ export default function ClientPortalLayout() {
             onClick={() => setActiveTab('home')}
           />
           <div className="flex flex-col text-left">
-            <span className="font-black text-base lg:text-sm leading-none tracking-tight">Portal <span className="text-primary-500">Hub</span></span>
-            <span className="text-[11px] lg:text-[10px] text-gray-500 mt-0.5 max-w-[150px] md:max-w-none truncate">{client.name}</span>
+            <span className="font-black text-base lg:text-sm leading-none tracking-tight" style={{ color: 'var(--theme-text-primary)' }}>Portal <span className="text-primary-500">Hub</span></span>
+            <span className="text-[11px] lg:text-[10px] mt-0.5 max-w-[150px] md:max-w-none truncate" style={{ color: 'var(--theme-text-tertiary)' }}>{client.name}</span>
           </div>
         </div>
 
@@ -462,14 +478,56 @@ export default function ClientPortalLayout() {
             </div>
           )}
 
+          {/* Toggle Tema Sol/Lua */}
+          <motion.button
+            onClick={toggleTheme}
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            className="relative p-2 rounded-xl transition-all group cursor-pointer overflow-hidden"
+            style={{ 
+              backgroundColor: isLight ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${isLight ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.08)'}`
+            }}
+            title={isLight ? 'Mudar para Modo Escuro' : 'Mudar para Modo Claro'}
+            aria-label="Alternar tema"
+          >
+            <AnimatePresence mode="wait">
+              {isLight ? (
+                <motion.div
+                  key="moon"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Moon size={16} className="text-primary-500" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="sun"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Sun size={16} className="text-amber-400" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+
           {/* Notificações (Sininho) */}
           <button 
             id="tour-notifications"
             onClick={() => setActiveTab(client && !client.isCourtesy ? 'support' : 'home')}
-            className="relative p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group cursor-pointer"
+            className="relative p-2 rounded-xl transition-all group cursor-pointer"
+            style={{
+              backgroundColor: 'var(--theme-glass)',
+              border: `1px solid var(--theme-border-subtle)`
+            }}
             title={announcement ? "Ver Comunicados" : "Atendimento"}
           >
-            <Bell size={16} className="text-gray-400 group-hover:text-white" />
+            <Bell size={16} style={{ color: 'var(--theme-text-secondary)' }} className="group-hover:text-white transition-colors" />
             {(announcement || hasUnreadSupport) && (
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
             )}
@@ -497,10 +555,13 @@ export default function ClientPortalLayout() {
               {isProfileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-45" onClick={() => setIsProfileDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-[#0a0c10]/95 border border-white/10 backdrop-blur-2xl rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="px-3 py-2 text-left border-b border-white/5 mb-1 pb-2">
-                      <p className="text-xs font-bold text-white truncate">{userProfile?.displayName || userProfile?.name || client.name}</p>
-                      <p className="text-[9px] text-gray-500 truncate lowercase">{userProfile?.email || client.email}</p>
+                  <div 
+                    className="absolute right-0 top-full mt-2 w-56 backdrop-blur-2xl rounded-2xl p-1.5 shadow-2xl z-50 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150"
+                    style={{ backgroundColor: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(10,12,16,0.95)', border: `1px solid var(--theme-border)` }}
+                  >
+                    <div className="px-3 py-2 text-left mb-1 pb-2" style={{ borderBottom: `1px solid var(--theme-border-subtle)` }}>
+                      <p className="text-xs font-bold truncate" style={{ color: 'var(--theme-text-primary)' }}>{userProfile?.displayName || userProfile?.name || client.name}</p>
+                      <p className="text-[9px] truncate lowercase" style={{ color: 'var(--theme-text-tertiary)' }}>{userProfile?.email || client.email}</p>
                     </div>
 
                     <button 
@@ -698,7 +759,12 @@ export default function ClientPortalLayout() {
         id="tour-dock" 
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
-        className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 bg-[#0a0c10]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] px-6 h-22 items-end pb-3.5 gap-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.6)] select-none transition-all duration-300 hover:border-white/15"
+        className="hidden lg:flex fixed bottom-6 left-1/2 -translate-y-0 -translate-x-1/2 z-40 backdrop-blur-2xl rounded-[2rem] px-6 h-22 items-end pb-3.5 gap-3.5 select-none transition-all duration-300"
+        style={{
+          backgroundColor: isLight ? 'rgba(255,255,255,0.80)' : 'rgba(10,12,16,0.80)',
+          border: `1px solid var(--theme-border)`,
+          boxShadow: isLight ? '0 15px 50px rgba(0,0,0,0.08)' : '0 15px 50px rgba(0,0,0,0.6)'
+        }}
       >
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
@@ -718,7 +784,13 @@ export default function ClientPortalLayout() {
       </nav>
 
       {/* 2. Mobile Bottom Navigation Bar (Mobile Only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-black/85 backdrop-blur-2xl border-t border-white/10 z-40 flex items-center justify-around px-2 pb-safe select-none">
+      <nav 
+        className="lg:hidden fixed bottom-0 left-0 right-0 h-16 backdrop-blur-2xl z-40 flex items-center justify-around px-2 pb-safe select-none"
+        style={{
+          backgroundColor: isLight ? 'rgba(250,248,245,0.92)' : 'rgba(0,0,0,0.85)',
+          borderTop: `1px solid var(--theme-border)`
+        }}
+      >
         {[
           { id: 'home', label: 'Home', icon: LayoutDashboard },
           { id: 'agenda', label: 'Agenda', icon: Calendar },
@@ -786,7 +858,11 @@ export default function ClientPortalLayout() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="fixed bottom-0 left-0 right-0 bg-[#07090c]/95 border-t border-white/10 rounded-t-[2.5rem] z-50 p-6 flex flex-col gap-6 lg:hidden max-h-[85vh] overflow-y-auto select-none pb-8"
+              className="fixed bottom-0 left-0 right-0 rounded-t-[2.5rem] z-50 p-6 flex flex-col gap-6 lg:hidden max-h-[85vh] overflow-y-auto select-none pb-8"
+              style={{
+                backgroundColor: isLight ? 'rgba(250,248,245,0.97)' : 'rgba(7,9,12,0.95)',
+                borderTop: `1px solid var(--theme-border)`
+              }}
             >
               {/* Drag Handle Indicator */}
               <div className="w-12 h-1 bg-white/10 rounded-full mx-auto shrink-0" />

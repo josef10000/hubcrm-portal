@@ -5,6 +5,7 @@ import { toast, Toaster } from 'sonner';
 import { db } from '../lib/firebase';
 import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { generateStaticPix } from '../lib/pix';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function ConfirmarPresenca() {
   const [searchParams] = useSearchParams();
@@ -12,6 +13,7 @@ export default function ConfirmarPresenca() {
   const appointmentId = searchParams.get('id');
   const orgId = searchParams.get('orgId');
   const clientId = searchParams.get('clientId');
+  usePublicTheme(); // Sincroniza o tema do portal com esta página pública
 
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<any>(null);

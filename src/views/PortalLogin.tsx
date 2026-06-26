@@ -12,8 +12,10 @@ import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { toast, Toaster } from 'sonner';
 import { Globe, Lock, Mail, Eye, EyeOff, Shield } from 'lucide-react';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function PortalLogin() {
+  usePublicTheme();
   const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
@@ -243,15 +245,15 @@ export default function PortalLogin() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mb-4"></div>
-        <p className="text-gray-400 font-medium animate-pulse">Verificando autenticação...</p>
+        <p className="text-[var(--theme-text-secondary)] font-medium animate-pulse">Verificando autenticação...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center p-4 md:p-6 relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center p-4 md:p-6 relative overflow-hidden font-sans select-none text-[var(--theme-text-primary)]">
       <Toaster position="top-right" richColors />
       
       {/* Orbes Decorativas */}
@@ -269,16 +271,16 @@ export default function PortalLogin() {
               alt="Hub Symples Logo" 
               className="w-12 h-12 object-contain drop-shadow-2xl relative z-10" 
             />
-            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 leading-none">
+            <h1 className="text-2xl md:text-3xl font-black text-[var(--theme-text-primary)] tracking-tight relative z-10 leading-none">
               Portal <span className="text-primary-500">Hub</span>
             </h1>
           </div>
-          <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-[0.2em] font-bold">Gestão &bull; Financeiro &bull; Suporte</p>
+          <p className="text-[var(--theme-text-secondary)] text-[10px] mt-0.5 uppercase tracking-[0.2em] font-bold">Gestão &bull; Financeiro &bull; Suporte</p>
         </div>
  
-        <div className="bg-white/[0.03] backdrop-blur-[35px] border border-white/10 p-6 md:p-7 rounded-[2rem] shadow-2xl space-y-4 text-left">
+        <div className="bg-[var(--theme-glass)] backdrop-blur-[35px] border border-[var(--theme-border)] p-6 md:p-7 rounded-[2rem] shadow-2xl space-y-4 text-left">
           {/* Seletor de Abas */}
-          <div className="flex bg-black/40 border border-white/10 p-1 rounded-xl">
+          <div className="flex bg-[var(--theme-input-bg)] border border-[var(--theme-border)] p-1 rounded-xl">
             <button
               onClick={() => {
                 setIsRegistering(false);
@@ -286,7 +288,7 @@ export default function PortalLogin() {
                 setPassword('');
               }}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                !isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                !isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
               }`}
             >
               Fazer Login
@@ -298,7 +300,7 @@ export default function PortalLogin() {
                 setPassword('');
               }}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                isRegistering ? 'bg-primary-500 text-white shadow-lg' : 'text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
               }`}
             >
               Criar Conta
@@ -306,10 +308,10 @@ export default function PortalLogin() {
           </div>
  
           <div>
-            <h2 className="text-base font-bold text-white mb-0.5">
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)] mb-0.5">
               {isRegistering ? 'Criar minha conta' : 'Acessar minha conta'}
             </h2>
-            <p className="text-[11px] text-gray-500 leading-relaxed">
+            <p className="text-[11px] text-[var(--theme-text-tertiary)] leading-relaxed">
               {isRegistering 
                 ? 'Insira o e-mail cadastrado no seu contrato para criar sua senha de acesso.' 
                 : 'Insira suas credenciais corporativas para acessar sua agenda e finanças.'}
@@ -318,9 +320,9 @@ export default function PortalLogin() {
  
           <form onSubmit={handleAuth} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">E-mail Cadastrado</label>
+              <label className="text-[9px] font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider">E-mail Cadastrado</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--theme-text-tertiary)]">
                   <Mail size={15} />
                 </span>
                 <input
@@ -328,7 +330,7 @@ export default function PortalLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@empresa.com"
-                  className="w-full pl-11 pr-4 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
+                  className="w-full pl-11 pr-4 py-2.5 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] hover:border-[var(--theme-border)]/80 focus:border-primary-500 text-[var(--theme-text-primary)] rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                   required
                 />
               </div>
@@ -336,7 +338,7 @@ export default function PortalLogin() {
  
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                <label className="text-[9px] font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider">
                   {isRegistering ? 'Definir Senha (mín. 6 caract.)' : 'Senha Secreta'}
                 </label>
                 {!isRegistering && (
@@ -350,7 +352,7 @@ export default function PortalLogin() {
                 )}
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--theme-text-tertiary)]">
                   <Lock size={15} />
                 </span>
                 <input
@@ -358,13 +360,13 @@ export default function PortalLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                  className="w-full pl-11 pr-11 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
+                  className="w-full pl-11 pr-11 py-2.5 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] hover:border-[var(--theme-border)]/80 focus:border-primary-500 text-[var(--theme-text-primary)] rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -373,9 +375,9 @@ export default function PortalLogin() {
  
             {isRegistering && (
               <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Confirmar Senha</label>
+                <label className="text-[9px] font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider">Confirmar Senha</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--theme-text-tertiary)]">
                     <Lock size={15} />
                   </span>
                   <input
@@ -383,7 +385,7 @@ export default function PortalLogin() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                    className="w-full pl-11 pr-4 py-2.5 bg-black/30 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
+                    className="w-full pl-11 pr-4 py-2.5 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] hover:border-[var(--theme-border)]/80 focus:border-primary-500 text-[var(--theme-text-primary)] rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-2 focus:ring-primary-500/10"
                     required={isRegistering}
                   />
                 </div>
@@ -410,17 +412,17 @@ export default function PortalLogin() {
           </form>
  
           <div className="flex items-center justify-between gap-3 py-1">
-            <div className="h-px bg-white/10 flex-1"></div>
-            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Ou acesse com</span>
-            <div className="h-px bg-white/10 flex-1"></div>
+            <div className="h-px bg-[var(--theme-border)] flex-1"></div>
+            <span className="text-[9px] font-bold text-[var(--theme-text-tertiary)] uppercase tracking-widest">Ou acesse com</span>
+            <div className="h-px bg-[var(--theme-border)] flex-1"></div>
           </div>
  
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all flex items-center justify-center active:scale-[0.98]"
+            className="w-full py-2.5 bg-[var(--theme-glass)] hover:bg-[var(--theme-glass-hover)] border border-[var(--theme-border)] text-[var(--theme-text-primary)] font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all flex items-center justify-center active:scale-[0.98]"
           >
-            <svg className="w-3.5 h-3.5 mr-2" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 mr-2 text-[var(--theme-text-primary)]" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -442,7 +444,7 @@ export default function PortalLogin() {
           </button>
         </div>
  
-        <p className="text-gray-600 text-[9px] uppercase tracking-widest font-medium">
+        <p className="text-[var(--theme-text-tertiary)] text-[9px] uppercase tracking-widest font-medium">
           Portal Hub &copy; 2026 - Área Restrita
         </p>
       </div>

@@ -4,8 +4,10 @@ import { motion } from 'motion/react';
 import { DollarSign, Copy, Check, Shield, Globe } from 'lucide-react';
 import { generateStaticPix } from '../lib/pix';
 import { toast, Toaster } from 'sonner';
+import { usePublicTheme } from '../lib/ThemeContext';
 
 export default function PortalPixPayment() {
+  usePublicTheme();
   const [searchParams] = useSearchParams();
   const [copied, setCopied] = useState(false);
   const [pixCode, setPixCode] = useState('');
@@ -42,18 +44,18 @@ export default function PortalPixPayment() {
 
   if (!key) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4">
-        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl max-w-md w-full text-center space-y-4">
+      <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center p-4">
+        <div className="bg-[var(--theme-glass)] border border-[var(--theme-border)] p-6 rounded-2xl max-w-md w-full text-center space-y-4 shadow-2xl">
           <Shield className="text-rose-500 mx-auto" size={40} />
-          <h2 className="text-white text-lg font-bold">Link de Pagamento Inválido</h2>
-          <p className="text-gray-400 text-xs">Os parâmetros de cobrança Pix estão ausentes ou incorretos. Por favor, solicite um novo link de pagamento.</p>
+          <h2 className="text-[var(--theme-text-primary)] text-lg font-bold">Link de Pagamento Inválido</h2>
+          <p className="text-[var(--theme-text-secondary)] text-xs">Os parâmetros de cobrança Pix estão ausentes ou incorretos. Por favor, solicite um novo link de pagamento.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+    <div className="min-h-screen bg-[var(--theme-bg)] flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
       <Toaster position="top-center" richColors />
       
       {/* Background Glows */}
@@ -64,7 +66,7 @@ export default function PortalPixPayment() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-[2rem] shadow-2xl relative z-10 space-y-6"
+        className="w-full max-w-md bg-[var(--theme-glass)] backdrop-blur-xl border border-[var(--theme-border)] p-6 md:p-8 rounded-[2rem] shadow-2xl relative z-10 space-y-6"
       >
         {/* Header */}
         <div className="text-center space-y-1.5">
@@ -72,12 +74,12 @@ export default function PortalPixPayment() {
             <Shield size={10} />
             <span>Pagamento Pix Seguro</span>
           </div>
-          <h2 className="text-white font-bold text-sm uppercase tracking-widest text-gray-500 text-center">Checkout</h2>
+          <h2 className="text-[var(--theme-text-tertiary)] font-bold text-sm uppercase tracking-widest text-center">Checkout</h2>
           
           {amount > 0 && (
             <div className="pt-2">
-              <span className="text-xs text-gray-400 block font-medium">Valor a pagar</span>
-              <span className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+              <span className="text-xs text-[var(--theme-text-secondary)] block font-medium">Valor a pagar</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-[var(--theme-text-primary)] tracking-tight">
                 R$ {amount.toFixed(2).replace('.', ',')}
               </span>
             </div>
@@ -103,16 +105,16 @@ export default function PortalPixPayment() {
         </div>
 
         {/* Instruções */}
-        <div className="text-center text-xs text-gray-400 space-y-1 max-w-[280px] mx-auto">
-          <p className="font-semibold text-gray-300">Escaneie o QR Code acima com o app do seu banco</p>
+        <div className="text-center text-xs text-[var(--theme-text-secondary)] space-y-1 max-w-[280px] mx-auto">
+          <p className="font-semibold text-[var(--theme-text-primary)]">Escaneie o QR Code acima com o app do seu banco</p>
           <p className="text-[10px] opacity-70">Ou copie o código copia e cola abaixo para pagar</p>
         </div>
 
         {/* Pix Copia e Cola */}
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-center">Pix Copia e Cola</label>
+          <label className="text-[10px] font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider block text-center">Pix Copia e Cola</label>
           <div className="flex flex-col gap-2">
-            <div className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs font-mono break-all text-center select-all max-h-24 overflow-y-auto custom-scrollbar">
+            <div className="w-full px-4 py-3 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] text-[var(--theme-text-primary)] rounded-xl text-xs font-mono break-all text-center select-all max-h-24 overflow-y-auto custom-scrollbar">
               {pixCode}
             </div>
             
@@ -141,19 +143,19 @@ export default function PortalPixPayment() {
         </div>
 
         {/* Beneficiário Info */}
-        <div className="border-t border-white/10 pt-4 mt-2 grid grid-cols-2 gap-4 text-xs">
+        <div className="border-t border-[var(--theme-border)] pt-4 mt-2 grid grid-cols-2 gap-4 text-xs">
           <div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Beneficiário</span>
-            <span className="text-gray-300 font-medium truncate block">{name}</span>
+            <span className="text-[10px] font-bold text-[var(--theme-text-tertiary)] uppercase tracking-wider block">Beneficiário</span>
+            <span className="text-[var(--theme-text-primary)] font-medium truncate block">{name}</span>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Cidade</span>
-            <span className="text-gray-300 font-medium truncate block">{city}</span>
+            <span className="text-[10px] font-bold text-[var(--theme-text-tertiary)] uppercase tracking-wider block">Cidade</span>
+            <span className="text-[var(--theme-text-primary)] font-medium truncate block">{city}</span>
           </div>
         </div>
 
         {/* Footer Brand */}
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-600 border-t border-white/5 pt-4">
+        <div className="flex items-center justify-center gap-1.5 text-[10px] text-[var(--theme-text-tertiary)] border-t border-[var(--theme-border)] pt-4">
           <Globe size={10} />
           <span>Processado com segurança via HubCRM</span>
         </div>
