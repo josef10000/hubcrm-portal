@@ -272,7 +272,9 @@
      ============================================================ */
   /* Impede que o texto branco de botões ou badges coloridos fique escuro, 
      enquanto transforma títulos em branco do modo escuro em escuro no modo claro */
-  html.light .text-white:not(button *):not(.bg-primary-500 *):not(.bg-primary-600 *):not(.bg-emerald-600 *):not(.bg-rose-600 *):not(.bg-red-600 *):not(.bg-emerald-500 *):not(.bg-rose-500 *):not(.bg-red-500 *) {
+  /* Impede que o texto branco de botões, badges ou containers coloridos fique escuro,
+     enquanto transforma títulos em branco do modo escuro em escuro no modo claro */
+  html.light .text-white:not(button):not(button *):not(.bg-primary-500):not(.bg-primary-500 *):not(.bg-primary-600):not(.bg-primary-600 *):not(.bg-emerald-600):not(.bg-emerald-600 *):not(.bg-rose-600):not(.bg-rose-600 *):not(.bg-red-600):not(.bg-red-600 *):not(.bg-emerald-500):not(.bg-emerald-500 *):not(.bg-rose-500):not(.bg-rose-500 *):not(.bg-red-500):not(.bg-red-500 *):not(.bg-violet-600):not(.bg-violet-600 *):not([class*="bg-primary"]):not([class*="bg-primary"] *) {
     color: var(--theme-text-primary) !important;
   }
   

@@ -392,10 +392,10 @@ export default function PortalSupport({ client, requests, onViewTicket }: Portal
                       onClick={() => toggleFaq(item.id)}
                       className="w-full px-6 py-5 flex items-center justify-between text-left gap-4 group"
                     >
-                      <span className="font-bold text-white text-sm sm:text-base group-hover:text-primary-400 transition-colors">
+                      <span className="font-bold text-[var(--theme-text-primary)] text-sm sm:text-base group-hover:text-primary-500 transition-colors">
                         {item.question}
                       </span>
-                      <div className={`p-1.5 bg-white/5 rounded-lg text-gray-400 group-hover:text-white group-hover:bg-white/10 transition-all duration-300 shrink-0 ${isOpen ? 'rotate-180 text-white bg-primary-500/20 text-primary-400' : ''}`}>
+                      <div className={`p-1.5 bg-white/5 rounded-lg text-gray-400 group-hover:text-[var(--theme-text-primary)] group-hover:bg-white/10 transition-all duration-300 shrink-0 ${isOpen ? 'rotate-180 text-[var(--theme-text-primary)] bg-primary-500/20 text-primary-500' : ''}`}>
                         <ChevronDown size={18} />
                       </div>
                     </button>
