@@ -49,7 +49,104 @@ import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 import PortalRecords from '../views/PortalRecords';
 
-const getTabTheme = (tabId: string) => {
+const getTabTheme = (tabId: string, isLight: boolean = false) => {
+  if (isLight) {
+    switch (tabId) {
+      case 'home':
+        return {
+          color: 'text-indigo-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(99,102,241,0.06)] border-indigo-200 bg-indigo-50/30',
+          mobileColor: 'text-indigo-700',
+          mobileIndicator: 'bg-indigo-700 shadow-sm',
+          glowColor: '67, 56, 202',
+          hexStart: '#4338ca',
+          hexEnd: '#312e81'
+        };
+      case 'agenda':
+      case 'agenda_settings':
+        return {
+          color: 'text-emerald-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(16,185,129,0.06)] border-emerald-200 bg-emerald-50/30',
+          mobileColor: 'text-emerald-700',
+          mobileIndicator: 'bg-emerald-700 shadow-sm',
+          glowColor: '4, 120, 87',
+          hexStart: '#047857',
+          hexEnd: '#064e3b'
+        };
+      case 'crm_finance':
+        return {
+          color: 'text-amber-800',
+          activeGlow: 'shadow-[0_4px_12px_rgba(180,83,9,0.06)] border-amber-200 bg-amber-50/30',
+          mobileColor: 'text-amber-800',
+          mobileIndicator: 'bg-amber-800 shadow-sm',
+          glowColor: '180, 83, 9',
+          hexStart: '#b45309',
+          hexEnd: '#78350f'
+        };
+      case 'management':
+        return {
+          color: 'text-cyan-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(6,182,212,0.06)] border-cyan-200 bg-cyan-50/30',
+          mobileColor: 'text-cyan-700',
+          mobileIndicator: 'bg-cyan-700 shadow-sm',
+          glowColor: '9, 150, 180',
+          hexStart: '#0e7490',
+          hexEnd: '#164e63'
+        };
+      case 'growth':
+        return {
+          color: 'text-pink-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(236,72,153,0.06)] border-pink-200 bg-pink-50/30',
+          mobileColor: 'text-pink-700',
+          mobileIndicator: 'bg-pink-700 shadow-sm',
+          glowColor: '190, 24, 74',
+          hexStart: '#be1848',
+          hexEnd: '#831843'
+        };
+      case 'services':
+        return {
+          color: 'text-orange-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(249,115,22,0.06)] border-orange-200 bg-orange-50/30',
+          mobileColor: 'text-orange-700',
+          mobileIndicator: 'bg-orange-700 shadow-sm',
+          glowColor: '194, 65, 12',
+          hexStart: '#c2410c',
+          hexEnd: '#7c2d12'
+        };
+      case 'support':
+        return {
+          color: 'text-sky-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(14,165,233,0.06)] border-sky-200 bg-sky-50/30',
+          mobileColor: 'text-sky-700',
+          mobileIndicator: 'bg-sky-700 shadow-sm',
+          glowColor: '3, 105, 161',
+          hexStart: '#0369a1',
+          hexEnd: '#0c4a6e'
+        };
+      case 'records':
+        return {
+          color: 'text-purple-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(168,85,247,0.06)] border-purple-200 bg-purple-50/30',
+          mobileColor: 'text-purple-700',
+          mobileIndicator: 'bg-purple-700 shadow-sm',
+          glowColor: '109, 40, 217',
+          hexStart: '#6d28d9',
+          hexEnd: '#4c1d95'
+        };
+      default:
+        return {
+          color: 'text-gray-900',
+          activeGlow: 'shadow-[0_4px_12px_rgba(0,0,0,0.04)] border-gray-200 bg-gray-50/30',
+          mobileColor: 'text-gray-900',
+          mobileIndicator: 'bg-gray-900 shadow-sm',
+          glowColor: '17, 24, 39',
+          hexStart: '#111827',
+          hexEnd: '#030712'
+        };
+    }
+  }
+
+  // Dark Mode (Padrão)
   switch (tabId) {
     case 'home':
       return {
@@ -768,7 +865,7 @@ export default function ClientPortalLayout() {
       >
         {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
-          const theme = getTabTheme(item.id);
+          const theme = getTabTheme(item.id, isLight);
           return (
             <DockItem
               key={item.id}
@@ -798,7 +895,7 @@ export default function ClientPortalLayout() {
           { id: 'growth', label: 'Crescer', icon: Rocket },
         ].map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
-          const theme = getTabTheme(item.id);
+          const theme = getTabTheme(item.id, isLight);
           return (
             <button
               key={item.id}

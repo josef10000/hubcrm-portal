@@ -76,36 +76,46 @@
      Glassmorphism claro: fundo warm-off-white, vidro branco
      ============================================================ */
   html.light {
-    --surface-bg: #f1ede8;
+    /* Cores Primárias redefinidas no Modo Claro para o Azul do Monday.com (Adeus Laranja Neon) */
+    --primary-300: #93c5fd;
+    --primary-400: #60a5fa;
+    --primary-500: #0073ea; /* Azul Monday.com */
+    --primary-600: #1d4ed8; /* Azul Escuro Hover */
+    
+    --surface-bg: #ffffff;
     --surface-elevated: #ffffff;
-    --surface-glass: rgba(255, 255, 255, 0.65);
+    --surface-glass: #ffffff; /* Sólido branco para evitar transparência ruim */
 
-    --text-main: #111827;
-    --text-muted: #6b7280;
-    --text-subtle: #9ca3af;
+    --text-main: #1c1c1c;
+    --text-muted: #535353;
+    --text-subtle: #757575;
 
-    --theme-bg: #f0ece6;
-    --theme-bg-secondary: #ffffff;
-    --theme-glass: rgba(255, 255, 255, 0.60);
-    --theme-glass-hover: rgba(255, 255, 255, 0.80);
-    --theme-glass-strong: rgba(255, 255, 255, 0.92);
-    --theme-border: rgba(0, 0, 0, 0.07);
-    --theme-border-subtle: rgba(0, 0, 0, 0.04);
-    --theme-text-primary: #111827;
-    --theme-text-secondary: #4b5563;
-    --theme-text-tertiary: #9ca3af;
-    --theme-input-bg: rgba(255, 255, 255, 0.7);
-    --theme-input-text: #111827;
+    --theme-bg: #ffffff; /* Fundo branco puro */
+    --theme-bg-secondary: #f6f8fa; /* Cinza claro secundário */
+    --theme-glass: #ffffff; /* Sólido branco */
+    --theme-glass-hover: #f1f3f5;
+    --theme-glass-strong: #ffffff;
+    --theme-border: #cbd5e1; /* Borda cinza bem nítida */
+    --theme-border-subtle: #e2e8f0;
+    --theme-text-primary: #1c1c1c; /* Fonte preta/cinza escuro nítida */
+    --theme-text-secondary: #4a4a4a;
+    --theme-text-tertiary: #757575;
+    --theme-input-bg: #ffffff; /* Fundo branco para campos */
+    --theme-input-text: #1c1c1c;
     --theme-select-bg: #ffffff;
-    --theme-select-text: #111827;
-    --theme-scrollbar: rgba(249, 115, 22, 0.30);
-    --theme-scrollbar-hover: rgba(249, 115, 22, 0.55);
-    --theme-scrollbar-track: rgba(0, 0, 0, 0.05);
-    --theme-shadow: rgba(0, 0, 0, 0.12);
-    --theme-overlay: rgba(0, 0, 0, 0.40);
+    --theme-select-text: #1c1c1c;
+    --theme-scrollbar: rgba(0, 115, 234, 0.20);
+    --theme-scrollbar-hover: rgba(0, 115, 234, 0.40);
+    --theme-scrollbar-track: #f1f3f5;
+    --theme-shadow: rgba(0, 0, 0, 0.05);
+    --theme-overlay: rgba(0, 0, 0, 0.20);
 
-    --theme-glow-primary: rgba(249, 115, 22, 0.08);
-    --theme-glow-secondary: rgba(59, 130, 246, 0.06);
+    --theme-glow-primary: rgba(0, 0, 0, 0.01);
+    --theme-glow-secondary: rgba(0, 0, 0, 0.01);
+
+    --color-success: #00854d;
+    --color-warning: #ffcb00;
+    --color-error: #e2445c;
 
     background-color: var(--theme-bg);
     color: var(--theme-text-primary);
@@ -115,6 +125,22 @@
   input, textarea {
     background-color: var(--theme-input-bg);
     color: var(--theme-input-text);
+  }
+
+  html.light input,
+  html.light textarea,
+  html.light select {
+    border: 1px solid var(--theme-border) !important;
+    background-color: var(--theme-input-bg) !important;
+    color: var(--theme-input-text) !important;
+  }
+
+  html.light input:focus,
+  html.light textarea:focus,
+  html.light select:focus {
+    border-color: var(--primary-500) !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 115, 234, 0.15) !important;
   }
 
   /* Selects */
@@ -242,56 +268,86 @@
   }
 
   /* ============================================================
-     LIGHT MODE — Ajustes específicos de legibilidade
+     LIGHT MODE — Ajustes específicos de legibilidade (Estilo Monday.com)
      ============================================================ */
-  html.light .text-white {
+  /* Impede que o texto branco de botões ou badges coloridos fique escuro, 
+     enquanto transforma títulos em branco do modo escuro em escuro no modo claro */
+  html.light .text-white:not(button *):not(.bg-primary-500 *):not(.bg-primary-600 *):not(.bg-emerald-600 *):not(.bg-rose-600 *):not(.bg-red-600 *):not(.bg-emerald-500 *):not(.bg-rose-500 *):not(.bg-red-500 *) {
     color: var(--theme-text-primary) !important;
   }
+  
   html.light .text-gray-100,
   html.light .text-gray-200 {
-    color: #1f2937 !important;
+    color: #111827 !important; /* Quase preto para títulos principais */
   }
   html.light .text-gray-300 {
-    color: #374151 !important;
+    color: #1f2937 !important;
   }
   html.light .text-gray-400 {
-    color: #6b7280 !important;
+    color: #4b5563 !important; /* Cinza de boa legibilidade */
   }
   html.light .text-gray-500 {
-    color: #9ca3af !important;
+    color: #6b7280 !important;
   }
 
-  /* Fundos escuros → vidro claro */
+  /* Sobrescrever cores neon de texto para tons escuros de excelente contraste no modo claro */
+  html.light .text-emerald-400 { color: #166534 !important; }
+  html.light .text-emerald-500 { color: #15803d !important; }
+  html.light .text-amber-400 { color: #9a3412 !important; }
+  html.light .text-amber-500 { color: #b45309 !important; }
+  html.light .text-rose-400 { color: #991b1b !important; }
+  html.light .text-red-400 { color: #991b1b !important; }
+  html.light .text-sky-400 { color: #0369a1 !important; }
+  html.light .text-sky-500 { color: #0284c7 !important; }
+  html.light .text-blue-400 { color: #1e40af !important; }
+  html.light .text-purple-400 { color: #5b21b6 !important; }
+  html.light .text-purple-500 { color: #6d28d9 !important; }
+  html.light .text-indigo-400 { color: #3730a3 !important; }
+  html.light .text-pink-400 { color: #9d174d !important; }
+  html.light .text-primary-400 { color: var(--primary-500) !important; }
+  html.light .text-primary-500 { color: var(--primary-500) !important; }
+
+  /* Sobrescrever fundos neon transparentes de badges para fundos pastéis sólidos */
+  html.light .bg-emerald-500\/10 { background-color: #dcfce7 !important; }
+  html.light .bg-emerald-500\/20 { background-color: #bbf7d0 !important; }
+  html.light .bg-amber-500\/10 { background-color: #fef3c7 !important; }
+  html.light .bg-rose-500\/10 { background-color: #ffe4e6 !important; }
+  html.light .bg-rose-500\/20 { background-color: #fecdd3 !important; }
+  html.light .bg-red-500\/10 { background-color: #fee2e2 !important; }
+  html.light .bg-sky-500\/10 { background-color: #e0f2fe !important; }
+  html.light .bg-primary-500\/10 { background-color: #e0f2fe !important; }
+
+  /* Fundos escuros → fundo claro secundário Monday.com */
   html.light .bg-\[\#050505\],
   html.light .bg-\[\#050709\],
   html.light .bg-\[\#030712\],
   html.light .bg-\[\#0a0c10\],
   html.light .bg-\[\#07090c\] {
-    background-color: var(--theme-bg-secondary) !important;
+    background-color: var(--theme-bg) !important;
   }
 
-  /* Glassmorphism escuro → claro */
-  html.light .bg-white\/5 { background-color: rgba(255,255,255,0.60) !important; }
+  /* Glassmorphism escuro/translúcido → Fundo sólido branco Monday.com */
+  html.light .bg-white\/5 { background-color: #ffffff !important; }
   html.light .bg-white\/\[0\.03\],
-  html.light .bg-white\/3 { background-color: rgba(255,255,255,0.50) !important; }
-  html.light .bg-black\/30 { background-color: rgba(255,255,255,0.55) !important; }
-  html.light .bg-black\/40 { background-color: rgba(255,255,255,0.60) !important; }
-  html.light .bg-black\/50 { background-color: rgba(255,255,255,0.65) !important; }
-  html.light .bg-black\/60 { background-color: rgba(255,255,255,0.70) !important; }
+  html.light .bg-white\/3 { background-color: #ffffff !important; }
+  html.light .bg-black\/30 { background-color: #ffffff !important; }
+  html.light .bg-black\/40 { background-color: #f8f9fa !important; }
+  html.light .bg-black\/50 { background-color: #f1f3f5 !important; }
+  html.light .bg-black\/60 { background-color: #e9ecef !important; }
   html.light .bg-black\/75,
-  html.light .bg-black\/85 { background-color: rgba(250,248,245,0.92) !important; }
+  html.light .bg-black\/85 { background-color: #ffffff !important; }
 
-  /* Bordas */
-  html.light .border-white\/5  { border-color: rgba(0,0,0,0.05) !important; }
-  html.light .border-white\/10 { border-color: rgba(0,0,0,0.08) !important; }
-  html.light .border-white\/15 { border-color: rgba(0,0,0,0.10) !important; }
-  html.light .border-white\/20 { border-color: rgba(0,0,0,0.12) !important; }
+  /* Bordas nítidas cinzas */
+  html.light .border-white\/5  { border-color: var(--theme-border-subtle) !important; }
+  html.light .border-white\/10 { border-color: var(--theme-border) !important; }
+  html.light .border-white\/15 { border-color: var(--theme-border) !important; }
+  html.light .border-white\/20 { border-color: var(--theme-border) !important; }
 
   /* Header / Navbar fixos */
   html.light .backdrop-blur-xl,
   html.light .backdrop-blur-2xl {
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(0px) !important; /* Sem desfoque de fundo em modo claro */
+    -webkit-backdrop-filter: blur(0px) !important;
   }
 }
 
