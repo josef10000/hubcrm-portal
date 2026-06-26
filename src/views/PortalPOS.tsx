@@ -138,14 +138,18 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
       const totalPrice = itemPrice * sellQuantity;
       const logDescription = `Venda via PDV: -${sellQuantity}${selectedItem.unit} de ${selectedItem.name}${selectedItem.brand ? ` (${selectedItem.brand})` : ''}.${itemPrice > 0 ? ` Preço unitário: R$ ${itemPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Total: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.` : ''}`;
 
-      await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-        itemId: selectedItem.id,
-        itemName: selectedItem.name, // Salva o nome limpo no log
-        type: 'saida',
-        quantity: sellQuantity,
-        date: serverTimestamp(),
-        description: logDescription
-      });
+      try {
+        await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+          itemId: selectedItem.id,
+          itemName: selectedItem.name, // Salva o nome limpo no log
+          type: 'saida',
+          quantity: sellQuantity,
+          date: serverTimestamp(),
+          description: logDescription
+        });
+      } catch (logErr) {
+        console.warn("[PortalPOS] Sem permissão para gravar log de inventário:", logErr);
+      }
 
       toast.success(`Venda registrada com sucesso! ${selectedItem.name}: ${newQty} ${selectedItem.unit} restantes.`);
       setSelectedItem(null);

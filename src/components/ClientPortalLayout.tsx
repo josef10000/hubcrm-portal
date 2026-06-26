@@ -859,11 +859,14 @@ export default function ClientPortalLayout() {
               {activeTab === 'records' && (
                 <PortalRecords 
                   orgId={orgId || ''} 
+                  clientId={clientId || ''}
                 />
               )}
               {activeTab === 'clients' && (
                 <PortalClients 
                   orgId={orgId || ''} 
+                  clientId={clientId || ''}
+                  client={client}
                 />
               )}
               {activeTab === 'profile' && (

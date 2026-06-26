@@ -12,9 +12,10 @@ import CustomSelect from '../components/CustomSelect';
 
 interface PortalRecordsProps {
   orgId: string;
+  clientId: string;
 }
 
-export default function PortalRecords({ orgId }: PortalRecordsProps) {
+export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   const [activeSubTab, setActiveSubTab] = useState<'records' | 'templates' | 'new_client'>('records');
   
   // Listas de Dados
@@ -71,17 +72,19 @@ export default function PortalRecords({ orgId }: PortalRecordsProps) {
     return () => unsub();
   }, [orgId]);
 
-  // 3. Escutar clientes manuais
+  // 3. Escutar clientes manuais (coleção oficial clients)
   useEffect(() => {
     if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'clients_database');
+    const ref = collection(db, 'organizations', orgId, 'clients');
     const q = query(ref, orderBy('name', 'asc'));
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(c => c.id !== clientId);
       setManualClients(list);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 4. Escutar agendamentos da organização
   useEffect(() => {
@@ -277,7 +280,7 @@ export default function PortalRecords({ orgId }: PortalRecordsProps) {
 
     setIsSavingClient(true);
     try {
-      await addDoc(collection(db, 'organizations', orgId, 'clients_database'), {
+      await addDoc(collection(db, 'organizations', orgId, 'clients'), {
         name: newClientName.trim(),
         phone: newClientPhone.trim(),
         email: newClientEmail.trim(),

@@ -1136,14 +1136,18 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                   updatedAt: serverTimestamp()
                 });
                 // Registra o log de movimentação de saída
-                await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-                  itemId: m.itemId,
-                  itemName: invItem.name,
-                  type: 'saida',
-                  quantity: m.quantity,
-                  date: serverTimestamp(),
-                  description: `Consumo automático no atendimento de ${app.clientName} (${srv.name})`
-                });
+                try {
+                  await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+                    itemId: m.itemId,
+                    itemName: invItem.name,
+                    type: 'saida',
+                    quantity: m.quantity,
+                    date: serverTimestamp(),
+                    description: `Consumo automático no atendimento de ${app.clientName} (${srv.name})`
+                  });
+                } catch (logErr) {
+                  console.warn("[PortalAgenda] Sem permissão para gravar log de inventário:", logErr);
+                }
               }
             });
             await Promise.all(promises);

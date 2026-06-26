@@ -11,9 +11,11 @@ import CustomSelect from '../components/CustomSelect';
 
 interface PortalClientsProps {
   orgId: string;
+  clientId: string;
+  client?: any;
 }
 
-export default function PortalClients({ orgId }: PortalClientsProps) {
+export default function PortalClients({ orgId, clientId, client }: PortalClientsProps) {
   // Sub-aba ativa na visualização de prontuários do card de detalhes do cliente
   const [activeDetailTab, setActiveDetailTab] = useState<'info' | 'records' | 'appointments'>('info');
 
@@ -51,19 +53,21 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
   // Registro selecionado para visualização/impressão de prontuário
   const [printingRecord, setPrintingRecord] = useState<any | null>(null);
 
-  // 1. Escutar clientes no Firestore (clients_database)
+  // 1. Escutar clientes no Firestore (coleção oficial clients)
   useEffect(() => {
     if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'clients_database');
+    const ref = collection(db, 'organizations', orgId, 'clients');
     const q = query(ref, orderBy('name', 'asc'));
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(c => c.id !== clientId); // Oculta o próprio profissional do cadastro de clientes
       setDbClients(list);
     }, (error) => {
       console.error("Erro ao escutar banco de clientes:", error);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 2. Escutar agendamentos da organização (appointments)
   useEffect(() => {
@@ -93,19 +97,27 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
     return () => unsub();
   }, [orgId]);
 
-  // 4. Escutar definições de campos customizados (client_fields)
+  // 4. Escutar definições de campos customizados do perfil do profissional logado
   useEffect(() => {
-    if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'client_fields');
-    const q = query(ref, orderBy('createdAt', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setCustomFieldsDef(list);
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    const unsub = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const list = data.customClientFieldsDef || [];
+        // Ordena por data de criação para manter a ordem consistente
+        const sortedList = [...list].sort((a: any, b: any) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA - dateB;
+        });
+        setCustomFieldsDef(sortedList);
+      }
     }, (error) => {
-      console.error("Erro ao escutar campos extras:", error);
+      console.error("Erro ao escutar campos extras do perfil:", error);
     });
     return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 5. Consolidar Lista de Clientes (Reativa e Sem Duplicações)
   useEffect(() => {
@@ -197,7 +209,7 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
 
       if (editingClient) {
         // Editando cliente do banco manual
-        await updateDoc(doc(db, 'organizations', orgId, 'clients_database', editingClient.id), payload);
+        await updateDoc(doc(db, 'organizations', orgId, 'clients', editingClient.id), payload);
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
         // Criando novo cliente do zero
@@ -209,7 +221,7 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
           return;
         }
 
-        const newDoc = await addDoc(collection(db, 'organizations', orgId, 'clients_database'), {
+        const newDoc = await addDoc(collection(db, 'organizations', orgId, 'clients'), {
           ...payload,
           customFields: {},
           createdAt: serverTimestamp()
@@ -238,7 +250,7 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
 
     try {
       if (client.source === 'db') {
-        await deleteDoc(doc(db, 'organizations', orgId, 'clients_database', client.id));
+        await deleteDoc(doc(db, 'organizations', orgId, 'clients', client.id));
         toast.success('Cliente removido com sucesso!');
       } else {
         toast.error('Clientes vindos de agendamentos não podem ser excluídos. Eles somem apenas se os agendamentos forem excluídos.');
@@ -268,13 +280,13 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
 
       if (currentClient.source === 'db') {
         // Atualiza documento existente
-        await updateDoc(doc(db, 'organizations', orgId, 'clients_database', currentClient.id), {
+        await updateDoc(doc(db, 'organizations', orgId, 'clients', currentClient.id), {
           customFields: tempCustomValues,
           updatedAt: serverTimestamp()
         });
       } else {
-        // Cliente veio da agenda (agendamento). Criamos um documento físico na clients_database
-        await addDoc(collection(db, 'organizations', orgId, 'clients_database'), {
+        // Cliente veio da agenda (agendamento). Criamos um documento físico na clients
+        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
           ...payload,
           createdAt: serverTimestamp()
         });
@@ -292,20 +304,26 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
   // Adicionar Definição de Campo Customizado
   const handleAddCustomField = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFieldLabel.trim()) {
+    if (!newFieldLabel.trim() || !clientId) {
       toast.error('Dê um nome/rótulo para o campo.');
       return;
     }
 
     setIsSavingField(true);
     try {
-      const payload = {
+      const newField = {
+        id: 'field_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         label: newFieldLabel.trim(),
         type: newFieldType,
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString()
       };
 
-      await addDoc(collection(db, 'organizations', orgId, 'client_fields'), payload);
+      const updatedFields = [...customFieldsDef, newField];
+
+      await updateDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
+        customClientFieldsDef: updatedFields
+      });
+
       toast.success(`Campo personalizado "${newFieldLabel}" criado!`);
       setNewFieldLabel('');
     } catch (err) {
@@ -318,11 +336,16 @@ export default function PortalClients({ orgId }: PortalClientsProps) {
 
   // Remover Definição de Campo Customizado
   const handleDeleteCustomField = async (fieldId: string) => {
+    if (!clientId) return;
     if (!confirm('Deseja realmente excluir este campo? Os valores já salvos nos clientes continuarão no banco, mas não serão exibidos.')) return;
     try {
-      await deleteDoc(doc(db, 'organizations', orgId, 'client_fields', fieldId));
+      const updatedFields = customFieldsDef.filter(f => f.id !== fieldId);
+      await updateDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
+        customClientFieldsDef: updatedFields
+      });
       toast.success('Campo personalizado excluído!');
     } catch (err) {
+      console.error(err);
       toast.error('Erro ao excluir campo personalizado.');
     }
   };

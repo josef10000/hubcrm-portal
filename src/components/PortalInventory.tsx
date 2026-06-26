@@ -199,14 +199,18 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         await updateDoc(doc(db, 'organizations', orgId, 'inventory', editingItemId), payload);
 
         if (diff !== 0) {
-          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-            itemId: editingItemId,
-            itemName: name.trim(), // Salva o nome limpo no log
-            type: diff > 0 ? 'entrada' : 'saida',
-            quantity: Math.abs(diff),
-            date: serverTimestamp(),
-            description: `Ajuste manual de estoque via edição: de ${prevQty}${payload.unit} para ${payload.quantity}${payload.unit}`
-          });
+          try {
+            await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+              itemId: editingItemId,
+              itemName: name.trim(), // Salva o nome limpo no log
+              type: diff > 0 ? 'entrada' : 'saida',
+              quantity: Math.abs(diff),
+              date: serverTimestamp(),
+              description: `Ajuste manual de estoque via edição: de ${prevQty}${payload.unit} para ${payload.quantity}${payload.unit}`
+            });
+          } catch (logErr) {
+            console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+          }
         }
         toast.success('Produto atualizado com sucesso!');
       } else {
@@ -215,14 +219,18 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           createdAt: serverTimestamp()
         });
 
-        await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-          itemId: docRef.id,
-          itemName: name.trim(), // Salva o nome limpo no log
-          type: 'entrada',
-          quantity: payload.quantity,
-          date: serverTimestamp(),
-          description: `Cadastro inicial no sistema com ${payload.quantity}${payload.unit}`
-        });
+        try {
+          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+            itemId: docRef.id,
+            itemName: name.trim(), // Salva o nome limpo no log
+            type: 'entrada',
+            quantity: payload.quantity,
+            date: serverTimestamp(),
+            description: `Cadastro inicial no sistema com ${payload.quantity}${payload.unit}`
+          });
+        } catch (logErr) {
+          console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+        }
 
         toast.success('Produto cadastrado com sucesso!');
       }
@@ -250,14 +258,18 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     try {
       await deleteDoc(doc(db, 'organizations', orgId, 'inventory', id));
       if (item) {
-        await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-          itemId: id,
-          itemName: item.name,
-          type: 'saida',
-          quantity: item.quantity,
-          date: serverTimestamp(),
-          description: `Remoção definitiva do produto. Estoque zerado (era ${item.quantity}${item.unit}).`
-        });
+        try {
+          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+            itemId: id,
+            itemName: item.name,
+            type: 'saida',
+            quantity: item.quantity,
+            date: serverTimestamp(),
+            description: `Remoção definitiva do produto. Estoque zerado (era ${item.quantity}${item.unit}).`
+          });
+        } catch (logErr) {
+          console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+        }
       }
       toast.success('Produto removido com sucesso!');
       setConfirmModal({ isOpen: false, itemId: '' });
@@ -279,14 +291,18 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         updatedAt: serverTimestamp()
       });
 
-      await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-        itemId: item.id,
-        itemName: item.name,
-        type: actualDiff > 0 ? 'entrada' : 'saida',
-        quantity: Math.abs(actualDiff),
-        date: serverTimestamp(),
-        description: `Ajuste rápido de estoque: ${actualDiff > 0 ? '+' : ''}${actualDiff}${item.unit}`
-      });
+      try {
+        await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+          itemId: item.id,
+          itemName: item.name,
+          type: actualDiff > 0 ? 'entrada' : 'saida',
+          quantity: Math.abs(actualDiff),
+          date: serverTimestamp(),
+          description: `Ajuste rápido de estoque: ${actualDiff > 0 ? '+' : ''}${actualDiff}${item.unit}`
+        });
+      } catch (logErr) {
+        console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+      }
 
       toast.success(`Estoque ajustado: ${newQty}${item.unit}`);
     } catch (err) {
