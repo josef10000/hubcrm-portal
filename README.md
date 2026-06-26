@@ -9,7 +9,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 ## 🚀 Principais Recursos
 
 ### 1. 📊 Módulo "Meu Negócio" (`PortalManagement.tsx`)
-*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e quantidade mínima crítica com alertas visuais, cálculo financeiro em tempo real do **Valor de Patrimônio Ativo** (Quantidade × Custo Unitário), filtro rápido para itens com estoque crítico, e **Linha do Tempo de Histórico de Movimentações** (entradas, saídas e consumo de insumos por agendamento concluído) sincronizada com Firestore.
+*   **Controle de Estoque (`PortalInventory.tsx`):** Gestão de materiais e produtos com suporte opcional a **Marca**, **Preço de Venda** e **Exibir no PDV**. Inclui inteligência financeira no topo com os indicadores de **Patrimônio Ativo (Custo)**, **Valuation de Estoque (Faturamento de Venda Potencial)** e **Lucro Estimado**, além de filtro para itens com estoque crítico e **Linha do Tempo de Movimentações**.
+*   **Caixa Rápido (PDV - `PortalPOS.tsx`):** Terminal de ponto de venda moderno integrado ao estoque. Exibe botões grandes para os produtos favoritos/mais vendidos (com indicação visual da quantidade em estoque em tempo real) e barra de pesquisa rápida para outros produtos. Permite vendas rápidas que deduzem automaticamente a quantidade vendida do inventário e geram logs históricos de saída.
 *   **Calculadora de Orçamentos (`PortalCalculator.tsx`):** Simulador de precificação dinâmico baseado em custos de materiais e horas de trabalho estimadas.
 *   **Performance Financeira & Analytics (`PortalCRMFinance.tsx`):** Análise de lucro líquido real, receitas e despesas extras. Inclui **gráficos analíticos dinâmicos puros em SVG** (Evolução do fluxo de caixa de receitas vs despesas e distribuição de gastos por categorias em gráfico Donut).
 *   **Controle de Despesas Fixas:** Aba dedicada para cadastrar, editar, excluir e visualizar despesas recorrentes mensais/fixas de forma centralizada e sem a limitação dos filtros temporais mensais da dashboard.
@@ -84,7 +85,14 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Cadastro Rápido de Clientes:** Interface simplificada para cadastrar clientes manualmente, associando-os aos prontuários mesmo antes de possuírem agendamentos.
 *   **Impressão Limpa Otimizada (PDF A4):** Botão de impressão que utiliza folhas no formato A4 e regras CSS de impressão (`@media print`) para gerar prontuários limpos e sem elementos do painel administrativo, ideais para assinatura física do cliente.
 
-### 11. ☀️ Modo Claro Elegante (Light Mode)
+### 11. 👥 CRM de Clientes Customizável & Integrado (`PortalClients.tsx`)
+*   **Consolidação de Contatos em Tempo Real:** A lista consolidada une contatos criados manualmente e clientes vindos de agendamentos automáticos (tanto links de agendamentos externos quanto registros manuais na agenda) de forma transparente.
+*   **Campos Personalizados do Nicho:** Painel onde o profissional pode criar, excluir e organizar campos customizados específicos (ex: Peso, Altura, Faturamento, Restrições Alimentares, Vinho Preferido, etc.) para os cards de seus clientes, com preenchimento reativo.
+*   **Edição Irrestrita de Cards:** Capacidade de editar qualquer informação básica ou campos extras de qualquer cliente a qualquer momento. Edições manuais feitas no CRM têm prioridade de exibição, permitindo corrigir erros de digitação de clientes.
+*   **Atalho Rápido WhatsApp:** Botão com disparo automático para abrir conversa no WhatsApp (`https://wa.me/...`) do cliente selecionado.
+*   **Histórico Completo Unificado:** Visualize no card de cada cliente todos os agendamentos correspondentes (passados e futuros) e os prontuários/fichas de anamnese preenchidos para ele (com botão de visualização/impressão direta).
+
+### 12. ☀️ Modo Claro Elegante (Light Mode)
 *   **Design Premium e Suave:** Um modo claro que não inverte as cores por alto contraste, mas que mantém o DNA estético do portal, apresentando um fundo em gradiente off-white/warm-cream (`#f0ece6`), elementos em vidro branco translúcido (*glassmorphism* com `backdrop-blur`) e tipografia escura de alto requinte.
 *   **Sincronização com Páginas Públicas:** Ao alterar o tema no painel autenticado, todas as páginas públicas acessadas pelo cliente final (como Agendamento Público, Confirmar Presença, BioSite, Pagamento Pix e tela de Ativação) se ajustam e acompanham a preferência do tema automaticamente e em tempo real via localStorage broadcast.
 

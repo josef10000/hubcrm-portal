@@ -25,7 +25,8 @@ import {
   BookOpen,
   Package,
   Sun,
-  Moon
+  Moon,
+  Users
 } from 'lucide-react';
 import { useTheme } from '../lib/ThemeContext';
 import { usePortalData } from '../hooks/usePortalData';
@@ -48,6 +49,7 @@ import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 import PortalRecords from '../views/PortalRecords';
+import PortalClients from '../views/PortalClients';
 
 const getTabTheme = (tabId: string, isLight: boolean = false) => {
   if (isLight) {
@@ -126,12 +128,22 @@ const getTabTheme = (tabId: string, isLight: boolean = false) => {
       case 'records':
         return {
           color: 'text-purple-700',
-          activeGlow: 'shadow-[0_4px_12px_rgba(168,85,247,0.06)] border-purple-200 bg-purple-50/30',
+          activeGlow: 'shadow-[0_4px_12px_rgba(168,85,247,0.06)] border-purple-200 bg-indigo-50/30',
           mobileColor: 'text-purple-700',
           mobileIndicator: 'bg-purple-700 shadow-sm',
           glowColor: '109, 40, 217',
           hexStart: '#6d28d9',
           hexEnd: '#4c1d95'
+        };
+      case 'clients':
+        return {
+          color: 'text-blue-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(37,99,235,0.06)] border-blue-200 bg-blue-50/30',
+          mobileColor: 'text-blue-700',
+          mobileIndicator: 'bg-blue-700 shadow-sm',
+          glowColor: '29, 78, 216',
+          hexStart: '#1d4ed8',
+          hexEnd: '#1e3a8a'
         };
       default:
         return {
@@ -228,6 +240,16 @@ const getTabTheme = (tabId: string, isLight: boolean = false) => {
         glowColor: '168, 85, 247',
         hexStart: '#c084fc',
         hexEnd: '#a855f7'
+      };
+    case 'clients':
+      return {
+        color: 'text-blue-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-blue-500/40 from-blue-500/25 to-blue-500/5',
+        mobileColor: 'text-blue-400',
+        mobileIndicator: 'bg-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.6)]',
+        glowColor: '59, 130, 246',
+        hexStart: '#60a5fa',
+        hexEnd: '#2563eb'
       };
     default:
       return {
@@ -423,6 +445,7 @@ export default function ClientPortalLayout() {
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'agenda_settings', label: 'Configurações', icon: Settings },
+    { id: 'clients', label: 'Clientes', icon: Users },
     { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
     { id: 'management', label: 'Estoque & Negócio', icon: Package },
     { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
@@ -838,6 +861,11 @@ export default function ClientPortalLayout() {
                   orgId={orgId || ''} 
                 />
               )}
+              {activeTab === 'clients' && (
+                <PortalClients 
+                  orgId={orgId || ''} 
+                />
+              )}
               {activeTab === 'profile' && (
                 <PortalProfile 
                   client={client} 
@@ -863,7 +891,7 @@ export default function ClientPortalLayout() {
           boxShadow: isLight ? '0 15px 50px rgba(0,0,0,0.08)' : '0 15px 50px rgba(0,0,0,0.6)'
         }}
       >
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'clients', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id, isLight);
           return (
@@ -1073,6 +1101,14 @@ export default function ClientPortalLayout() {
                 >
                   <FileText size={20} className="text-purple-400" />
                   <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Prontuários</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <Users size={20} className="text-blue-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Clientes</span>
                 </button>
 
                 {/* Agenda Settings (Mobile) */}

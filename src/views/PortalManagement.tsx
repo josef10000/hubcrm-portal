@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Calculator, Briefcase, ChevronDown } from 'lucide-react';
+import { Package, Calculator, Briefcase, ChevronDown, ShoppingCart } from 'lucide-react';
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
+import PortalPOS from './PortalPOS';
 
 interface PortalManagementProps {
   orgId: string;
@@ -10,11 +11,12 @@ interface PortalManagementProps {
 }
 
 export default function PortalManagement({ orgId, clientId }: PortalManagementProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'calculator'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'pos' | 'calculator'>('inventory');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const subTabs = [
-    { id: 'inventory', label: 'Estoque de Insumos', icon: Package },
+    { id: 'inventory', label: 'Estoque & Produtos', icon: Package },
+    { id: 'pos', label: 'Caixa Rápido (PDV)', icon: ShoppingCart },
     { id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }
   ] as const;
 
@@ -30,7 +32,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
             Meu Negócio
           </h3>
           <p className="text-gray-500 text-xs lg:text-sm mt-1">
-            Gerencie o estoque de insumos e simule orçamentos operacionais com facilidade.
+            Gerencie o estoque de produtos, simule orçamentos operacionais e venda com dedução automática.
           </p>
         </div>
       </div>
@@ -45,11 +47,16 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-400">
             {(() => {
               if (activeSubTab === 'inventory') return <Package size={18} />;
+              if (activeSubTab === 'pos') return <ShoppingCart size={18} />;
               return <Calculator size={18} />;
             })()}
           </div>
           <span>
-            {activeSubTab === 'inventory' ? 'Estoque de Insumos' : 'Calculadora de Orçamentos'}
+            {activeSubTab === 'inventory' 
+              ? 'Estoque & Produtos' 
+              : activeSubTab === 'pos' 
+                ? 'Caixa Rápido (PDV)' 
+                : 'Calculadora de Orçamentos'}
           </span>
           <ChevronDown 
             size={16} 
@@ -74,7 +81,22 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
                 }`}
               >
                 <Package size={16} className={activeSubTab === 'inventory' ? 'text-primary-400' : 'text-gray-500'} />
-                Estoque de Insumos
+                Estoque & Produtos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSubTab('pos');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                  activeSubTab === 'pos' 
+                    ? 'bg-primary-500/15 text-primary-400 font-black' 
+                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                }`}
+              >
+                <ShoppingCart size={16} className={activeSubTab === 'pos' ? 'text-primary-400' : 'text-gray-500'} />
+                Caixa Rápido (PDV)
               </button>
               <button
                 type="button"
@@ -137,6 +159,9 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           >
             {activeSubTab === 'inventory' && (
               <PortalInventory orgId={orgId} />
+            )}
+            {activeSubTab === 'pos' && (
+              <PortalPOS orgId={orgId} />
             )}
             {activeSubTab === 'calculator' && (
               <PortalCalculator orgId={orgId} />
