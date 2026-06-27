@@ -88,50 +88,35 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   }, [orgId]);
 
   // Escutar telefones excluídos do perfil do profissional logado
-  // 4. Escutar configurações globais do CRM (lista de excluídos) salvas no inventário
+  // 4. Escutar dados do perfil do profissional logado (clientes manuais e excluídos)
   useEffect(() => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setDeletedClientsPhones(data.deletedClientsPhones || []);
+        setManualClients(data.crmClients || []);
+        setDeletedClientsPhones(data.crmDeletedPhones || []);
       }
     }, (error) => {
-      console.error("Erro ao escutar configurações globais de CRM no inventário (PortalRecords):", error);
+      console.error("Erro ao escutar dados do perfil no PortalRecords:", error);
     });
     return () => unsub();
-  }, [orgId]);
-
-  // Escutar clientes manuais salvos na coleção de inventário
-  useEffect(() => {
-    if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'inventory');
-    const q = query(ref, orderBy('name', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter((item: any) => item.brand === 'crm_client');
-      setManualClients(list);
-    }, (error) => {
-      console.error("Erro ao escutar clientes manuais no inventário (PortalRecords):", error);
-    });
-    return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 5. Consolidar lista de clientes finais únicos
   useEffect(() => {
     const clientsMap = new Map<string, { id: string; name: string; phone: string; email?: string }>();
 
-    // Primeiro populamos com clientes manuais vindos do inventário
+    // Primeiro populamos com clientes manuais vindos do perfil
     manualClients.forEach(c => {
-      const cleanPhone = (c.clientPhone || c.phone || '').replace(/\D/g, '');
+      const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,
           name: c.name,
-          phone: c.clientPhone || c.phone || '',
-          email: c.clientEmail || c.email || ''
+          phone: c.phone || '',
+          email: c.email || ''
         });
       }
     });
@@ -307,34 +292,27 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     setIsSavingClient(true);
     try {
       const cleanPhone = newClientPhone.replace(/\D/g, '');
-      const docId = `client_metadata_${cleanPhone}`;
 
       // Verifica se já existe esse telefone no banco manual para evitar duplicar
-      const alreadyExists = manualClients.some(c => (c.clientPhone || '').replace(/\D/g, '') === cleanPhone);
+      const alreadyExists = manualClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
       if (alreadyExists) {
         toast.error('Já existe um cliente cadastrado com esse telefone.');
         setIsSavingClient(false);
         return;
       }
 
-      const payload = {
+      const newClient = {
+        id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         name: newClientName.trim(),
-        brand: 'crm_client', // Identifica como cliente no inventário
-        quantity: 1,
-        unit: 'un',
-        price: 0,
-        costPrice: 0,
-        showInPos: false,
-        clientPhone: newClientPhone.trim(),
-        clientEmail: newClientEmail.trim(),
+        phone: newClientPhone.trim(),
+        email: newClientEmail.trim(),
         customFields: {},
-        updatedAt: serverTimestamp()
+        createdAt: new Date().toISOString()
       };
 
-      await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), {
-        ...payload,
-        createdAt: serverTimestamp()
-      });
+      const updatedList = [...manualClients, newClient];
+      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+      await setDoc(docRef, { crmClients: updatedList }, { merge: true });
 
       toast.success('Cliente cadastrado com sucesso!');
       setSelectedClientId(cleanPhone);

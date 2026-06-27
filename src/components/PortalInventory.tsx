@@ -108,8 +108,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           sales: meta.sales
         } as InventoryItem;
       });
-      const filtered = list.filter(item => item.brand !== 'crm_client' && item.brand !== 'crm_settings');
-      setItems(filtered);
+      setItems(list);
       setLoading(false);
     }, (error) => {
       console.error("Erro ao escutar inventário:", error);

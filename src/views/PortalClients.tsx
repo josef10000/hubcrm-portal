@@ -96,57 +96,43 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     return () => unsub();
   }, [orgId]);
 
-  // 4. Escutar configurações globais do CRM (campos extras e lista de excluídos) salvas no inventário
+  // 4. Escutar configurações globais do CRM e lista de clientes manuais salvos no documento do profissional logado
   useEffect(() => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const list = data.customClientFieldsDef || [];
+        setManualClients(data.crmClients || []);
+        setDeletedClientsPhones(data.crmDeletedPhones || []);
+
+        const list = data.crmCustomFieldsDef || [];
         const sortedList = [...list].sort((a: any, b: any) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateA - dateB;
         });
         setCustomFieldsDef(sortedList);
-        setDeletedClientsPhones(data.deletedClientsPhones || []);
       }
     }, (error) => {
-      console.error("Erro ao escutar configurações globais de CRM no inventário:", error);
+      console.error("Erro ao escutar dados do perfil no PortalClients:", error);
     });
     return () => unsub();
-  }, [orgId]);
-
-  // Escutar clientes manuais salvos na coleção de inventário
-  useEffect(() => {
-    if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'inventory');
-    const q = query(ref, orderBy('name', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter((item: any) => item.brand === 'crm_client');
-      setManualClients(list);
-    }, (error) => {
-      console.error("Erro ao escutar clientes manuais no inventário:", error);
-    });
-    return () => unsub();
-  }, [orgId]);
+  }, [orgId, clientId]);
 
   // 5. Consolidar Lista de Clientes (Reativa e Sem Duplicações)
   useEffect(() => {
     const clientsMap = new Map<string, any>();
 
-    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual de inventory
+    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual de crmClients
     manualClients.forEach(c => {
-      const cleanPhone = (c.clientPhone || c.phone || '').replace(/\D/g, '');
+      const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,
           name: c.name,
-          phone: c.clientPhone || c.phone || '',
-          email: c.clientEmail || c.email || '',
+          phone: c.phone || '',
+          email: c.email || '',
           customFields: c.customFields || {},
           source: 'db', // Identifica se já tem documento físico
           rawDoc: c
@@ -211,6 +197,13 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
 
+  // Sincronizar dados do CRM diretamente no Firestore no documento do profissional logado
+  const syncCrmData = async (payload: { crmClients?: any[], crmCustomFieldsDef?: any[], crmDeletedPhones?: string[] }) => {
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    await setDoc(docRef, payload, { merge: true });
+  };
+
   // Salvar Novo Cliente ou Editar
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,40 +215,44 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingClient(true);
     try {
       const cleanPhone = clientPhone.replace(/\D/g, '');
-      const docId = `client_metadata_${cleanPhone}`;
-
-      const payload = {
-        name: clientName.trim(),
-        brand: 'crm_client', // Identifica como cliente no inventário
-        quantity: 1,
-        unit: 'un',
-        price: 0,
-        costPrice: 0,
-        showInPos: false,
-        clientPhone: clientPhone.trim(),
-        clientEmail: clientEmail.trim(),
-        customFields: editingClient ? (editingClient.customFields || {}) : {},
-        updatedAt: serverTimestamp()
-      };
 
       if (editingClient) {
-        // Editando cliente manual via Firestore em inventory
-        await setDoc(doc(db, 'organizations', orgId, 'inventory', editingClient.id), payload, { merge: true });
+        // Editando cliente manual
+        const updatedList = manualClients.map(c => {
+          if (c.id === editingClient.id) {
+            return {
+              ...c,
+              name: clientName.trim(),
+              phone: clientPhone.trim(),
+              email: clientEmail.trim(),
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return c;
+        });
+        await syncCrmData({ crmClients: updatedList });
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
         // Criando novo cliente
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
-        const alreadyExists = manualClients.some(c => (c.clientPhone || '').replace(/\D/g, '') === cleanPhone);
+        const alreadyExists = manualClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
           toast.error('Já existe um cliente cadastrado com esse telefone.');
           setIsSavingClient(false);
           return;
         }
 
-        await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), {
-          ...payload,
-          createdAt: serverTimestamp()
-        });
+        const newClient = {
+          id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          name: clientName.trim(),
+          phone: clientPhone.trim(),
+          email: clientEmail.trim(),
+          customFields: {},
+          createdAt: new Date().toISOString()
+        };
+
+        const updatedList = [...manualClients, newClient];
+        await syncCrmData({ crmClients: updatedList });
 
         setSelectedClientId(cleanPhone);
         toast.success('Cliente cadastrado com sucesso!');
@@ -277,18 +274,21 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   // Excluir cliente físico do banco de dados e ocultá-lo da listagem
   const executeDeleteClient = async (client: any) => {
     try {
-      const cleanPhone = (client.phone || client.clientPhone || '').replace(/\D/g, '');
+      const cleanPhone = (client.phone || '').replace(/\D/g, '');
 
-      if (client.source === 'db') {
-        // Exclui o documento da coleção inventory
-        await deleteDoc(doc(db, 'organizations', orgId, 'inventory', client.id));
-      }
+      // Se for cadastrado fisicamente nas configurações locais, removemos da lista de manualClients
+      const updatedManualClientsList = manualClients.filter(c => c.id !== client.id);
 
       // Adiciona o telefone na lista de excluídos para ocultar da listagem
-      if (cleanPhone) {
-        const updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
-        await syncDeletedClientsPhones(updatedDeletedPhones);
+      let updatedDeletedPhones = deletedClientsPhones;
+      if (cleanPhone && !deletedClientsPhones.includes(cleanPhone)) {
+        updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
       }
+
+      await syncCrmData({
+        crmClients: updatedManualClientsList,
+        crmDeletedPhones: updatedDeletedPhones
+      });
 
       toast.success('Cliente removido com sucesso!');
 
@@ -301,26 +301,14 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Sincronizar definições de campos personalizados com o Firestore (no documento crm_settings_global de inventory)
+  // Sincronizar definições de campos personalizados com o Firestore (no documento do profissional)
   const syncCustomClientFieldsDef = async (fields: any[]) => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
-    await setDoc(docRef, {
-      name: 'Configurações Globais do CRM',
-      brand: 'crm_settings',
-      customClientFieldsDef: fields
-    }, { merge: true });
+    await syncCrmData({ crmCustomFieldsDef: fields });
   };
 
-  // Sincronizar telefones de clientes deletados com o Firestore (no documento crm_settings_global de inventory)
+  // Sincronizar telefones de clientes deletados com o Firestore (no documento do profissional)
   const syncDeletedClientsPhones = async (phones: string[]) => {
-    if (!orgId) return;
-    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
-    await setDoc(docRef, {
-      name: 'Configurações Globais do CRM',
-      brand: 'crm_settings',
-      deletedClientsPhones: phones
-    }, { merge: true });
+    await syncCrmData({ crmDeletedPhones: phones });
   };
 
   // Salvar valores dos campos customizados (CRM)
@@ -330,25 +318,37 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingCustomValues(true);
     try {
       const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
-      const docId = `client_metadata_${cleanPhone}`;
 
-      const payload = {
-        name: currentClient.name,
-        brand: 'crm_client',
-        quantity: 1,
-        unit: 'un',
-        price: 0,
-        costPrice: 0,
-        showInPos: false,
-        clientPhone: currentClient.phone,
-        clientEmail: currentClient.email || '',
-        customFields: tempCustomValues,
-        updatedAt: serverTimestamp()
-      };
+      // Se for cliente manual, atualizamos os customFields no manualClients correspondente
+      // Se for cliente de agendamento automático, nós podemos salvá-lo como manualClient também para persistir seus customFields!
+      const existingManual = manualClients.find(c => c.id === currentClient.id || (c.phone || '').replace(/\D/g, '') === cleanPhone);
 
-      // Grava diretamente na coleção inventory
-      await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), payload, { merge: true });
+      let updatedList;
+      if (existingManual) {
+        updatedList = manualClients.map(c => {
+          if (c.id === existingManual.id) {
+            return {
+              ...c,
+              customFields: tempCustomValues,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return c;
+        });
+      } else {
+        // Cria a entrada dele no manualClients para salvar os campos customizados
+        const newManualEntry = {
+          id: currentClient.id.startsWith('appt-') ? `client_${Date.now()}` : currentClient.id,
+          name: currentClient.name,
+          phone: currentClient.phone,
+          email: currentClient.email || '',
+          customFields: tempCustomValues,
+          createdAt: new Date().toISOString()
+        };
+        updatedList = [...manualClients, newManualEntry];
+      }
 
+      await syncCrmData({ crmClients: updatedList });
       toast.success('Informações do cliente salvas com sucesso!');
     } catch (err) {
       console.error(err);
