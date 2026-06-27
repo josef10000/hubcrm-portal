@@ -794,7 +794,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
           if (r.type === 'fixo') return countFixedOccurrences(r.date, new Date(date + 'T00:00:00'), new Date(date + 'T23:59:59')) > 0;
           return r.date === date;
         })
-        .reduce((acc, r) => acc + r.value, 0);
+        .reduce((acc, r) => acc + (r.value || 0), 0);
       
       const dayRevenues = dayAppointmentsVal + dayManualRevenuesVal;
 
@@ -803,7 +803,7 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
           if (e.type === 'fixo') return countFixedOccurrences(e.date, new Date(date + 'T00:00:00'), new Date(date + 'T23:59:59')) > 0;
           return e.date === date;
         })
-        .reduce((acc, e) => acc + e.value, 0);
+        .reduce((acc, e) => acc + (e.value || 0), 0);
 
       return {
         label: date.split('-').reverse().slice(0, 2).join('/'),

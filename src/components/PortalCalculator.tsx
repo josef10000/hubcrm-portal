@@ -97,7 +97,8 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
         return {
           id: d.id,
           ...data,
-          name: meta.name
+          name: meta.name,
+          costPerUnit: data.costPerUnit !== undefined && data.costPerUnit !== null ? Number(data.costPerUnit) : 0
         } as InventoryItem;
       });
       setInventory(list);
@@ -214,7 +215,7 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
                 placeholder="Selecione um insumo..."
                 options={inventory.map(item => ({
                   value: item.id,
-                  label: `${item.name} (R$ ${item.costPerUnit.toLocaleString('pt-BR')}/${item.unit})`
+                  label: `${item.name} (R$ ${(item.costPerUnit || 0).toLocaleString('pt-BR')}/${item.unit})`
                 }))}
               />
             </div>
@@ -259,12 +260,12 @@ export default function PortalCalculator({ orgId }: PortalCalculatorProps) {
                   <div>
                     <span className="font-bold text-white block">{m.name}</span>
                     <span className="text-gray-500 font-mono">
-                      {m.quantity} {m.unit} x R$ {m.costPerUnit.toLocaleString('pt-BR')}
+                      {m.quantity} {m.unit} x R$ {(m.costPerUnit || 0).toLocaleString('pt-BR')}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-mono font-bold text-emerald-400">
-                      R$ {(m.quantity * m.costPerUnit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(m.quantity * (m.costPerUnit || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                     <button
                       onClick={() => handleRemoveMaterial(m.itemId)}
