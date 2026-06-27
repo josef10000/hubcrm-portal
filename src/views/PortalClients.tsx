@@ -211,35 +211,6 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
 
-  // Sincronizar dados básicos e campos extras de clientes manuais com o backend
-  const syncSaveClientToCRM = async (targetClientId: string, data: { name: string, phone: string, email: string, customFields?: any }) => {
-    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-    const currentUser = auth.currentUser;
-
-    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'update_client',
-        orgId,
-        clientId: targetClientId,
-        token,
-        uid: currentUser?.uid || '',
-        email: currentUser?.email || '',
-        clientName: data.name,
-        clientPhone: data.phone,
-        clientEmail: data.email,
-        customFields: data.customFields || {}
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || 'Erro ao sincronizar cliente no CRM.');
-    }
-  };
-
   // Salvar Novo Cliente ou Editar
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,18 +222,19 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingClient(true);
     try {
       const cleanPhone = clientPhone.replace(/\D/g, '');
+      const payload = {
+        name: clientName.trim(),
+        phone: clientPhone.trim(),
+        email: clientEmail.trim(),
+        updatedAt: serverTimestamp()
+      };
 
       if (editingClient) {
-        // Editando cliente do banco manual via API de backend
-        await syncSaveClientToCRM(editingClient.id, {
-          name: clientName.trim(),
-          phone: clientPhone.trim(),
-          email: clientEmail.trim(),
-          customFields: editingClient.customFields || {}
-        });
+        // Editando cliente do banco manual via Firestore
+        await updateDoc(doc(db, 'organizations', orgId, 'clients', editingClient.id), payload);
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
-        // Criando novo cliente do zero via API de backend
+        // Criando novo cliente do zero via Firestore
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
         const alreadyExists = dbClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
@@ -271,12 +243,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
           return;
         }
 
-        const targetId = `client_${cleanPhone || Date.now()}`;
-        await syncSaveClientToCRM(targetId, {
-          name: clientName.trim(),
-          phone: clientPhone.trim(),
-          email: clientEmail.trim(),
-          customFields: {}
+        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
+          ...payload,
+          customFields: {},
+          createdAt: serverTimestamp()
         });
 
         setSelectedClientId(cleanPhone);
@@ -387,6 +357,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       throw new Error(errData.error || 'Erro ao sincronizar lista de exclusão.');
     }
   };
+
   // Salvar valores dos campos customizados (CRM)
   const handleSaveCustomValues = async () => {
     if (!currentClient) return;
@@ -394,14 +365,27 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingCustomValues(true);
     try {
       const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
-      const targetId = currentClient.source === 'db' ? currentClient.id : `client_${cleanPhone || Date.now()}`;
-
-      await syncSaveClientToCRM(targetId, {
+      const payload = {
         name: currentClient.name,
         phone: currentClient.phone,
         email: currentClient.email || '',
-        customFields: tempCustomValues
-      });
+        customFields: tempCustomValues,
+        updatedAt: serverTimestamp()
+      };
+
+      if (currentClient.source === 'db') {
+        // Atualiza documento existente
+        await updateDoc(doc(db, 'organizations', orgId, 'clients', currentClient.id), {
+          customFields: tempCustomValues,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        // Cliente veio da agenda (agendamento). Criamos um documento físico na clients
+        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
+          ...payload,
+          createdAt: serverTimestamp()
+        });
+      }
 
       toast.success('Informações do cliente salvas com sucesso!');
     } catch (err) {
