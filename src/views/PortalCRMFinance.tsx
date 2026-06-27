@@ -124,12 +124,18 @@ export default function PortalCRMFinance({ orgId, clientId }: PortalCRMFinancePr
   useEffect(() => {
     if (!orgId) return;
     const appointmentsRef = collection(db, 'organizations', orgId, 'appointments');
-    const q = query(appointmentsRef, orderBy('date', 'desc'), orderBy('time', 'desc'));
-    const unsub = onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(appointmentsRef, (snapshot) => {
       const list = snapshot.docs
         .map(d => ({ id: d.id, ...d.data() }))
-        .filter((app: any) => app.clientId === clientId);
+        .filter((app: any) => app.clientId === clientId)
+        .sort((a: any, b: any) => {
+          const dateA = a.date ? new Date(`${a.date}T${a.time || '00:00'}`).getTime() : 0;
+          const dateB = b.date ? new Date(`${b.date}T${b.time || '00:00'}`).getTime() : 0;
+          return dateB - dateA;
+        });
       setAppointments(list);
+    }, (error) => {
+      console.warn("Erro ao ler appointments no CRM Finance:", error.message);
     });
     return () => unsub();
   }, [orgId, clientId]);

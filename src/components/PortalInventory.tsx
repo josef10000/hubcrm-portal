@@ -210,7 +210,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
               description: `Ajuste manual de estoque via edição: de ${prevQty}${payload.unit} para ${payload.quantity}${payload.unit}`
             });
           } catch (logErr) {
-            console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+            console.info("[PortalInventory] Histórico de movimentações local indisponível para este perfil.");
           }
         }
         toast.success('Produto atualizado com sucesso!');
@@ -230,7 +230,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
             description: `Cadastro inicial no sistema com ${payload.quantity}${payload.unit}`
           });
         } catch (logErr) {
-          console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+          console.info("[PortalInventory] Histórico de movimentações local indisponível para este perfil.");
         }
 
         toast.success('Produto cadastrado com sucesso!');
@@ -302,7 +302,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           description: `Ajuste rápido de estoque: ${actualDiff > 0 ? '+' : ''}${actualDiff}${item.unit}`
         });
       } catch (logErr) {
-        console.warn("[PortalInventory] Sem permissão para gravar log de inventário:", logErr);
+        console.info("[PortalInventory] Histórico de movimentações local indisponível para este perfil.");
       }
 
       toast.success(`Estoque ajustado: ${newQty}${item.unit}`);

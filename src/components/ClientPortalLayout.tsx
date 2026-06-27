@@ -48,7 +48,7 @@ import PortalAgenda from '../views/PortalAgenda';
 import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
-import PortalRecords from '../views/PortalRecords';
+import PortalClients from '../views/PortalClients';
 
 const getTabTheme = (tabId: string, isLight: boolean = false) => {
   if (isLight) {
@@ -447,7 +447,7 @@ export default function ClientPortalLayout() {
     { id: 'crm_finance', label: 'Finanças', icon: DollarSign },
     { id: 'management', label: 'Estoque & Negócio', icon: Package },
     { id: 'growth', label: 'Crescer', icon: Rocket },
-    { id: 'records', label: 'Fichas', icon: FileText },
+    { id: 'clients', label: 'Clientes', icon: Users },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
     ] : []),
@@ -854,8 +854,8 @@ export default function ClientPortalLayout() {
                   onViewTicket={handleViewTicket} 
                 />
               )}
-              {activeTab === 'records' && (
-                <PortalRecords 
+              {activeTab === 'clients' && (
+                <PortalClients 
                   orgId={orgId || ''} 
                   clientId={clientId || ''}
                 />
@@ -885,7 +885,7 @@ export default function ClientPortalLayout() {
           boxShadow: isLight ? '0 15px 50px rgba(0,0,0,0.08)' : '0 15px 50px rgba(0,0,0,0.6)'
         }}
       >
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'clients', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id, isLight);
           return (
@@ -1090,11 +1090,11 @@ export default function ClientPortalLayout() {
                 </button>
 
                 <button
-                  onClick={() => { setActiveTab('records'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
                   className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
                 >
-                  <FileText size={20} className="text-purple-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Fichas</span>
+                  <Users size={20} className="text-blue-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Clientes</span>
                 </button>
 
                 {/* Agenda Settings (Mobile) */}

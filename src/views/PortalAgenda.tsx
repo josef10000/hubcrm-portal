@@ -1146,7 +1146,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     description: `Consumo automático no atendimento de ${app.clientName} (${srv.name})`
                   });
                 } catch (logErr) {
-                  console.warn("[PortalAgenda] Sem permissão para gravar log de inventário:", logErr);
+                  console.info("[PortalAgenda] Histórico de movimentações local indisponível para este perfil.");
                 }
               }
             });

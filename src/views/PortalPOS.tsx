@@ -148,7 +148,7 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
           description: logDescription
         });
       } catch (logErr) {
-        console.warn("[PortalPOS] Sem permissão para gravar log de inventário:", logErr);
+        console.info("[PortalPOS] Histórico de movimentações local indisponível para este perfil.");
       }
 
       toast.success(`Venda registrada com sucesso! ${selectedItem.name}: ${newQty} ${selectedItem.unit} restantes.`);
@@ -197,7 +197,7 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
           description: logDescription
         });
       } catch (logErr) {
-        console.warn("[PortalPOS] Sem permissão para gravar log de inventário:", logErr);
+        console.info("[PortalPOS] Histórico de movimentações local indisponível para este perfil.");
       }
 
       toast.success(`Vendido: 1x ${item.name}! (${newQty} restam)`);
