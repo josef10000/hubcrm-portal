@@ -161,7 +161,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
               <PortalInventory orgId={orgId} />
             )}
             {activeSubTab === 'pos' && (
-              <PortalPOS orgId={orgId} />
+              <PortalPOS orgId={orgId} clientId={clientId} />
             )}
             {activeSubTab === 'calculator' && (
               <PortalCalculator orgId={orgId} />
