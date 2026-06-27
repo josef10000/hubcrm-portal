@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
+import { useTheme } from '../lib/ThemeContext';
 
 interface PortalPOSProps {
   orgId: string;
@@ -44,6 +45,8 @@ const parseNameAndMetadata = (rawName: string) => {
 };
 
 export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
+  const { isLight } = useTheme();
+
   // Lista de produtos do Estoque
   const [items, setItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -353,13 +356,21 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
               placeholder="Buscar produtos por nome ou marca no estoque..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-2xl pl-12 pr-6 py-3.5 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all text-xs font-bold placeholder:text-gray-500"
+              className={`w-full border rounded-2xl pl-12 pr-6 py-3.5 outline-none transition-all text-xs font-bold ${
+                isLight 
+                  ? 'bg-white border-black/35 text-black placeholder:text-gray-400 focus:ring-black/20 focus:border-black' 
+                  : 'bg-[var(--theme-input-bg)] border-[var(--theme-border)] text-white placeholder:text-gray-500 focus:ring-primary-500/50'
+              }`}
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary-500 transition-colors" size={16} />
+            <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${
+              isLight ? 'text-black/50' : 'text-gray-500'
+            }`} size={16} />
             {searchQuery.trim() !== '' && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2 p-1.5 hover:bg-white/5 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border-0 bg-transparent"
+                className={`absolute right-3 top-2 p-1.5 rounded-xl transition-all cursor-pointer border-0 bg-transparent ${
+                  isLight ? 'text-black/40 hover:text-black hover:bg-black/5' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
               >
                 <X size={14} />
               </button>
@@ -368,21 +379,27 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
 
           {/* Listagem de Botões de Produtos */}
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center bg-white/[0.02] border border-white/5 rounded-3xl">
+            <div className={`py-20 flex flex-col items-center justify-center border rounded-3xl ${
+              isLight ? 'bg-white border-black/10' : 'bg-white/[0.02] border-white/5'
+            }`}>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-4"></div>
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">Carregando estoque...</p>
+              <p className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-black/60' : 'text-gray-500'}`}>Carregando estoque...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="py-20 text-center border border-dashed border-white/5 rounded-[2rem] bg-white/[0.02] p-12 space-y-4">
+            <div className={`py-20 text-center border border-dashed rounded-[2rem] p-12 space-y-4 ${
+              isLight ? 'bg-white border-black/20' : 'bg-white/[0.02] border-white/5'
+            }`}>
               <Package className="w-12 h-12 text-gray-600 mx-auto" strokeWidth={1} />
-              <p className="text-xs text-gray-500 font-bold">Nenhum produto disponível para exibição no PDV.</p>
-              <p className="text-[10px] text-gray-600 max-w-sm mx-auto">
+              <p className={`text-xs font-bold ${isLight ? 'text-black/60' : 'text-gray-500'}`}>Nenhum produto disponível para exibição no PDV.</p>
+              <p className={`text-[10px] max-w-sm mx-auto ${isLight ? 'text-black/40' : 'text-gray-600'}`}>
                 Cadastre seus produtos na aba **Estoque & Produtos** e ative a marcação **"Exibir no PDV"** para criar atalhos rápidos aqui.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block pl-1">
+              <span className={`text-[10px] font-black uppercase tracking-widest block pl-1 ${
+                isLight ? 'text-black/80' : 'text-gray-500'
+              }`}>
                 {searchQuery.trim() !== '' ? 'Resultados da Busca' : 'Botões Rápidos do Caixa'}
               </span>
 
@@ -398,31 +415,49 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                       onClick={() => addToCart(item)}
                       className={`p-4 rounded-2xl border text-left flex flex-col justify-between aspect-square transition-all relative overflow-hidden select-none outline-none group cursor-pointer border-0 ${
                         isOutOfStock
-                          ? 'bg-black/20 border-white/5 opacity-35 cursor-not-allowed'
-                          : 'bg-white/[0.03] border-white/10 hover:border-purple-500/40 hover:bg-purple-500/5 active:scale-95 active:bg-purple-500/10 shadow-md hover:shadow-purple-500/5'
+                          ? isLight 
+                            ? 'bg-black/5 border-black/10 opacity-40 cursor-not-allowed' 
+                            : 'bg-black/20 border-white/5 opacity-35 cursor-not-allowed'
+                          : isLight
+                            ? 'bg-white border-black/35 hover:border-black hover:bg-black/5 active:scale-95 active:bg-black/10 shadow-sm'
+                            : 'bg-white/[0.03] border-white/10 hover:border-purple-500/40 hover:bg-purple-500/5 active:scale-95 active:bg-purple-500/10 shadow-md hover:shadow-purple-500/5'
                       }`}
                     >
                       {/* Efeito de brilho de fundo no hover */}
-                      {!isOutOfStock && (
+                      {!isOutOfStock && !isLight && (
                         <div className="absolute -inset-full bg-gradient-to-r from-transparent via-purple-500/5 to-transparent group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
                       )}
 
                       {/* Header do Botão: Marca e Estoque */}
                       <div className="flex items-start justify-between gap-1.5 w-full">
-                        <span className="text-[8px] text-gray-500 font-bold uppercase tracking-wider truncate">
+                        <span className={`text-[8px] font-bold uppercase tracking-wider truncate ${
+                          isLight ? 'text-black/60' : 'text-gray-500'
+                        }`}>
                           {item.brand || 'Sem Marca'}
                         </span>
                         
                         {isOutOfStock ? (
-                          <span className="text-[7px] bg-red-500/10 border border-red-500/20 text-red-400 font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0">
+                          <span className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0 border ${
+                            isLight 
+                              ? 'bg-red-100 border-red-300 text-red-800' 
+                              : 'bg-red-500/10 border-red-500/20 text-red-400'
+                          }`}>
                             Sem Estoque
                           </span>
                         ) : isLowStock ? (
-                          <span className="text-[7px] bg-amber-500/10 border border-amber-500/20 text-amber-400 font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0 animate-pulse">
+                          <span className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0 border animate-pulse ${
+                            isLight 
+                              ? 'bg-amber-100 border-amber-300 text-amber-800' 
+                              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                          }`}>
                             Baixo {item.quantity}un
                           </span>
                         ) : (
-                          <span className="text-[7px] bg-white/5 border border-white/5 text-gray-400 font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0">
+                          <span className={`text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0 border ${
+                            isLight 
+                              ? 'bg-black/5 border-black/10 text-black/80' 
+                              : 'bg-white/5 border border-white/5 text-gray-400'
+                          }`}>
                             {item.quantity} {item.unit}
                           </span>
                         )}
@@ -430,15 +465,21 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
 
                       {/* Nome do Produto */}
                       <h5 className={`text-xs md:text-sm font-black transition-colors leading-snug line-clamp-2 uppercase ${
-                        isOutOfStock ? 'text-gray-600' : 'text-white group-hover:text-purple-400'
+                        isOutOfStock 
+                          ? isLight ? 'text-black/40' : 'text-gray-600' 
+                          : isLight ? 'text-black' : 'text-white group-hover:text-purple-400'
                       }`}>
                         {item.name}
                       </h5>
 
                       {/* Preço de Venda */}
-                      <div className="border-t border-white/5 pt-3 w-full">
+                      <div className={`border-t pt-3 w-full ${
+                        isLight ? 'border-black/10' : 'border-white/5'
+                      }`}>
                         <span className={`text-xs md:text-sm font-black block ${
-                          isOutOfStock ? 'text-gray-600' : 'text-emerald-400'
+                          isOutOfStock 
+                            ? isLight ? 'text-black/40' : 'text-gray-600' 
+                            : isLight ? 'text-black font-extrabold' : 'text-emerald-400 font-extrabold'
                         }`}>
                           {item.price ? `R$ ${Number(item.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
                         </span>
@@ -452,23 +493,37 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
         </div>
 
         {/* Coluna Direita: Carrinho de Compras */}
-        <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-5 shadow-2xl flex flex-col h-[650px] justify-between text-left">
+        <div className={`border rounded-[2rem] p-5 flex flex-col h-[650px] justify-between text-left ${
+          isLight 
+            ? 'bg-white border-black/35 text-black shadow-lg' 
+            : 'bg-white/[0.03] border-white/10 text-white shadow-2xl backdrop-blur-2xl'
+        }`}>
           
           <div className="space-y-4 flex flex-col min-h-0 flex-1">
             {/* Título do Carrinho */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/5">
-              <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
-                <ShoppingCart className="text-purple-400" size={16} />
+            <div className={`flex items-center justify-between pb-3 border-b ${
+              isLight ? 'border-black/10' : 'border-white/5'
+            }`}>
+              <h3 className={`text-sm font-black uppercase tracking-wider flex items-center gap-2 ${
+                isLight ? 'text-black' : 'text-white'
+              }`}>
+                <ShoppingCart className={isLight ? 'text-black' : 'text-purple-400'} size={16} />
                 Carrinho
               </h3>
-              <span className="text-[10px] bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black px-2 py-0.5 rounded-lg">
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${
+                isLight 
+                  ? 'bg-black/5 border-black/10 text-black' 
+                  : 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+              }`}>
                 {getTotalItemsCount()} {getTotalItemsCount() === 1 ? 'item' : 'itens'}
               </span>
             </div>
 
             {/* Associar Cliente à Venda */}
             <div className="space-y-1">
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Associar Cliente (Opcional)</label>
+              <label className={`text-[9px] font-bold uppercase tracking-wider block ${
+                isLight ? 'text-black/60' : 'text-gray-400'
+              }`}>Associar Cliente (Opcional)</label>
               <CustomSelect
                 value={selectedClientPhone}
                 onChange={(val) => setSelectedClientPhone(val)}
@@ -486,10 +541,12 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
             {/* Lista dos Itens no Carrinho */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar min-h-0 pt-2">
               {cart.length === 0 ? (
-                <div className="py-20 text-center border border-dashed border-white/5 rounded-2xl flex flex-col justify-center items-center gap-2 h-full">
-                  <ShoppingCart size={24} className="text-gray-700" />
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Carrinho Vazio</p>
-                  <p className="text-[9px] text-gray-600 max-w-[150px] mx-auto leading-normal">
+                <div className={`py-20 text-center border border-dashed rounded-2xl flex flex-col justify-center items-center gap-2 h-full ${
+                  isLight ? 'border-black/20' : 'border-white/5'
+                }`}>
+                  <ShoppingCart size={24} className={isLight ? 'text-black/30' : 'text-gray-700'} />
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-black/50' : 'text-gray-500'}`}>Carrinho Vazio</p>
+                  <p className={`text-[9px] max-w-[150px] mx-auto leading-normal ${isLight ? 'text-black/40' : 'text-gray-600'}`}>
                     Clique nos botões de produtos ao lado para iniciar a venda.
                   </p>
                 </div>
@@ -499,40 +556,62 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                   return (
                     <div 
                       key={item.id} 
-                      className="bg-black/20 border border-white/5 rounded-xl p-3 flex flex-col gap-2 relative group hover:border-white/10 transition-colors"
+                      className={`rounded-xl p-3 flex flex-col gap-2 relative group transition-colors border ${
+                        isLight 
+                          ? 'bg-black/5 border-black/15 hover:border-black/30' 
+                          : 'bg-black/20 border-white/5 hover:border-white/10'
+                      }`}
                     >
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="absolute right-2 top-2 text-gray-500 hover:text-red-400 transition-colors bg-transparent border-0 cursor-pointer p-0"
+                        className={`absolute right-2 top-2 transition-colors bg-transparent border-0 cursor-pointer p-0 ${
+                          isLight ? 'text-black/40 hover:text-red-600' : 'text-gray-500 hover:text-red-400'
+                        }`}
                         title="Remover"
                       >
                         <X size={12} />
                       </button>
 
-                      <div className="pr-6">
-                        <span className="text-[8px] text-gray-500 font-bold uppercase block tracking-wider truncate">
+                      <div className="pr-6 text-left">
+                        <span className={`text-[8px] font-bold uppercase block tracking-wider truncate ${
+                          isLight ? 'text-black/60' : 'text-gray-500'
+                        }`}>
                           {item.brand || 'Sem Marca'}
                         </span>
-                        <h6 className="text-[11px] font-black text-white truncate uppercase">{item.name}</h6>
+                        <h6 className={`text-[11px] font-black truncate uppercase ${
+                          isLight ? 'text-black' : 'text-white'
+                        }`}>{item.name}</h6>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-0.5">
-                        <span className="text-emerald-400 text-xs font-black">
+                      <div className={`flex items-center justify-between border-t pt-2 mt-0.5 ${
+                        isLight ? 'border-black/10' : 'border-white/5'
+                      }`}>
+                        <span className={`text-xs font-black ${
+                          isLight ? 'text-black' : 'text-emerald-400'
+                        }`}>
                           R$ {itemTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
 
                         {/* Controles de Quantidade */}
-                        <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-lg p-0.5">
+                        <div className={`flex items-center gap-1.5 rounded-lg p-0.5 border ${
+                          isLight ? 'bg-black/10 border-black/10' : 'bg-black/40 border-white/5'
+                        }`}>
                           <button
                             onClick={() => updateCartQuantity(item.id, item.quantityInCart - 1)}
-                            className="p-1 hover:bg-white/5 text-gray-400 hover:text-white rounded transition-colors cursor-pointer border-0 bg-transparent"
+                            className={`p-1 rounded transition-colors cursor-pointer border-0 bg-transparent ${
+                              isLight ? 'text-black hover:bg-black/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                           >
                             <Minus size={10} />
                           </button>
-                          <span className="text-[10px] text-white font-black px-1 font-mono">{item.quantityInCart}</span>
+                          <span className={`text-[10px] font-black px-1 font-mono ${
+                            isLight ? 'text-black' : 'text-white'
+                          }`}>{item.quantityInCart}</span>
                           <button
                             onClick={() => updateCartQuantity(item.id, item.quantityInCart + 1)}
-                            className="p-1 hover:bg-white/5 text-gray-400 hover:text-white rounded transition-colors cursor-pointer border-0 bg-transparent"
+                            className={`p-1 rounded transition-colors cursor-pointer border-0 bg-transparent ${
+                              isLight ? 'text-black hover:bg-black/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                           >
                             <Plus size={10} />
                           </button>
@@ -546,15 +625,19 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
           </div>
 
           {/* Resumo Financeiro e Finalização */}
-          <div className="border-t border-white/5 pt-4 space-y-4 shrink-0 bg-transparent">
-            <div className="space-y-1.5 text-xs font-bold">
+          <div className={`pt-4 space-y-4 shrink-0 bg-transparent border-t ${
+            isLight ? 'border-black/15' : 'border-white/5'
+          }`}>
+            <div className="space-y-1.5 text-xs font-bold text-left">
               <div className="flex justify-between items-center text-gray-500">
                 <span>Total de Itens:</span>
-                <span>{getTotalItemsCount()} un</span>
+                <span className={isLight ? 'text-black' : 'text-white'}>{getTotalItemsCount()} un</span>
               </div>
               <div className="flex justify-between items-center text-white">
-                <span className="uppercase tracking-wider">Valor Total:</span>
-                <span className="text-emerald-400 text-lg font-black font-mono">
+                <span className={`uppercase tracking-wider ${isLight ? 'text-black' : 'text-white'}`}>Valor Total:</span>
+                <span className={`text-lg font-black font-mono ${
+                  isLight ? 'text-black' : 'text-emerald-400'
+                }`}>
                   R$ {getSubtotal().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -568,7 +651,7 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                 setIsCheckoutModalOpen(true);
               }}
               disabled={cart.length === 0}
-              className="w-full py-4 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-800 disabled:opacity-50 text-white font-bold rounded-2xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-98 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
+              className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900 disabled:opacity-50 text-white font-bold rounded-2xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-98 shadow-lg shadow-purple-600/10 cursor-pointer border-0"
             >
               <Check size={16} /> Finalizar Venda
             </button>
@@ -583,36 +666,46 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
         <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 md:p-8 space-y-5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 text-left"
+            className={`w-full max-w-md border rounded-[2rem] p-6 md:p-8 space-y-5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 text-left ${
+              isLight ? 'bg-white border-black/35 text-black' : 'bg-[#0b0c10] border-white/10 text-white'
+            }`}
           >
             {/* Fechar */}
             <button 
               onClick={() => setIsCheckoutModalOpen(false)}
-              className="absolute right-6 top-6 p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              className={`absolute right-6 top-6 p-1.5 border rounded-xl transition-all cursor-pointer border-0 ${
+                isLight 
+                  ? 'bg-black/5 border-black/10 hover:bg-black/10 text-black/60 hover:text-black' 
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-400 hover:text-white'
+              }`}
             >
               <X size={14} />
             </button>
 
             {/* Header */}
             <div className="space-y-1">
-              <span className="text-[8px] text-purple-400 font-black uppercase tracking-widest block flex items-center gap-1">
+              <span className="text-[8px] text-purple-600 font-black uppercase tracking-widest block flex items-center gap-1">
                 <Sparkles size={8} /> Operação de Fechamento de Caixa
               </span>
-              <h4 className="text-base font-black uppercase tracking-tight text-white">
+              <h4 className={`text-base font-black uppercase tracking-tight ${isLight ? 'text-black' : 'text-white'}`}>
                 Checkout de Venda
               </h4>
-              <p className="text-gray-500 text-[11px]">
+              <p className={`text-[11px] ${isLight ? 'text-black/60' : 'text-gray-500'}`}>
                 Registre a forma de pagamento física e confirme para deduzir o estoque e criar o lançamento financeiro.
               </p>
             </div>
 
             {/* Display Gigante de Cobrança */}
-            <div className="bg-black/40 border border-white/10 p-5 rounded-2xl text-center space-y-1 shadow-inner">
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Inserir Valor na Maquininha / Cobrar</span>
-              <p className="text-3xl font-black text-emerald-400 font-mono">
+            <div className={`p-5 rounded-2xl text-center space-y-1 shadow-inner border ${
+              isLight ? 'bg-black/5 border-black/15' : 'bg-black/40 border border-white/10'
+            }`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wider block ${
+                isLight ? 'text-black/60' : 'text-gray-500'
+              }`}>Inserir Valor na Maquininha / Cobrar</span>
+              <p className={`text-3xl font-black font-mono ${isLight ? 'text-black' : 'text-emerald-400'}`}>
                 R$ {totalToPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
-              <span className="text-[9px] text-gray-500 italic block mt-1">
+              <span className={`text-[9px] italic block mt-1 ${isLight ? 'text-black/60' : 'text-gray-500'}`}>
                 Cliente: {consolidatedClients.find(c => c.phone.replace(/\D/g, '') === selectedClientPhone)?.name || 'Cliente Avulso'}
               </span>
             </div>
@@ -622,14 +715,16 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
               
               {/* Seletor de Forma de Pagamento */}
               <div className="space-y-2">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Forma de Pagamento Recebida</label>
+                <label className={`text-[10px] font-bold uppercase tracking-wider block pl-0.5 ${
+                  isLight ? 'text-black/60' : 'text-gray-500'
+                }`}>Forma de Pagamento Recebida</label>
                 
                 <div className="grid grid-cols-2 gap-2.5">
                   {[
-                    { id: 'dinheiro', label: 'Dinheiro', icon: DollarSign, color: 'hover:text-emerald-400 hover:border-emerald-500/30' },
-                    { id: 'pix', label: 'PIX', icon: Sparkles, color: 'hover:text-cyan-400 hover:border-cyan-500/30' },
-                    { id: 'cartao_credito', label: 'C. Crédito', icon: CreditCard, color: 'hover:text-purple-400 hover:border-purple-500/30' },
-                    { id: 'cartao_debito', label: 'C. Débito', icon: CreditCard, color: 'hover:text-blue-400 hover:border-blue-500/30' }
+                    { id: 'dinheiro', label: 'Dinheiro', icon: DollarSign, color: isLight ? 'hover:bg-black/5 text-black border-black/20' : 'hover:text-emerald-400 hover:border-emerald-500/30' },
+                    { id: 'pix', label: 'PIX', icon: Sparkles, color: isLight ? 'hover:bg-black/5 text-black border-black/20' : 'hover:text-cyan-400 hover:border-cyan-500/30' },
+                    { id: 'cartao_credito', label: 'C. Crédito', icon: CreditCard, color: isLight ? 'hover:bg-black/5 text-black border-black/20' : 'hover:text-purple-400 hover:border-purple-500/30' },
+                    { id: 'cartao_debito', label: 'C. Débito', icon: CreditCard, color: isLight ? 'hover:bg-black/5 text-black border-black/20' : 'hover:text-blue-400 hover:border-blue-500/30' }
                   ].map((method) => {
                     const isSelected = checkoutPaymentMethod === method.id;
                     const Icon = method.icon;
@@ -643,8 +738,12 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                         }}
                         className={`p-3.5 rounded-xl border font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border-0 active:scale-95 ${
                           isSelected 
-                            ? 'bg-purple-500 text-white border-purple-500 shadow-md shadow-purple-500/10 font-black' 
-                            : `bg-white/[0.02] border-white/5 text-gray-400 ${method.color}`
+                            ? isLight
+                              ? 'bg-black text-white border-black font-black shadow-md'
+                              : 'bg-purple-500 text-white border-purple-500 shadow-md shadow-purple-500/10 font-black' 
+                            : isLight
+                              ? 'bg-white border border-black/35 text-black hover:bg-black/5'
+                              : `bg-white/[0.02] border-white/5 text-gray-400 ${method.color}`
                         }`}
                       >
                         <Icon size={14} /> {method.label}
@@ -656,23 +755,37 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
 
               {/* Calculadora de Troco (Se Dinheiro) */}
               {checkoutPaymentMethod === 'dinheiro' && (
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                <div className={`border rounded-2xl p-4 space-y-4 animate-in slide-in-from-top-2 duration-200 ${
+                  isLight ? 'bg-black/5 border-black/15' : 'bg-white/[0.02] border-white/5'
+                }`}>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Valor Pago em Espécie (R$)</label>
+                    <label className={`text-[9px] font-bold uppercase tracking-wider block ${
+                      isLight ? 'text-black/60' : 'text-gray-400'
+                    }`}>Valor Pago em Espécie (R$)</label>
                     <input
                       type="text"
                       placeholder="Ex: 50,00"
                       value={amountPaid}
                       onChange={(e) => setAmountPaid(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-700 font-mono focus:ring-1 focus:ring-purple-500"
+                      className={`w-full px-4 py-2.5 rounded-xl text-xs outline-none transition-all placeholder-gray-500 font-mono focus:ring-1 border ${
+                        isLight 
+                          ? 'bg-white border-black/35 text-black focus:ring-black' 
+                          : 'bg-black/40 border border-white/10 text-white focus:ring-purple-500'
+                      }`}
                       autoFocus
                     />
                   </div>
 
                   {amountPaid && (
-                    <div className="flex justify-between items-center pt-2 border-t border-white/5 text-xs font-bold">
-                      <span className="text-gray-500 uppercase">Troco a Devolver:</span>
-                      <span className={`font-mono text-sm ${changeValue > 0 ? 'text-amber-400 font-black' : 'text-gray-400'}`}>
+                    <div className={`flex justify-between items-center pt-2 border-t text-xs font-bold ${
+                      isLight ? 'border-black/15' : 'border-white/5'
+                    }`}>
+                      <span className={isLight ? 'text-black/60' : 'text-gray-500'}>Troco a Devolver:</span>
+                      <span className={`font-mono text-sm ${
+                        changeValue > 0 
+                          ? isLight ? 'text-black font-black' : 'text-amber-400 font-black' 
+                          : isLight ? 'text-black/40' : 'text-gray-400'
+                      }`}>
                         R$ {changeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -685,7 +798,11 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                 <button
                   type="button"
                   onClick={() => setIsCheckoutModalOpen(false)}
-                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                  className={`flex-1 py-3.5 font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                    isLight 
+                      ? 'bg-black/5 hover:bg-black/10 text-black' 
+                      : 'bg-white/5 hover:bg-white/10 text-white'
+                  }`}
                 >
                   Voltar
                 </button>
