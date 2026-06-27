@@ -106,7 +106,8 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setDeletedClientsPhones(data.deletedClientsPhones || []);
+        const sched = data.schedulingSettings || {};
+        setDeletedClientsPhones(sched.deletedClientsPhones || []);
       }
     }, (error) => {
       console.error("Erro ao escutar dados do perfil no PortalRecords:", error);

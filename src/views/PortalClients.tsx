@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface PortalClientsProps {
   orgId: string;
@@ -25,6 +26,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   const [clientRecords, setClientRecords] = useState<any[]>([]);
   const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
   const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
+  const [schedulingSettingsObj, setSchedulingSettingsObj] = useState<any>({});
   
   // Lista Consolidada Reativa
   const [consolidatedClients, setConsolidatedClients] = useState<any[]>([]);
@@ -53,6 +55,17 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
   // Registro selecionado para visualização/impressão de prontuário
   const [printingRecord, setPrintingRecord] = useState<any | null>(null);
+
+  // Confirmações de Exclusão com Modais Próprios
+  const [deleteClientConfirm, setDeleteClientConfirm] = useState<{
+    isOpen: boolean;
+    client: any | null;
+  }>({ isOpen: false, client: null });
+
+  const [deleteFieldConfirm, setDeleteFieldConfirm] = useState<{
+    isOpen: boolean;
+    fieldId: string | null;
+  }>({ isOpen: false, fieldId: null });
 
   // 1. Escutar clientes no Firestore (coleção oficial clients)
   useEffect(() => {
@@ -105,7 +118,9 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const list = data.customClientFieldsDef || [];
+        const sched = data.schedulingSettings || {};
+        setSchedulingSettingsObj(sched);
+        const list = sched.customClientFieldsDef || [];
         // Ordena por data de criação para manter a ordem consistente
         const sortedList = [...list].sort((a: any, b: any) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -113,7 +128,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
           return dateA - dateB;
         });
         setCustomFieldsDef(sortedList);
-        setDeletedClientsPhones(data.deletedClientsPhones || []);
+        setDeletedClientsPhones(sched.deletedClientsPhones || []);
       }
     }, (error) => {
       console.error("Erro ao escutar dados do perfil:", error);
@@ -196,6 +211,35 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
 
+  // Sincronizar dados básicos e campos extras de clientes manuais com o backend
+  const syncSaveClientToCRM = async (targetClientId: string, data: { name: string, phone: string, email: string, customFields?: any }) => {
+    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+    const currentUser = auth.currentUser;
+
+    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_client',
+        orgId,
+        clientId: targetClientId,
+        token,
+        uid: currentUser?.uid || '',
+        email: currentUser?.email || '',
+        clientName: data.name,
+        clientPhone: data.phone,
+        clientEmail: data.email,
+        customFields: data.customFields || {}
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Erro ao sincronizar cliente no CRM.');
+    }
+  };
+
   // Salvar Novo Cliente ou Editar
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,19 +251,18 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingClient(true);
     try {
       const cleanPhone = clientPhone.replace(/\D/g, '');
-      const payload = {
-        name: clientName.trim(),
-        phone: clientPhone.trim(),
-        email: clientEmail.trim(),
-        updatedAt: serverTimestamp()
-      };
 
       if (editingClient) {
-        // Editando cliente do banco manual
-        await updateDoc(doc(db, 'organizations', orgId, 'clients', editingClient.id), payload);
+        // Editando cliente do banco manual via API de backend
+        await syncSaveClientToCRM(editingClient.id, {
+          name: clientName.trim(),
+          phone: clientPhone.trim(),
+          email: clientEmail.trim(),
+          customFields: editingClient.customFields || {}
+        });
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
-        // Criando novo cliente do zero
+        // Criando novo cliente do zero via API de backend
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
         const alreadyExists = dbClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
@@ -228,10 +271,12 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
           return;
         }
 
-        const newDoc = await addDoc(collection(db, 'organizations', orgId, 'clients'), {
-          ...payload,
-          customFields: {},
-          createdAt: serverTimestamp()
+        const targetId = `client_${cleanPhone || Date.now()}`;
+        await syncSaveClientToCRM(targetId, {
+          name: clientName.trim(),
+          phone: clientPhone.trim(),
+          email: clientEmail.trim(),
+          customFields: {}
         });
 
         setSelectedClientId(cleanPhone);
@@ -251,16 +296,19 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Excluir cliente físico do banco de dados ou ocultar cliente vindo de agendamento
-  const handleDeleteClient = async (client: any) => {
-    if (!confirm(`Deseja realmente remover o cliente "${client.name}" do cadastro? Isso ocultará o cliente e todo o seu histórico da listagem.`)) return;
-
+  // Excluir cliente físico do banco de dados (se possível) e ocultá-lo da listagem
+  const executeDeleteClient = async (client: any) => {
     try {
       const cleanPhone = (client.phone || '').replace(/\D/g, '');
 
       if (client.source === 'db') {
-        // Se for cadastrado fisicamente, exclui da coleção clients
-        await deleteDoc(doc(db, 'organizations', orgId, 'clients', client.id));
+        // Se for cadastrado fisicamente, tenta excluir da coleção clients.
+        // Caso falhe por falta de permissão do Firebase, apenas ignoramos para permitir a ocultação.
+        try {
+          await deleteDoc(doc(db, 'organizations', orgId, 'clients', client.id));
+        } catch (dbErr) {
+          console.warn("[PortalClients] Não foi possível excluir fisicamente o documento (esperado por permissões):", dbErr);
+        }
       }
 
       // Adiciona o telefone na lista de excluídos para ocultar da listagem
@@ -280,7 +328,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Sincronizar definições de campos personalizados com o backend
+  // Sincronizar definições de campos personalizados com o backend (dentro de schedulingSettings)
   const syncCustomClientFieldsDef = async (fields: any[]) => {
     if (!orgId || !clientId) return;
     const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
@@ -297,7 +345,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         token,
         uid: currentUser?.uid || '',
         email: currentUser?.email || '',
-        customClientFieldsDef: fields
+        schedulingSettings: {
+          ...schedulingSettingsObj,
+          customClientFieldsDef: fields
+        }
       })
     });
 
@@ -307,7 +358,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Sincronizar telefones de clientes deletados com o backend
+  // Sincronizar telefones de clientes deletados com o backend (dentro de schedulingSettings)
   const syncDeletedClientsPhones = async (phones: string[]) => {
     if (!orgId || !clientId) return;
     const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
@@ -324,7 +375,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         token,
         uid: currentUser?.uid || '',
         email: currentUser?.email || '',
-        deletedClientsPhones: phones
+        schedulingSettings: {
+          ...schedulingSettingsObj,
+          deletedClientsPhones: phones
+        }
       })
     });
 
@@ -333,7 +387,6 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       throw new Error(errData.error || 'Erro ao sincronizar lista de exclusão.');
     }
   };
-
   // Salvar valores dos campos customizados (CRM)
   const handleSaveCustomValues = async () => {
     if (!currentClient) return;
@@ -341,27 +394,14 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingCustomValues(true);
     try {
       const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
-      const payload = {
+      const targetId = currentClient.source === 'db' ? currentClient.id : `client_${cleanPhone || Date.now()}`;
+
+      await syncSaveClientToCRM(targetId, {
         name: currentClient.name,
         phone: currentClient.phone,
         email: currentClient.email || '',
-        customFields: tempCustomValues,
-        updatedAt: serverTimestamp()
-      };
-
-      if (currentClient.source === 'db') {
-        // Atualiza documento existente
-        await updateDoc(doc(db, 'organizations', orgId, 'clients', currentClient.id), {
-          customFields: tempCustomValues,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        // Cliente veio da agenda (agendamento). Criamos um documento físico na clients
-        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
-          ...payload,
-          createdAt: serverTimestamp()
-        });
-      }
+        customFields: tempCustomValues
+      });
 
       toast.success('Informações do cliente salvas com sucesso!');
     } catch (err) {
@@ -403,10 +443,14 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Remover Definição de Campo Customizado
-  const handleDeleteCustomField = async (fieldId: string) => {
+  // Inicia exclusão do campo customizado (abre modal próprio)
+  const handleDeleteCustomField = (fieldId: string) => {
+    setDeleteFieldConfirm({ isOpen: true, fieldId });
+  };
+
+  // Efetua a exclusão real
+  const executeDeleteCustomField = async (fieldId: string) => {
     if (!clientId) return;
-    if (!confirm('Deseja realmente excluir este campo? Os valores já salvos nos clientes continuarão no banco, mas não serão exibidos.')) return;
     try {
       const updatedFields = customFieldsDef.filter(f => f.id !== fieldId);
       await syncCustomClientFieldsDef(updatedFields);
@@ -633,7 +677,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                         <Phone size={14} />
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(c); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteClientConfirm({ isOpen: true, client: c }); }}
                         className="p-2 hover:bg-rose-500/10 text-gray-500 hover:text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-transparent border-0 cursor-pointer"
                         title="Remover Cadastro"
                       >
@@ -1045,6 +1089,38 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Exclusão de Cliente */}
+      <ConfirmModal
+        isOpen={deleteClientConfirm.isOpen}
+        title="Confirmar Remoção de Cliente"
+        message={`Deseja realmente remover o cliente "${deleteClientConfirm.client?.name}" do cadastro? Isso ocultará o cliente e todo o seu histórico da listagem.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onConfirm={async () => {
+          if (deleteClientConfirm.client) {
+            await executeDeleteClient(deleteClientConfirm.client);
+          }
+          setDeleteClientConfirm({ isOpen: false, client: null });
+        }}
+        onCancel={() => setDeleteClientConfirm({ isOpen: false, client: null })}
+      />
+
+      {/* Modal de Confirmação de Exclusão de Campo Personalizado */}
+      <ConfirmModal
+        isOpen={deleteFieldConfirm.isOpen}
+        title="Confirmar Exclusão de Campo"
+        message="Deseja realmente excluir este campo? Os valores já salvos nos clientes continuarão no banco, mas não serão exibidos."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onConfirm={async () => {
+          if (deleteFieldConfirm.fieldId) {
+            await executeDeleteCustomField(deleteFieldConfirm.fieldId);
+          }
+          setDeleteFieldConfirm({ isOpen: false, fieldId: null });
+        }}
+        onCancel={() => setDeleteFieldConfirm({ isOpen: false, fieldId: null })}
+      />
     </div>
   );
 }
