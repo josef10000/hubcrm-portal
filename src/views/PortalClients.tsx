@@ -21,7 +21,6 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   const [activeDetailTab, setActiveDetailTab] = useState<'info' | 'records' | 'appointments'>('info');
 
   // Listas de Dados do Firestore
-  const [dbClients, setDbClients] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [clientRecords, setClientRecords] = useState<any[]>([]);
   const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
@@ -67,21 +66,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     fieldId: string | null;
   }>({ isOpen: false, fieldId: null });
 
-  // 1. Escutar clientes no Firestore (coleção oficial clients)
-  useEffect(() => {
-    if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'clients');
-    const q = query(ref, orderBy('name', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(c => c.id !== clientId); // Oculta o próprio profissional do cadastro de clientes
-      setDbClients(list);
-    }, (error) => {
-      console.error("Erro ao escutar banco de clientes:", error);
-    });
-    return () => unsub();
-  }, [orgId, clientId]);
+  // 1. Escuta antiga de clientes comuns desativada (unificado em client_records)
 
   // 2. Escutar agendamentos da organização (appointments)
   useEffect(() => {
@@ -140,8 +125,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   useEffect(() => {
     const clientsMap = new Map<string, any>();
 
-    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual
-    dbClients.forEach(c => {
+    const manualClientsList = clientRecords.filter(r => r.type === 'manual_client');
+
+    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual de client_records
+    manualClientsList.forEach(c => {
       const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
@@ -193,7 +180,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         setTempCustomValues(updatedSelect.customFields || {});
       }
     }
-  }, [dbClients, appointments, selectedClientId, deletedClientsPhones]);
+  }, [clientRecords, appointments, selectedClientId, deletedClientsPhones]);
 
   // Filtrar Lista de Clientes com base na Pesquisa
   const filteredClients = consolidatedClients.filter(c => {
@@ -205,8 +192,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   // Cliente selecionado atualmente
   const currentClient = consolidatedClients.find(c => (c.phone || '').replace(/\D/g, '') === selectedClientId);
 
-  // Prontuários e Agendamentos vinculados ao cliente selecionado
-  const currentClientRecords = selectedClientId ? clientRecords.filter(r => r.clientId === selectedClientId) : [];
+  // Prontuários e Agendamentos vinculados ao cliente selecionado (filtrando metadados de cadastro)
+  const currentClientRecords = selectedClientId 
+    ? clientRecords.filter(r => r.clientId === selectedClientId && r.type !== 'manual_client') 
+    : [];
   const currentClientAppointments = selectedClientId 
     ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
@@ -222,7 +211,11 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingClient(true);
     try {
       const cleanPhone = clientPhone.replace(/\D/g, '');
+      const docId = `client_metadata_${cleanPhone}`;
+
       const payload = {
+        id: docId,
+        type: 'manual_client',
         name: clientName.trim(),
         phone: clientPhone.trim(),
         email: clientEmail.trim(),
@@ -230,20 +223,21 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       };
 
       if (editingClient) {
-        // Editando cliente do banco manual via Firestore
-        await updateDoc(doc(db, 'organizations', orgId, 'clients', editingClient.id), payload);
+        // Editando cliente do banco manual via Firestore em client_records
+        await setDoc(doc(db, 'organizations', orgId, 'client_records', editingClient.id), payload, { merge: true });
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
-        // Criando novo cliente do zero via Firestore
+        // Criando novo cliente do zero via Firestore em client_records
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
-        const alreadyExists = dbClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+        const manualClientsList = clientRecords.filter(r => r.type === 'manual_client');
+        const alreadyExists = manualClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
           toast.error('Já existe um cliente cadastrado com esse telefone.');
           setIsSavingClient(false);
           return;
         }
 
-        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
+        await setDoc(doc(db, 'organizations', orgId, 'client_records', docId), {
           ...payload,
           customFields: {},
           createdAt: serverTimestamp()
@@ -272,13 +266,8 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       const cleanPhone = (client.phone || '').replace(/\D/g, '');
 
       if (client.source === 'db') {
-        // Se for cadastrado fisicamente, tenta excluir da coleção clients.
-        // Caso falhe por falta de permissão do Firebase, apenas ignoramos para permitir a ocultação.
-        try {
-          await deleteDoc(doc(db, 'organizations', orgId, 'clients', client.id));
-        } catch (dbErr) {
-          console.warn("[PortalClients] Não foi possível excluir fisicamente o documento (esperado por permissões):", dbErr);
-        }
+        // Exclui o documento da coleção client_records
+        await deleteDoc(doc(db, 'organizations', orgId, 'client_records', client.id));
       }
 
       // Adiciona o telefone na lista de excluídos para ocultar da listagem
@@ -365,7 +354,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingCustomValues(true);
     try {
       const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
+      const docId = `client_metadata_${cleanPhone}`;
       const payload = {
+        id: docId,
+        type: 'manual_client',
         name: currentClient.name,
         phone: currentClient.phone,
         email: currentClient.email || '',
@@ -373,19 +365,8 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         updatedAt: serverTimestamp()
       };
 
-      if (currentClient.source === 'db') {
-        // Atualiza documento existente
-        await updateDoc(doc(db, 'organizations', orgId, 'clients', currentClient.id), {
-          customFields: tempCustomValues,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        // Cliente veio da agenda (agendamento). Criamos um documento físico na clients
-        await addDoc(collection(db, 'organizations', orgId, 'clients'), {
-          ...payload,
-          createdAt: serverTimestamp()
-        });
-      }
+      // Grava diretamente na coleção client_records
+      await setDoc(doc(db, 'organizations', orgId, 'client_records', docId), payload, { merge: true });
 
       toast.success('Informações do cliente salvas com sucesso!');
     } catch (err) {

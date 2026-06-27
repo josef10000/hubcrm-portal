@@ -21,7 +21,6 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   // Listas de Dados
   const [templates, setTemplates] = useState<any[]>([]);
   const [clientRecords, setClientRecords] = useState<any[]>([]);
-  const [manualClients, setManualClients] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [consolidatedClients, setConsolidatedClients] = useState<any[]>([]);
   
@@ -73,19 +72,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     return () => unsub();
   }, [orgId]);
 
-  // 3. Escutar clientes manuais (coleção oficial clients)
-  useEffect(() => {
-    if (!orgId) return;
-    const ref = collection(db, 'organizations', orgId, 'clients');
-    const q = query(ref, orderBy('name', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(c => c.id !== clientId);
-      setManualClients(list);
-    });
-    return () => unsub();
-  }, [orgId, clientId]);
+  // 3. Escuta antiga de clientes comuns desativada
 
   // 4. Escutar agendamentos da organização
   useEffect(() => {
@@ -119,8 +106,10 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   useEffect(() => {
     const clientsMap = new Map<string, { id: string; name: string; phone: string; email?: string }>();
     
-    // Primeiro populamos com clientes manuais do banco de dados
-    manualClients.forEach(c => {
+    const manualClientsList = clientRecords.filter(r => r.type === 'manual_client');
+
+    // Primeiro populamos com clientes manuais vindos de client_records (type === 'manual_client')
+    manualClientsList.forEach(c => {
       const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
@@ -155,7 +144,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
-  }, [manualClients, appointments, deletedClientsPhones]);
+  }, [clientRecords, appointments, deletedClientsPhones]);
 
   // Ações do Construtor de Modelos
   const handleAddField = (type: 'text_short' | 'text_paragraph' | 'yes_no' | 'multiple_choice') => {
@@ -385,7 +374,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   };
 
   // Filtragem dos prontuários do cliente selecionado
-  const filteredRecords = clientRecords.filter(r => r.clientId === selectedClientId);
+  const filteredRecords = clientRecords.filter(r => r.clientId === selectedClientId && r.type !== 'manual_client');
 
   const handlePrint = (record: any) => {
     setPrintingRecord(record);
