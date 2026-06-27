@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc 
 } from 'firebase/firestore';
@@ -24,6 +24,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   const [appointments, setAppointments] = useState<any[]>([]);
   const [clientRecords, setClientRecords] = useState<any[]>([]);
   const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
+  const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
   
   // Lista Consolidada Reativa
   const [consolidatedClients, setConsolidatedClients] = useState<any[]>([]);
@@ -97,7 +98,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     return () => unsub();
   }, [orgId]);
 
-  // 4. Escutar definições de campos customizados do perfil do profissional logado
+  // 4. Escutar definições de campos customizados e lista de deletados do perfil do profissional logado
   useEffect(() => {
     if (!orgId || !clientId) return;
     const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
@@ -112,9 +113,10 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
           return dateA - dateB;
         });
         setCustomFieldsDef(sortedList);
+        setDeletedClientsPhones(data.deletedClientsPhones || []);
       }
     }, (error) => {
-      console.error("Erro ao escutar campos extras do perfil:", error);
+      console.error("Erro ao escutar dados do perfil:", error);
     });
     return () => unsub();
   }, [orgId, clientId]);
@@ -161,7 +163,12 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       }
     });
 
-    const sorted = Array.from(clientsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = Array.from(clientsMap.values())
+      .filter(c => {
+        const cleanPhone = (c.phone || '').replace(/\D/g, '');
+        return !deletedClientsPhones.includes(cleanPhone);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
 
     // Se houver um cliente selecionado, atualiza seu estado para refletir mudanças do snap
@@ -171,7 +178,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         setTempCustomValues(updatedSelect.customFields || {});
       }
     }
-  }, [dbClients, appointments, selectedClientId]);
+  }, [dbClients, appointments, selectedClientId, deletedClientsPhones]);
 
   // Filtrar Lista de Clientes com base na Pesquisa
   const filteredClients = consolidatedClients.filter(c => {
@@ -244,22 +251,86 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Excluir cliente físico do banco de dados
+  // Excluir cliente físico do banco de dados ou ocultar cliente vindo de agendamento
   const handleDeleteClient = async (client: any) => {
-    if (!confirm(`Deseja realmente remover o cliente "${client.name}" do cadastro? Isso não apagará seus prontuários ou agendamentos.`)) return;
+    if (!confirm(`Deseja realmente remover o cliente "${client.name}" do cadastro? Isso ocultará o cliente e todo o seu histórico da listagem.`)) return;
 
     try {
+      const cleanPhone = (client.phone || '').replace(/\D/g, '');
+
       if (client.source === 'db') {
+        // Se for cadastrado fisicamente, exclui da coleção clients
         await deleteDoc(doc(db, 'organizations', orgId, 'clients', client.id));
-        toast.success('Cliente removido com sucesso!');
-      } else {
-        toast.error('Clientes vindos de agendamentos não podem ser excluídos. Eles somem apenas se os agendamentos forem excluídos.');
       }
-      if (selectedClientId === (client.phone || '').replace(/\D/g, '')) {
+
+      // Adiciona o telefone na lista de excluídos para ocultar da listagem
+      if (cleanPhone) {
+        const updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
+        await syncDeletedClientsPhones(updatedDeletedPhones);
+      }
+
+      toast.success('Cliente removido com sucesso!');
+
+      if (selectedClientId === cleanPhone) {
         setSelectedClientId(null);
       }
     } catch (err) {
+      console.error(err);
       toast.error('Erro ao excluir cliente.');
+    }
+  };
+
+  // Sincronizar definições de campos personalizados com o backend
+  const syncCustomClientFieldsDef = async (fields: any[]) => {
+    if (!orgId || !clientId) return;
+    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+    const currentUser = auth.currentUser;
+
+    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_client',
+        orgId,
+        clientId,
+        token,
+        uid: currentUser?.uid || '',
+        email: currentUser?.email || '',
+        customClientFieldsDef: fields
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Erro ao sincronizar campos personalizados.');
+    }
+  };
+
+  // Sincronizar telefones de clientes deletados com o backend
+  const syncDeletedClientsPhones = async (phones: string[]) => {
+    if (!orgId || !clientId) return;
+    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+    const currentUser = auth.currentUser;
+
+    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_client',
+        orgId,
+        clientId,
+        token,
+        uid: currentUser?.uid || '',
+        email: currentUser?.email || '',
+        deletedClientsPhones: phones
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Erro ao sincronizar lista de exclusão.');
     }
   };
 
@@ -320,9 +391,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
       const updatedFields = [...customFieldsDef, newField];
 
-      await setDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
-        customClientFieldsDef: updatedFields
-      }, { merge: true });
+      await syncCustomClientFieldsDef(updatedFields);
 
       toast.success(`Campo personalizado "${newFieldLabel}" criado!`);
       setNewFieldLabel('');
@@ -340,9 +409,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     if (!confirm('Deseja realmente excluir este campo? Os valores já salvos nos clientes continuarão no banco, mas não serão exibidos.')) return;
     try {
       const updatedFields = customFieldsDef.filter(f => f.id !== fieldId);
-      await setDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
-        customClientFieldsDef: updatedFields
-      }, { merge: true });
+      await syncCustomClientFieldsDef(updatedFields);
       toast.success('Campo personalizado excluído!');
     } catch (err) {
       console.error(err);
@@ -565,15 +632,13 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                       >
                         <Phone size={14} />
                       </button>
-                      {c.source === 'db' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteClient(c); }}
-                          className="p-2 hover:bg-rose-500/10 text-gray-500 hover:text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-transparent border-0 cursor-pointer"
-                          title="Remover Cadastro"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(c); }}
+                        className="p-2 hover:bg-rose-500/10 text-gray-500 hover:text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-transparent border-0 cursor-pointer"
+                        title="Remover Cadastro"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
                 );

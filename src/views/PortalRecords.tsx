@@ -38,6 +38,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   const [templateFields, setTemplateFields] = useState<any[]>([]);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
   
   // Estados de Cadastro Rápido de Cliente Final
   const [newClientName, setNewClientName] = useState('');
@@ -98,6 +99,21 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     return () => unsub();
   }, [orgId]);
 
+  // Escutar telefones excluídos do perfil do profissional logado
+  useEffect(() => {
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    const unsub = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setDeletedClientsPhones(data.deletedClientsPhones || []);
+      }
+    }, (error) => {
+      console.error("Erro ao escutar dados do perfil no PortalRecords:", error);
+    });
+    return () => unsub();
+  }, [orgId, clientId]);
+
   // 5. Consolidar lista de clientes finais únicos
   useEffect(() => {
     const clientsMap = new Map<string, { id: string; name: string; phone: string; email?: string }>();
@@ -130,10 +146,15 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       }
     });
 
-    // Ordenar por nome
-    const sorted = Array.from(clientsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    // Ordenar por nome e FILTRAR os telefones deletados
+    const sorted = Array.from(clientsMap.values())
+      .filter(c => {
+        const cleanPhone = (c.phone || '').replace(/\D/g, '');
+        return !deletedClientsPhones.includes(cleanPhone);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
-  }, [manualClients, appointments]);
+  }, [manualClients, appointments, deletedClientsPhones]);
 
   // Ações do Construtor de Modelos
   const handleAddField = (type: 'text_short' | 'text_paragraph' | 'yes_no' | 'multiple_choice') => {

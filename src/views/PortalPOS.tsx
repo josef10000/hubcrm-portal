@@ -161,6 +161,52 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
     }
   };
 
+  // Processa a venda rápida de 1 unidade diretamente
+  const handleQuickSell = async (item: any) => {
+    if (item.quantity <= 0 || !orgId) {
+      toast.error(`O produto "${item.name}" está sem estoque.`);
+      return;
+    }
+
+    try {
+      const newQty = item.quantity - 1;
+      const docRef = doc(db, 'organizations', orgId, 'inventory', item.id);
+
+      // 1. Re-codifica o nome com o contador de vendas (sales) incrementado
+      const newSales = (item.sales || 0) + 1;
+      const encodedName = `${item.name.trim()} [brand: ${(item.brand || '').trim()} | price: ${item.price || 0} | pdv: ${item.showInPos || false} | sales: ${newSales}]`;
+
+      // 2. Atualizar estoque no Firestore
+      await updateDoc(docRef, {
+        name: encodedName,
+        quantity: newQty,
+        updatedAt: serverTimestamp()
+      });
+
+      // 3. Gravar log de movimentação
+      const itemPrice = item.price || 0;
+      const logDescription = `Venda rápida via PDV: -1${item.unit} de ${item.name}${item.brand ? ` (${item.brand})` : ''}.${itemPrice > 0 ? ` Preço unitário: R$ ${itemPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.` : ''}`;
+
+      try {
+        await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+          itemId: item.id,
+          itemName: item.name,
+          type: 'saida',
+          quantity: 1,
+          date: serverTimestamp(),
+          description: logDescription
+        });
+      } catch (logErr) {
+        console.warn("[PortalPOS] Sem permissão para gravar log de inventário:", logErr);
+      }
+
+      toast.success(`Vendido: 1x ${item.name}! (${newQty} restam)`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao registrar venda rápida.');
+    }
+  };
+
   return (
     <div className="space-y-6 text-left">
       
@@ -203,30 +249,47 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
               {filteredSearchItems.map((item) => {
                 const isOutOfStock = item.quantity <= 0;
                 return (
-                  <button
+                  <div
                     key={item.id}
-                    onClick={() => handleOpenSellModal(item)}
-                    disabled={isOutOfStock}
-                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between transition-all relative overflow-hidden cursor-pointer w-full group ${
+                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between transition-all relative overflow-hidden w-full group shadow-sm min-h-[110px] ${
                       isOutOfStock
-                        ? 'opacity-40 border-white/5 bg-black/10 cursor-not-allowed'
+                        ? 'opacity-40 border-white/5 bg-black/10'
                         : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:border-primary-500/40 hover:bg-[var(--theme-glass-hover)] hover:-translate-y-0.5'
                     }`}
                   >
-                    <div>
+                    {!isOutOfStock && (
+                      <button
+                        onClick={() => handleQuickSell(item)}
+                        className="absolute inset-0 bg-transparent border-0 cursor-pointer w-full h-full z-10"
+                        title="Venda Rápida (1 un)"
+                      />
+                    )}
+
+                    <div className="z-20 pointer-events-none">
                       <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest block">{item.brand || 'Sem Marca'}</span>
                       <h5 className="text-xs font-black text-white mt-1 group-hover:text-primary-400 transition-colors truncate">{item.name}</h5>
                     </div>
 
-                    <div className="flex items-center justify-between mt-4 border-t border-[var(--theme-border-subtle)] pt-3 w-full">
-                      <span className="text-emerald-400 text-xs font-black">
+                    <div className="flex items-center justify-between mt-4 border-t border-[var(--theme-border-subtle)] pt-3 w-full z-20">
+                      <span className="text-emerald-400 text-xs font-black pointer-events-none">
                         {item.price ? `R$ ${Number(item.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
                       </span>
-                      <span className={`text-[10px] font-bold ${item.quantity <= item.minQuantity ? 'text-amber-400' : 'text-gray-400'}`}>
-                        Estoque: {item.quantity} {item.unit}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold ${item.quantity <= item.minQuantity ? 'text-amber-400' : 'text-gray-400'} pointer-events-none mr-1`}>
+                          Estoque: {item.quantity} {item.unit}
+                        </span>
+                        {!isOutOfStock && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenSellModal(item); }}
+                            className="px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-primary-500 hover:text-white rounded-lg text-[8px] uppercase tracking-wider text-gray-300 font-black transition-all cursor-pointer pointer-events-auto"
+                            title="Especificar quantidade..."
+                          >
+                            Qtd
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -262,17 +325,23 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
             {posFavorites.map((item) => {
               const isOutOfStock = item.quantity <= 0;
               return (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => handleOpenSellModal(item)}
-                  disabled={isOutOfStock}
-                  className={`p-5 rounded-[2rem] border text-left flex flex-col justify-between aspect-square transition-all relative overflow-hidden w-full group active:scale-95 cursor-pointer shadow-md ${
+                  className={`p-5 rounded-[2rem] border text-left flex flex-col justify-between aspect-square transition-all relative overflow-hidden w-full group shadow-md hover:shadow-lg hover:-translate-y-1 ${
                     isOutOfStock
-                      ? 'opacity-30 border-white/5 bg-black/10 cursor-not-allowed'
-                      : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:border-primary-500/40 hover:bg-[var(--theme-glass-hover)] hover:-translate-y-1'
+                      ? 'opacity-30 border-white/5 bg-black/10'
+                      : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:border-primary-500/40 hover:bg-[var(--theme-glass-hover)]'
                   }`}
                 >
-                  <div className="space-y-1 overflow-hidden w-full text-left">
+                  {!isOutOfStock && (
+                    <button
+                      onClick={() => handleQuickSell(item)}
+                      className="absolute inset-0 bg-transparent border-0 cursor-pointer w-full h-full z-10"
+                      title="Venda Rápida (1 un)"
+                    />
+                  )}
+
+                  <div className="space-y-1 overflow-hidden w-full text-left z-20 relative pointer-events-none">
                     <div className="flex justify-between items-start gap-1 w-full">
                       <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest block truncate">{item.brand || 'Sem Marca'}</span>
                       {!item.showInPos && (
@@ -284,19 +353,28 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
                     <h5 className="text-xs md:text-sm font-black text-white group-hover:text-primary-400 transition-colors line-clamp-2 uppercase leading-snug">{item.name}</h5>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 border-t border-[var(--theme-border-subtle)] pt-4 w-full text-left">
-                    <span className="text-emerald-400 text-xs md:text-sm font-black">
+                  <div className="flex flex-col gap-1.5 border-t border-[var(--theme-border-subtle)] pt-4 w-full text-left z-20 relative">
+                    <span className="text-emerald-400 text-xs md:text-sm font-black pointer-events-none">
                       {item.price ? `R$ ${Number(item.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
                     </span>
                     
                     <div className="flex items-center justify-between w-full text-[9px] font-bold">
-                      <span className="text-gray-500">Qtd:</span>
-                      <span className={item.quantity <= item.minQuantity ? 'text-amber-400 animate-pulse font-black' : 'text-gray-400'}>
+                      <span className="text-gray-500 pointer-events-none">Estoque:</span>
+                      <span className={`${item.quantity <= item.minQuantity ? 'text-amber-400 animate-pulse font-black' : 'text-gray-400'} pointer-events-none mr-1`}>
                         {item.quantity} {item.unit}
                       </span>
+                      {!isOutOfStock && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOpenSellModal(item); }}
+                          className="px-2.5 py-1 bg-white/5 border border-white/10 hover:bg-primary-500 hover:text-white rounded-lg text-[8px] uppercase tracking-wider text-gray-300 font-black transition-all cursor-pointer pointer-events-auto"
+                          title="Especificar quantidade..."
+                        >
+                          Qtd
+                        </button>
+                      )}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
