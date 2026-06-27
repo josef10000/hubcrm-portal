@@ -85,7 +85,9 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
           brand: meta.brand,
           price: meta.price,
           showInPos: meta.showInPos,
-          sales: meta.sales
+          sales: meta.sales,
+          quantity: Number(data.quantity) || 0,
+          minQuantity: Number(data.minQuantity) || 0
         };
       });
       setItems(list);
@@ -406,8 +408,10 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
               {/* Botões Reativos Reais */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {filteredProducts.map((item) => {
-                  const isOutOfStock = item.quantity <= 0;
-                  const isLowStock = item.quantity <= (item.minQuantity || 1);
+                  const qtyInCart = cart.find(i => i.id === item.id)?.quantityInCart || 0;
+                  const availableQty = Math.max(0, item.quantity - qtyInCart);
+                  const isOutOfStock = availableQty <= 0;
+                  const isLowStock = availableQty <= (item.minQuantity || 1);
                   return (
                     <button
                       key={item.id}
@@ -450,7 +454,7 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                               ? 'bg-amber-100 border-amber-300 text-amber-800' 
                               : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
                           }`}>
-                            Baixo {item.quantity}un
+                            Baixo {availableQty}un
                           </span>
                         ) : (
                           <span className={`text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0 border ${
@@ -458,7 +462,7 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
                               ? 'bg-black/5 border-black/10 text-black/80' 
                               : 'bg-white/5 border border-white/5 text-gray-400'
                           }`}>
-                            {item.quantity} {item.unit}
+                            {availableQty} {item.unit}
                           </span>
                         )}
                       </div>
