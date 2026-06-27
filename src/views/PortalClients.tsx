@@ -25,7 +25,6 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   const [clientRecords, setClientRecords] = useState<any[]>([]);
   const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
   const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
-  const [schedulingSettingsObj, setSchedulingSettingsObj] = useState<any>({});
   const [manualClients, setManualClients] = useState<any[]>([]);
   
   // Lista Consolidada Reativa
@@ -97,45 +96,57 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     return () => unsub();
   }, [orgId]);
 
-  // 4. Escutar definições de campos customizados, lista de deletados e clientes manuais do perfil do profissional logado
+  // 4. Escutar configurações globais do CRM (campos extras e lista de excluídos) salvas no inventário
   useEffect(() => {
-    if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const sched = data.schedulingSettings || {};
-        setSchedulingSettingsObj(sched);
-        const list = sched.customClientFieldsDef || [];
-        // Ordena por data de criação para manter a ordem consistente
+        const list = data.customClientFieldsDef || [];
         const sortedList = [...list].sort((a: any, b: any) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateA - dateB;
         });
         setCustomFieldsDef(sortedList);
-        setDeletedClientsPhones(sched.deletedClientsPhones || []);
-        setManualClients(sched.manualClients || []);
+        setDeletedClientsPhones(data.deletedClientsPhones || []);
       }
     }, (error) => {
-      console.error("Erro ao escutar dados do perfil:", error);
+      console.error("Erro ao escutar configurações globais de CRM no inventário:", error);
     });
     return () => unsub();
-  }, [orgId, clientId]);
+  }, [orgId]);
+
+  // Escutar clientes manuais salvos na coleção de inventário
+  useEffect(() => {
+    if (!orgId) return;
+    const ref = collection(db, 'organizations', orgId, 'inventory');
+    const q = query(ref, orderBy('name', 'asc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((item: any) => item.brand === 'crm_client');
+      setManualClients(list);
+    }, (error) => {
+      console.error("Erro ao escutar clientes manuais no inventário:", error);
+    });
+    return () => unsub();
+  }, [orgId]);
 
   // 5. Consolidar Lista de Clientes (Reativa e Sem Duplicações)
   useEffect(() => {
     const clientsMap = new Map<string, any>();
 
-    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual de schedulingSettings
+    // A. Adicionar todos os clientes cadastrados fisicamente no banco manual de inventory
     manualClients.forEach(c => {
-      const cleanPhone = (c.phone || '').replace(/\D/g, '');
+      const cleanPhone = (c.clientPhone || c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,
           name: c.name,
-          phone: c.phone || '',
-          email: c.email || '',
+          phone: c.clientPhone || c.phone || '',
+          email: c.clientEmail || c.email || '',
           customFields: c.customFields || {},
           source: 'db', // Identifica se já tem documento físico
           rawDoc: c
@@ -200,37 +211,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
 
-  // Sincronizar lista completa de clientes manuais no objeto schedulingSettings via API de backend
-  const syncManualClients = async (updatedList: any[]) => {
-    if (!orgId || !clientId) return;
-    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-    const currentUser = auth.currentUser;
-
-    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'update_client',
-        orgId,
-        clientId,
-        token,
-        uid: currentUser?.uid || '',
-        email: currentUser?.email || '',
-        schedulingSettings: {
-          ...schedulingSettingsObj,
-          manualClients: updatedList
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || 'Erro ao sincronizar clientes.');
-    }
-  };
-
-  // Salvar Novo Cliente ou Editar (usando schedulingSettings.manualClients)
+  // Salvar Novo Cliente ou Editar
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName.trim() || !clientPhone.trim()) {
@@ -241,44 +222,40 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingClient(true);
     try {
       const cleanPhone = clientPhone.replace(/\D/g, '');
+      const docId = `client_metadata_${cleanPhone}`;
+
+      const payload = {
+        name: clientName.trim(),
+        brand: 'crm_client', // Identifica como cliente no inventário
+        quantity: 1,
+        unit: 'un',
+        price: 0,
+        costPrice: 0,
+        showInPos: false,
+        clientPhone: clientPhone.trim(),
+        clientEmail: clientEmail.trim(),
+        customFields: editingClient ? (editingClient.customFields || {}) : {},
+        updatedAt: serverTimestamp()
+      };
 
       if (editingClient) {
-        // Editando cliente do banco manual localmente e salvando
-        const updatedList = manualClients.map(c => {
-          if (c.id === editingClient.id) {
-            return {
-              ...c,
-              name: clientName.trim(),
-              phone: clientPhone.trim(),
-              email: clientEmail.trim(),
-              updatedAt: new Date().toISOString()
-            };
-          }
-          return c;
-        });
-        await syncManualClients(updatedList);
+        // Editando cliente manual via Firestore em inventory
+        await setDoc(doc(db, 'organizations', orgId, 'inventory', editingClient.id), payload, { merge: true });
         toast.success('Cadastro do cliente atualizado com sucesso!');
       } else {
-        // Criando novo cliente do zero
+        // Criando novo cliente
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
-        const alreadyExists = manualClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+        const alreadyExists = manualClients.some(c => (c.clientPhone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
           toast.error('Já existe um cliente cadastrado com esse telefone.');
           setIsSavingClient(false);
           return;
         }
 
-        const newClient = {
-          id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          name: clientName.trim(),
-          phone: clientPhone.trim(),
-          email: clientEmail.trim(),
-          customFields: {},
-          createdAt: new Date().toISOString()
-        };
-
-        const updatedList = [...manualClients, newClient];
-        await syncManualClients(updatedList);
+        await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), {
+          ...payload,
+          createdAt: serverTimestamp()
+        });
 
         setSelectedClientId(cleanPhone);
         toast.success('Cliente cadastrado com sucesso!');
@@ -297,47 +274,20 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Excluir cliente físico do banco de dados (se possível) e ocultá-lo da listagem
+  // Excluir cliente físico do banco de dados e ocultá-lo da listagem
   const executeDeleteClient = async (client: any) => {
     try {
-      const cleanPhone = (client.phone || '').replace(/\D/g, '');
+      const cleanPhone = (client.phone || client.clientPhone || '').replace(/\D/g, '');
 
-      // Se for cadastrado fisicamente nas configurações locais, removemos da lista de manualClients
-      const updatedManualClientsList = manualClients.filter(c => c.id !== client.id);
-
-      // Adiciona o telefone na lista de excluídos para ocultar da listagem
-      let updatedDeletedPhones = deletedClientsPhones;
-      if (cleanPhone && !deletedClientsPhones.includes(cleanPhone)) {
-        updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
+      if (client.source === 'db') {
+        // Exclui o documento da coleção inventory
+        await deleteDoc(doc(db, 'organizations', orgId, 'inventory', client.id));
       }
 
-      // Sincroniza ambos no backend dentro de schedulingSettings
-      if (!orgId || !clientId) return;
-      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-      const currentUser = auth.currentUser;
-
-      const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_client',
-          orgId,
-          clientId,
-          token,
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || '',
-          schedulingSettings: {
-            ...schedulingSettingsObj,
-            manualClients: updatedManualClientsList,
-            deletedClientsPhones: updatedDeletedPhones
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || 'Erro ao salvar remoção no servidor.');
+      // Adiciona o telefone na lista de excluídos para ocultar da listagem
+      if (cleanPhone) {
+        const updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
+        await syncDeletedClientsPhones(updatedDeletedPhones);
       }
 
       toast.success('Cliente removido com sucesso!');
@@ -351,64 +301,26 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     }
   };
 
-  // Sincronizar definições de campos personalizados com o backend (dentro de schedulingSettings)
+  // Sincronizar definições de campos personalizados com o Firestore (no documento crm_settings_global de inventory)
   const syncCustomClientFieldsDef = async (fields: any[]) => {
-    if (!orgId || !clientId) return;
-    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-    const currentUser = auth.currentUser;
-
-    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'update_client',
-        orgId,
-        clientId,
-        token,
-        uid: currentUser?.uid || '',
-        email: currentUser?.email || '',
-        schedulingSettings: {
-          ...schedulingSettingsObj,
-          customClientFieldsDef: fields
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || 'Erro ao sincronizar campos personalizados.');
-    }
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
+    await setDoc(docRef, {
+      name: 'Configurações Globais do CRM',
+      brand: 'crm_settings',
+      customClientFieldsDef: fields
+    }, { merge: true });
   };
 
-  // Sincronizar telefones de clientes deletados com o backend (dentro de schedulingSettings)
+  // Sincronizar telefones de clientes deletados com o Firestore (no documento crm_settings_global de inventory)
   const syncDeletedClientsPhones = async (phones: string[]) => {
-    if (!orgId || !clientId) return;
-    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-    const currentUser = auth.currentUser;
-
-    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'update_client',
-        orgId,
-        clientId,
-        token,
-        uid: currentUser?.uid || '',
-        email: currentUser?.email || '',
-        schedulingSettings: {
-          ...schedulingSettingsObj,
-          deletedClientsPhones: phones
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || 'Erro ao sincronizar lista de exclusão.');
-    }
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
+    await setDoc(docRef, {
+      name: 'Configurações Globais do CRM',
+      brand: 'crm_settings',
+      deletedClientsPhones: phones
+    }, { merge: true });
   };
 
   // Salvar valores dos campos customizados (CRM)
@@ -418,37 +330,25 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     setIsSavingCustomValues(true);
     try {
       const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
+      const docId = `client_metadata_${cleanPhone}`;
 
-      // Se for cliente manual, atualizamos os customFields no manualClients correspondente
-      // Se for cliente de agendamento automático, nós podemos salvá-lo como manualClient também para persistir seus customFields!
-      const existingManual = manualClients.find(c => c.id === currentClient.id || (c.phone || '').replace(/\D/g, '') === cleanPhone);
+      const payload = {
+        name: currentClient.name,
+        brand: 'crm_client',
+        quantity: 1,
+        unit: 'un',
+        price: 0,
+        costPrice: 0,
+        showInPos: false,
+        clientPhone: currentClient.phone,
+        clientEmail: currentClient.email || '',
+        customFields: tempCustomValues,
+        updatedAt: serverTimestamp()
+      };
 
-      let updatedList;
-      if (existingManual) {
-        updatedList = manualClients.map(c => {
-          if (c.id === existingManual.id) {
-            return {
-              ...c,
-              customFields: tempCustomValues,
-              updatedAt: new Date().toISOString()
-            };
-          }
-          return c;
-        });
-      } else {
-        // Cria a entrada dele no manualClients para salvar os campos customizados
-        const newManualEntry = {
-          id: currentClient.id.startsWith('appt-') ? `client_${Date.now()}` : currentClient.id,
-          name: currentClient.name,
-          phone: currentClient.phone,
-          email: currentClient.email || '',
-          customFields: tempCustomValues,
-          createdAt: new Date().toISOString()
-        };
-        updatedList = [...manualClients, newManualEntry];
-      }
+      // Grava diretamente na coleção inventory
+      await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), payload, { merge: true });
 
-      await syncManualClients(updatedList);
       toast.success('Informações do cliente salvas com sucesso!');
     } catch (err) {
       console.error(err);

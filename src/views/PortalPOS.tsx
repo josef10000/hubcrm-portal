@@ -71,7 +71,8 @@ export default function PortalPOS({ orgId }: PortalPOSProps) {
           sales: meta.sales
         };
       });
-      setItems(list);
+      const filtered = list.filter(item => item.brand !== 'crm_client' && item.brand !== 'crm_settings');
+      setItems(filtered);
       setLoading(false);
     }, (error) => {
       console.error("Erro ao escutar estoque no PDV:", error);

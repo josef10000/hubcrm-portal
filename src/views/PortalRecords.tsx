@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs
+  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs, setDoc
 } from 'firebase/firestore';
 import { 
   FileText, Plus, Trash2, Printer, Clock, PlusCircle, Check, List, User, PlusSquare, 
@@ -38,6 +38,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
+  const [manualClients, setManualClients] = useState<any[]>([]);
   
   // Estados de Cadastro Rápido de Cliente Final
   const [newClientName, setNewClientName] = useState('');
@@ -87,36 +88,50 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   }, [orgId]);
 
   // Escutar telefones excluídos do perfil do profissional logado
+  // 4. Escutar configurações globais do CRM (lista de excluídos) salvas no inventário
   useEffect(() => {
-    if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    if (!orgId) return;
+    const docRef = doc(db, 'organizations', orgId, 'inventory', 'crm_settings_global');
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        const sched = data.schedulingSettings || {};
-        setDeletedClientsPhones(sched.deletedClientsPhones || []);
+        setDeletedClientsPhones(data.deletedClientsPhones || []);
       }
     }, (error) => {
-      console.error("Erro ao escutar dados do perfil no PortalRecords:", error);
+      console.error("Erro ao escutar configurações globais de CRM no inventário (PortalRecords):", error);
     });
     return () => unsub();
-  }, [orgId, clientId]);
+  }, [orgId]);
+
+  // Escutar clientes manuais salvos na coleção de inventário
+  useEffect(() => {
+    if (!orgId) return;
+    const ref = collection(db, 'organizations', orgId, 'inventory');
+    const q = query(ref, orderBy('name', 'asc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter((item: any) => item.brand === 'crm_client');
+      setManualClients(list);
+    }, (error) => {
+      console.error("Erro ao escutar clientes manuais no inventário (PortalRecords):", error);
+    });
+    return () => unsub();
+  }, [orgId]);
 
   // 5. Consolidar lista de clientes finais únicos
   useEffect(() => {
     const clientsMap = new Map<string, { id: string; name: string; phone: string; email?: string }>();
-    
-    const manualClientsList = clientRecords.filter(r => r.type === 'manual_client');
 
-    // Primeiro populamos com clientes manuais vindos de client_records (type === 'manual_client')
-    manualClientsList.forEach(c => {
-      const cleanPhone = (c.phone || '').replace(/\D/g, '');
+    // Primeiro populamos com clientes manuais vindos do inventário
+    manualClients.forEach(c => {
+      const cleanPhone = (c.clientPhone || c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,
           name: c.name,
-          phone: c.phone,
-          email: c.email || ''
+          phone: c.clientPhone || c.phone || '',
+          email: c.clientEmail || c.email || ''
         });
       }
     });
@@ -144,7 +159,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
-  }, [clientRecords, appointments, deletedClientsPhones]);
+  }, [manualClients, appointments, deletedClientsPhones]);
 
   // Ações do Construtor de Modelos
   const handleAddField = (type: 'text_short' | 'text_paragraph' | 'yes_no' | 'multiple_choice') => {
@@ -291,15 +306,37 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
 
     setIsSavingClient(true);
     try {
-      await addDoc(collection(db, 'organizations', orgId, 'clients'), {
+      const cleanPhone = newClientPhone.replace(/\D/g, '');
+      const docId = `client_metadata_${cleanPhone}`;
+
+      // Verifica se já existe esse telefone no banco manual para evitar duplicar
+      const alreadyExists = manualClients.some(c => (c.clientPhone || '').replace(/\D/g, '') === cleanPhone);
+      if (alreadyExists) {
+        toast.error('Já existe um cliente cadastrado com esse telefone.');
+        setIsSavingClient(false);
+        return;
+      }
+
+      const payload = {
         name: newClientName.trim(),
-        phone: newClientPhone.trim(),
-        email: newClientEmail.trim(),
+        brand: 'crm_client', // Identifica como cliente no inventário
+        quantity: 1,
+        unit: 'un',
+        price: 0,
+        costPrice: 0,
+        showInPos: false,
+        clientPhone: newClientPhone.trim(),
+        clientEmail: newClientEmail.trim(),
+        customFields: {},
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(doc(db, 'organizations', orgId, 'inventory', docId), {
+        ...payload,
         createdAt: serverTimestamp()
       });
+
       toast.success('Cliente cadastrado com sucesso!');
-      
-      const cleanPhone = newClientPhone.replace(/\D/g, '');
       setSelectedClientId(cleanPhone);
       
       setNewClientName('');
@@ -307,6 +344,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       setNewClientEmail('');
       setActiveSubTab('records');
     } catch (err) {
+      console.error(err);
       toast.error('Erro ao cadastrar cliente.');
     } finally {
       setIsSavingClient(false);
