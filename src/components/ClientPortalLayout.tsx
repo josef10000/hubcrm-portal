@@ -444,6 +444,9 @@ export default function ClientPortalLayout() {
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'agenda_settings', label: 'Configurações', icon: Settings },
+    { id: 'crm_finance', label: 'Finanças', icon: DollarSign },
+    { id: 'management', label: 'Estoque & Negócio', icon: Package },
+    { id: 'growth', label: 'Crescer', icon: Rocket },
     { id: 'records', label: 'Fichas', icon: FileText },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }

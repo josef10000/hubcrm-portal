@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDocs, setDoc
 } from 'firebase/firestore';
@@ -16,7 +16,8 @@ interface PortalRecordsProps {
 }
 
 export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'records' | 'templates' | 'new_client'>('records');
+  const [activeSubTab, setActiveSubTab] = useState<'records' | 'templates'>('records');
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   
   // Listas de Dados
   const [templates, setTemplates] = useState<any[]>([]);
@@ -312,16 +313,35 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     }
   };
 
-  // Sincronizar dados do CRM diretamente no Firestore no documento do profissional logado (dentro de fidelitySettings)
+  // Sincronizar dados do CRM via API de portal_handler para contornar restrições de escrita direta do Firestore
   const syncCrmData = async (payload: { crmClients?: any[], crmCustomFieldsDef?: any[], crmDeletedPhones?: string[] }) => {
     if (!orgId || !clientId) return;
-    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-    await setDoc(docRef, {
-      fidelitySettings: {
-        ...fidelitySettingsObj,
-        ...payload
-      }
-    }, { merge: true });
+    
+    const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+    const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+    const currentUser = auth.currentUser;
+
+    const response = await fetch(`${crmApiUrl}/api/portal_handler`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_client',
+        orgId,
+        clientId,
+        token,
+        uid: currentUser?.uid || '',
+        email: currentUser?.email || '',
+        fidelitySettings: {
+          ...fidelitySettingsObj,
+          ...payload
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || 'Erro ao sincronizar dados com o servidor.');
+    }
   };
 
   // Preenche dados do formulário de cliente para edição
@@ -330,7 +350,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     setNewClientName(client.name);
     setNewClientPhone(client.phone);
     setNewClientEmail(client.email || '');
-    setActiveSubTab('new_client');
+    setIsClientModalOpen(true);
   };
 
   // Abre modal de confirmação para exclusão de cliente
@@ -425,7 +445,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       setNewClientPhone('');
       setNewClientEmail('');
       setEditingClient(null);
-      setActiveSubTab('records');
+      setIsClientModalOpen(false);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao salvar cliente.');
@@ -651,10 +671,14 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
               Modelos de Ficha
             </button>
             <button
-              onClick={() => { setActiveSubTab('new_client'); setFillingRecord(null); setEditingClient(null); }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                activeSubTab === 'new_client' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'text-gray-400 hover:text-white'
-              }`}
+              onClick={() => {
+                setEditingClient(null);
+                setNewClientName('');
+                setNewClientPhone('');
+                setNewClientEmail('');
+                setIsClientModalOpen(true);
+              }}
+              className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-gray-400 hover:text-white"
             >
               Novo Cliente
             </button>
@@ -667,10 +691,25 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
             {/* Lista e Busca de Clientes */}
             <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4 flex flex-col h-[650px]">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <User className="text-purple-400" size={18} />
-                  Clientes
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <User className="text-purple-400" size={18} />
+                    Clientes
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setEditingClient(null);
+                      setNewClientName('');
+                      setNewClientPhone('');
+                      setNewClientEmail('');
+                      setIsClientModalOpen(true);
+                    }}
+                    className="p-1.5 bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 text-purple-400 hover:text-purple-300 rounded-lg transition-all cursor-pointer border-0 flex items-center gap-1 text-[10px] font-bold"
+                    title="Adicionar Cliente"
+                  >
+                    <Plus size={11} /> Novo
+                  </button>
+                </div>
                 <p className="text-[11px] text-gray-400 mt-0.5">Selecione, crie, edite ou exclua os clientes da clínica.</p>
               </div>
 
@@ -1281,23 +1320,52 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
           </div>
         )}
 
-        {/* 3. ABA DE CADASTRO / EDIÇÃO DE CLIENTE FINAL */}
-        {activeSubTab === 'new_client' && (
-          <div className="max-w-md mx-auto bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <User className="text-purple-400" size={18} />
-                {editingClient ? 'Editar Cliente' : 'Cadastrar Cliente'}
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {editingClient 
-                  ? 'Modifique os dados de contato do cliente manual.' 
-                  : 'Cadastre clientes de forma manual para preenchimento de fichas clínicas.'
-                }
-              </p>
+      </div>
+
+      {/* Modal de Cadastro / Edição de Cliente */}
+      {isClientModalOpen && (
+        <div 
+          onClick={() => {
+            setIsClientModalOpen(false);
+            setEditingClient(null);
+            setNewClientName('');
+            setNewClientPhone('');
+            setNewClientEmail('');
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4 text-left"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <User className="text-purple-400" size={18} />
+                  {editingClient ? 'Editar Cliente' : 'Cadastrar Cliente'}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {editingClient 
+                    ? 'Modifique os dados de contato do cliente manual.' 
+                    : 'Cadastre clientes de forma manual para preenchimento de fichas clínicas.'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsClientModalOpen(false);
+                  setEditingClient(null);
+                  setNewClientName('');
+                  setNewClientPhone('');
+                  setNewClientEmail('');
+                }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveClient} className="space-y-4 text-left">
+            <form onSubmit={handleSaveClient} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome Completo</label>
                 <input
@@ -1305,7 +1373,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                   value={newClientName}
                   onChange={(e) => setNewClientName(e.target.value)}
                   placeholder="Ex: João da Silva..."
-                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600"
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
                   required
                 />
               </div>
@@ -1317,7 +1385,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                   value={newClientPhone}
                   onChange={(e) => setNewClientPhone(e.target.value)}
                   placeholder="Ex: 11999999999"
-                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 font-mono"
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 font-mono focus:ring-1 focus:ring-purple-500"
                   required
                 />
               </div>
@@ -1329,26 +1397,24 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                   value={newClientEmail}
                   onChange={(e) => setNewClientEmail(e.target.value)}
                   placeholder="Ex: joao@email.com"
-                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600"
+                  className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="flex gap-2">
-                {editingClient && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingClient(null);
-                      setNewClientName('');
-                      setNewClientPhone('');
-                      setNewClientEmail('');
-                      setActiveSubTab('records');
-                    }}
-                    className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
-                  >
-                    Cancelar
-                  </button>
-                )}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsClientModalOpen(false);
+                    setEditingClient(null);
+                    setNewClientName('');
+                    setNewClientPhone('');
+                    setNewClientEmail('');
+                  }}
+                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                >
+                  Cancelar
+                </button>
                 <button
                   type="submit"
                   disabled={isSavingClient}
@@ -1360,8 +1426,8 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
               </div>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Modal de Confirmação de Exclusão de Cliente */}
       {deleteClientConfirm.isOpen && (
