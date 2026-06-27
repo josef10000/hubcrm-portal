@@ -310,6 +310,7 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
       
       const revenuePayload = {
         description: `Venda de produtos PDV (${cart.map(i => `${i.quantityInCart}x ${i.name}`).join(', ')})`,
+        value: totalAmount,
         amount: totalAmount,
         date: new Date().toISOString().split('T')[0],
         category: 'Venda de Produtos',
@@ -318,7 +319,8 @@ export default function PortalPOS({ orgId, clientId }: PortalPOSProps) {
         clientName: selectedClientObj ? selectedClientObj.name : 'Cliente Avulso',
         clientPhone: selectedClientObj ? selectedClientObj.phone : '',
         createdAt: serverTimestamp(),
-        status: 'paid'
+        status: 'paid',
+        type: 'pontual'
       };
 
       await addDoc(collection(db, 'organizations', orgId, 'revenues'), revenuePayload);
