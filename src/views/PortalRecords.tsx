@@ -39,7 +39,21 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
   const [manualClients, setManualClients] = useState<any[]>([]);
-  
+  const [customFieldsDef, setCustomFieldsDef] = useState<any[]>([]);
+  const [fidelitySettingsObj, setFidelitySettingsObj] = useState<any>({});
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modais de confirmação
+  const [deleteClientConfirm, setDeleteClientConfirm] = useState<{ isOpen: boolean; client: any | null }>({
+    isOpen: false,
+    client: null
+  });
+  const [deleteRecordConfirm, setDeleteRecordConfirm] = useState<{ isOpen: boolean; recordId: string | null }>({
+    isOpen: false,
+    recordId: null
+  });
+
   // Estados de Cadastro Rápido de Cliente Final
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
@@ -88,15 +102,25 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
   }, [orgId]);
 
   // Escutar telefones excluídos do perfil do profissional logado
-  // 4. Escutar dados do perfil do profissional logado (clientes manuais e excluídos)
+  // 4. Escutar dados do perfil do profissional logado (clientes manuais, deletados e campos customizados de fidelitySettings)
   useEffect(() => {
     if (!orgId || !clientId) return;
     const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
     const unsub = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setManualClients(data.crmClients || []);
-        setDeletedClientsPhones(data.crmDeletedPhones || []);
+        const fid = data.fidelitySettings || {};
+        setFidelitySettingsObj(fid);
+        setManualClients(fid.crmClients || []);
+        setDeletedClientsPhones(fid.crmDeletedPhones || []);
+
+        const list = fid.crmCustomFieldsDef || [];
+        const sortedList = [...list].sort((a: any, b: any) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA - dateB;
+        });
+        setCustomFieldsDef(sortedList);
       }
     }, (error) => {
       console.error("Erro ao escutar dados do perfil no PortalRecords:", error);
@@ -136,15 +160,22 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
       }
     });
 
-    // Ordenar por nome e FILTRAR os telefones deletados
+    // Ordenar por nome e FILTRAR os telefones deletados, além de ocultar a profissional Julia
     const sorted = Array.from(clientsMap.values())
       .filter(c => {
         const cleanPhone = (c.phone || '').replace(/\D/g, '');
-        return !deletedClientsPhones.includes(cleanPhone);
+        return !deletedClientsPhones.includes(cleanPhone) && cleanPhone !== '11914573272' && c.id !== clientId;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
-  }, [manualClients, appointments, deletedClientsPhones]);
+  }, [manualClients, appointments, deletedClientsPhones, clientId]);
+
+  // Filtrar Lista de Clientes com base na Pesquisa
+  const filteredClients = consolidatedClients.filter(c => {
+    const queryStr = searchQuery.toLowerCase();
+    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+    return c.name.toLowerCase().includes(queryStr) || cleanPhone.includes(queryStr);
+  });
 
   // Ações do Construtor de Modelos
   const handleAddField = (type: 'text_short' | 'text_paragraph' | 'yes_no' | 'multiple_choice') => {
@@ -281,7 +312,63 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     }
   };
 
-  // Cadastro de Cliente Rápido
+  // Sincronizar dados do CRM diretamente no Firestore no documento do profissional logado (dentro de fidelitySettings)
+  const syncCrmData = async (payload: { crmClients?: any[], crmCustomFieldsDef?: any[], crmDeletedPhones?: string[] }) => {
+    if (!orgId || !clientId) return;
+    const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    await setDoc(docRef, {
+      fidelitySettings: {
+        ...fidelitySettingsObj,
+        ...payload
+      }
+    }, { merge: true });
+  };
+
+  // Preenche dados do formulário de cliente para edição
+  const handleStartEditClient = (client: any) => {
+    setEditingClient(client);
+    setNewClientName(client.name);
+    setNewClientPhone(client.phone);
+    setNewClientEmail(client.email || '');
+    setActiveSubTab('new_client');
+  };
+
+  // Abre modal de confirmação para exclusão de cliente
+  const handleDeleteClient = (client: any) => {
+    setDeleteClientConfirm({ isOpen: true, client });
+  };
+
+  // Executa exclusão de cliente
+  const executeDeleteClient = async (client: any) => {
+    try {
+      const cleanPhone = (client.phone || '').replace(/\D/g, '');
+
+      // Remove da lista de clientes manuais
+      const updatedManualClientsList = manualClients.filter(c => c.id !== client.id);
+
+      // Adiciona o telefone na lista de excluídos
+      let updatedDeletedPhones = deletedClientsPhones;
+      if (cleanPhone && !deletedClientsPhones.includes(cleanPhone)) {
+        updatedDeletedPhones = [...deletedClientsPhones, cleanPhone];
+      }
+
+      await syncCrmData({
+        crmClients: updatedManualClientsList,
+        crmDeletedPhones: updatedDeletedPhones
+      });
+
+      toast.success('Cliente excluído com sucesso!');
+      if (selectedClientId === cleanPhone) {
+        setSelectedClientId('');
+      }
+      setDeleteClientConfirm({ isOpen: false, client: null });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir cliente.');
+    }
+  };
+
+  // Cadastro de Cliente Rápido ou Edição
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClientName.trim() || !newClientPhone.trim()) {
@@ -293,39 +380,74 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     try {
       const cleanPhone = newClientPhone.replace(/\D/g, '');
 
-      // Verifica se já existe esse telefone no banco manual para evitar duplicar
-      const alreadyExists = manualClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
-      if (alreadyExists) {
-        toast.error('Já existe um cliente cadastrado com esse telefone.');
-        setIsSavingClient(false);
-        return;
+      if (editingClient) {
+        // Editando cliente manual existente
+        const updatedList = manualClients.map(c => {
+          if (c.id === editingClient.id) {
+            return {
+              ...c,
+              name: newClientName.trim(),
+              phone: newClientPhone.trim(),
+              email: newClientEmail.trim(),
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return c;
+        });
+        await syncCrmData({ crmClients: updatedList });
+        toast.success('Cliente atualizado com sucesso!');
+      } else {
+        // Criando novo cliente
+        const alreadyExists = manualClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+        if (alreadyExists) {
+          toast.error('Já existe um cliente cadastrado com esse telefone.');
+          setIsSavingClient(false);
+          return;
+        }
+
+        const newClient = {
+          id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          name: newClientName.trim(),
+          phone: newClientPhone.trim(),
+          email: newClientEmail.trim(),
+          customFields: {},
+          createdAt: new Date().toISOString()
+        };
+
+        const updatedList = [...manualClients, newClient];
+        await syncCrmData({ crmClients: updatedList });
+
+        toast.success('Cliente cadastrado com sucesso!');
+        setSelectedClientId(cleanPhone);
       }
-
-      const newClient = {
-        id: `client_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        name: newClientName.trim(),
-        phone: newClientPhone.trim(),
-        email: newClientEmail.trim(),
-        customFields: {},
-        createdAt: new Date().toISOString()
-      };
-
-      const updatedList = [...manualClients, newClient];
-      const docRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await setDoc(docRef, { crmClients: updatedList }, { merge: true });
-
-      toast.success('Cliente cadastrado com sucesso!');
-      setSelectedClientId(cleanPhone);
       
       setNewClientName('');
       setNewClientPhone('');
       setNewClientEmail('');
+      setEditingClient(null);
       setActiveSubTab('records');
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao cadastrar cliente.');
+      toast.error('Erro ao salvar cliente.');
     } finally {
       setIsSavingClient(false);
+    }
+  };
+
+  // Abre modal de confirmação para exclusão de ficha preenchida
+  const handleDeleteRecord = (recordId: string) => {
+    setDeleteRecordConfirm({ isOpen: true, recordId });
+  };
+
+  // Executa exclusão de ficha preenchida
+  const executeDeleteRecord = async (recordId: string) => {
+    try {
+      await deleteDoc(doc(db, 'organizations', orgId, 'client_records', recordId));
+      toast.success('Ficha excluída com sucesso!');
+      setDeleteRecordConfirm({ isOpen: false, recordId: null });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao excluir ficha.');
     }
   };
 
@@ -498,7 +620,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
           </div>
         </div>
       )}
-
+      
       {/* Conteúdo Normal do Portal */}
       <div className="print:hidden space-y-6">
         {/* Cabeçalho */}
@@ -508,20 +630,20 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
               <FileText className="text-purple-400" size={26} />
               Fichas
             </h2>
-            <p className="text-xs text-gray-400 mt-1">Gerencie a anamnese, avaliações físicas e prontuários dos seus clientes.</p>
+            <p className="text-xs text-gray-400 mt-1">Gerencie a anamnese, avaliações físicas e fichas dos seus clientes.</p>
           </div>
 
           <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 shadow-lg shrink-0">
             <button
-              onClick={() => { setActiveSubTab('records'); setFillingRecord(null); }}
+              onClick={() => { setActiveSubTab('records'); setFillingRecord(null); setEditingClient(null); }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 activeSubTab === 'records' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Prontuários
+              Fichas
             </button>
             <button
-              onClick={() => { setActiveSubTab('templates'); setFillingRecord(null); }}
+              onClick={() => { setActiveSubTab('templates'); setFillingRecord(null); setEditingClient(null); }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 activeSubTab === 'templates' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'text-gray-400 hover:text-white'
               }`}
@@ -529,12 +651,12 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
               Modelos de Ficha
             </button>
             <button
-              onClick={() => { setActiveSubTab('new_client'); setFillingRecord(null); }}
+              onClick={() => { setActiveSubTab('new_client'); setFillingRecord(null); setEditingClient(null); }}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 activeSubTab === 'new_client' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Cadastrar Cliente
+              Novo Cliente
             </button>
           </div>
         </div>
@@ -542,33 +664,92 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
         {/* 1. ABA DE PRONTUÁRIOS (CLIENTES E HISTÓRICO) */}
         {activeSubTab === 'records' && !fillingRecord && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Seletor de Cliente */}
-            <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4">
+            {/* Lista e Busca de Clientes */}
+            <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4 flex flex-col h-[650px]">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <User className="text-purple-400" size={18} />
-                  Selecionar Cliente
+                  Clientes
                 </h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">Selecione o paciente/cliente para abrir o histórico.</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Selecione, crie, edite ou exclua os clientes da clínica.</p>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente Cadastrado</label>
-                  <CustomSelect
-                    value={selectedClientId}
-                    onChange={(val: string) => { setSelectedClientId(val); setExpandedRecordId(null); }}
-                    placeholder="Escolha o cliente..."
-                    options={consolidatedClients.map(c => ({
-                      value: c.phone.replace(/\D/g, ''),
-                      label: `${c.name} (${c.phone})`
-                    }))}
-                  />
-                </div>
+              {/* Campo de Busca */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Pesquisar cliente..."
+                  className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                />
+              </div>
 
-                {selectedClientId && templates.length > 0 && (
-                  <div className="pt-4 border-t border-white/5 space-y-3">
-                    <h4 className="text-[11px] font-black text-purple-400 uppercase tracking-wider">Preencher Nova Anamnese</h4>
+              {/* Lista Vertical Rolável */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {filteredClients.length === 0 ? (
+                  <div className="py-10 text-center text-gray-500 text-xs">
+                    Nenhum cliente encontrado.
+                  </div>
+                ) : (
+                  filteredClients.map((c) => {
+                    const cleanPhone = c.phone.replace(/\D/g, '');
+                    const isSelected = selectedClientId === cleanPhone;
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => { setSelectedClientId(cleanPhone); setExpandedRecordId(null); }}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 text-left group ${
+                          isSelected 
+                            ? 'bg-purple-500/10 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.15)]' 
+                            : 'bg-black/20 border-white/5 hover:border-white/15'
+                        }`}
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <h4 className="font-bold text-white text-sm truncate">{c.name}</h4>
+                          <p className="text-[11px] text-gray-400 font-mono truncate">{c.phone}</p>
+                          {c.email && (
+                            <p className="text-[10px] text-gray-500 truncate">{c.email}</p>
+                          )}
+                        </div>
+
+                        {/* Botões de Ação no Hover */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          {c.source === 'db' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartEditClient(c);
+                                }}
+                                className="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg transition-all border-0 cursor-pointer"
+                                title="Editar Cliente"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClient(c);
+                                }}
+                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border-0 cursor-pointer"
+                                title="Excluir Cliente"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Opções extras para o cliente selecionado */}
+              {selectedClientId && (
+                <div className="pt-4 border-t border-white/5 space-y-3 shrink-0">
+                  {templates.length > 0 ? (
                     <div className="space-y-2">
                       <CustomSelect
                         value={selectedTemplateIdForNew}
@@ -588,41 +769,36 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                         Preencher Ficha
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {selectedClientId && templates.length === 0 && (
-                  <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-2xl text-[11px] text-amber-400 font-medium">
-                    Crie um "Modelo de Ficha" antes de preencher o prontuário.
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl text-[10px] text-amber-400 font-medium">
+                      Crie um "Modelo de Ficha" antes de preencher o prontuário.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Linha do tempo (Histórico de Prontuários) */}
-            <div className="lg:col-span-2 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-6">
+            <div className="lg:col-span-2 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-6 h-[650px] flex flex-col">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Clock className="text-purple-400" size={18} />
-                  Histórico de Prontuários
+                  Histórico de Fichas
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Timeline de anamneses e fichas respondidas.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Linha do tempo de anamneses e fichas respondidas.</p>
               </div>
 
               {selectedClientId && (() => {
                 const currentClient = consolidatedClients.find(c => c.phone.replace(/\D/g, '') === selectedClientId);
                 if (!currentClient) return null;
                 return (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl gap-3 animate-in fade-in duration-200 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl gap-3 animate-in fade-in duration-200 text-left shrink-0">
                     <div className="space-y-1">
                       <span className="text-[9px] text-purple-400 font-bold uppercase tracking-wider block">Contato do Cliente Selecionado</span>
                       <h4 className="font-bold text-white text-sm flex items-center gap-2">
                         {currentClient.name}
                         <span className="text-xs text-gray-500 font-mono font-normal">({currentClient.phone})</span>
                       </h4>
-                      {currentClient.email && (
-                        <p className="text-[10px] text-gray-400">{currentClient.email}</p>
-                      )}
                     </div>
                     <a
                       href={`https://api.whatsapp.com/send?phone=55${currentClient.phone.replace(/\D/g, '')}`}
@@ -637,115 +813,109 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                 );
               })()}
 
-              {!selectedClientId ? (
-                <div className="py-20 text-center border border-dashed border-white/10 rounded-[2rem] space-y-2">
-                  <User size={40} className="mx-auto text-gray-600" />
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum Cliente Selecionado</p>
-                  <p className="text-[11px] text-gray-600">Selecione um cliente ao lado para ver o histórico clínico dele.</p>
-                </div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="py-20 text-center border border-dashed border-white/10 rounded-[2rem] space-y-2">
-                  <FileText size={40} className="mx-auto text-gray-600" />
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum Registro Encontrado</p>
-                  <p className="text-[11px] text-gray-600">Este cliente ainda não possui prontuários preenchidos.</p>
-                </div>
-              ) : (
-                <div className="relative border-l-2 border-purple-500/20 ml-3 pl-6 space-y-6 py-1">
-                  {filteredRecords.map((rec) => {
-                    const isExpanded = expandedRecordId === rec.id;
-                    const dateStr = rec.createdAt?.toDate ? rec.createdAt.toDate().toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
-                    const timeStr = rec.createdAt?.toDate ? rec.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    
-                    return (
-                      <div key={rec.id} className="relative">
-                        {/* Dot lateral */}
-                        <div className="absolute -left-[32px] top-1.5 w-4 h-4 rounded-full border-4 border-[#050505] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
+              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                {!selectedClientId ? (
+                  <div className="py-20 text-center border border-dashed border-white/10 rounded-[2rem] space-y-2">
+                    <User size={40} className="mx-auto text-gray-600" />
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum Cliente Selecionado</p>
+                    <p className="text-[11px] text-gray-600">Selecione um cliente ao lado para ver o histórico clínico dele.</p>
+                  </div>
+                ) : filteredRecords.length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-white/10 rounded-[2rem] space-y-2">
+                    <FileText size={40} className="mx-auto text-gray-600" />
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum Registro Encontrado</p>
+                    <p className="text-[11px] text-gray-600">Este cliente ainda não possui fichas preenchidas.</p>
+                  </div>
+                ) : (
+                  <div className="relative border-l-2 border-purple-500/20 ml-3 pl-6 space-y-6 py-1">
+                    {filteredRecords.map((rec) => {
+                      const isExpanded = expandedRecordId === rec.id;
+                      const dateStr = rec.createdAt?.toDate ? rec.createdAt.toDate().toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+                      const timeStr = rec.createdAt?.toDate ? rec.createdAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                      
+                      return (
+                        <div key={rec.id} className="relative">
+                          {/* Dot lateral */}
+                          <div className="absolute -left-[32px] top-1.5 w-4 h-4 rounded-full border-4 border-[#050505] bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
 
-                        <div className="bg-black/25 border border-white/5 hover:border-white/10 rounded-2xl transition-all p-4.5 space-y-3">
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div>
-                              <h4 className="font-bold text-white text-sm">{rec.templateName}</h4>
-                              <p className="text-[10px] text-gray-500 font-mono mt-0.5">{dateStr} às {timeStr}</p>
+                          <div className="bg-black/25 border border-white/5 hover:border-white/10 rounded-2xl transition-all p-4.5 space-y-3">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div className="text-left">
+                                <h4 className="font-bold text-white text-sm">{rec.templateName}</h4>
+                                <p className="text-[10px] text-gray-500 font-mono mt-0.5">{dateStr} às {timeStr}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setExpandedRecordId(isExpanded ? null : rec.id)}
+                                  className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-0"
+                                >
+                                  <Eye size={12} />
+                                  {isExpanded ? 'Ocultar' : 'Visualizar'}
+                                </button>
+                                <button
+                                  onClick={() => handlePrint(rec)}
+                                  className="p-1.5 bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 text-purple-400 hover:text-purple-300 rounded-lg transition-all cursor-pointer border-0"
+                                  title="Imprimir em A4 / Salvar PDF"
+                                >
+                                  <Printer size={13} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteRecord(rec.id)}
+                                  className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 rounded-lg transition-all cursor-pointer border-0"
+                                  title="Excluir prontuário"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => setExpandedRecordId(isExpanded ? null : rec.id)}
-                                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-0"
-                              >
-                                <Eye size={12} />
-                                {isExpanded ? 'Ocultar' : 'Visualizar'}
-                              </button>
-                              <button
-                                onClick={() => handlePrint(rec)}
-                                className="p-1.5 bg-purple-500/10 hover:bg-purple-500/25 border border-purple-500/20 text-purple-400 hover:text-purple-300 rounded-lg transition-all cursor-pointer border-0"
-                                title="Imprimir em A4 / Salvar PDF"
-                              >
-                                <Printer size={13} />
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  if (!confirm('Excluir este prontuário preenchido permanentemente?')) return;
-                                  try {
-                                    await deleteDoc(doc(db, 'organizations', orgId, 'client_records', rec.id));
-                                    toast.success('Prontuário excluído!');
-                                  } catch (err) {
-                                    toast.error('Erro ao excluir prontuário.');
+
+                            {/* Se expandido, mostra cada pergunta e resposta */}
+                            {isExpanded && (
+                              <div className="pt-3 border-t border-white/5 space-y-4 animate-in fade-in duration-200">
+                                {(() => {
+                                  const matchedTemplate = templates.find(t => t.id === rec.templateId);
+                                  const fields = matchedTemplate?.fields || [];
+                                  
+                                  if (fields.length === 0) {
+                                    return Object.entries(rec.responses).map(([key, val]: any) => (
+                                      <div key={key} className="space-y-0.5">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{key}</p>
+                                        <p className="text-xs text-white bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap">{Array.isArray(val) ? val.join(', ') : val}</p>
+                                      </div>
+                                    ));
                                   }
-                                }}
-                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 rounded-lg transition-all cursor-pointer border-0"
-                                title="Excluir prontuário"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+
+                                  return fields.map((f: any) => {
+                                    const answer = rec.responses[f.id];
+                                    return (
+                                      <div key={f.id} className="space-y-0.5 text-left">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{f.label}</p>
+                                        <p className="text-xs text-white bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-medium">
+                                          {answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0) ? (
+                                            <span className="italic text-gray-600">Não respondido</span>
+                                          ) : Array.isArray(answer) ? (
+                                            answer.join(', ')
+                                          ) : answer === true || answer === 'true' || answer === 'Sim' ? (
+                                            'Sim'
+                                          ) : answer === false || answer === 'false' || answer === 'Não' ? (
+                                            'Não'
+                                          ) : (
+                                            answer
+                                          )}
+                                        </p>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            )}
                           </div>
-
-                          {/* Se expandido, mostra cada pergunta e resposta */}
-                          {isExpanded && (
-                            <div className="pt-3 border-t border-white/5 space-y-4 animate-in fade-in duration-200">
-                              {(() => {
-                                const matchedTemplate = templates.find(t => t.id === rec.templateId);
-                                const fields = matchedTemplate?.fields || [];
-                                
-                                if (fields.length === 0) {
-                                  return Object.entries(rec.responses).map(([key, val]: any) => (
-                                    <div key={key} className="space-y-0.5">
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{key}</p>
-                                      <p className="text-xs text-white bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap">{Array.isArray(val) ? val.join(', ') : val}</p>
-                                    </div>
-                                  ));
-                                }
-
-                                return fields.map((f: any) => {
-                                  const answer = rec.responses[f.id];
-                                  return (
-                                    <div key={f.id} className="space-y-0.5 text-left">
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{f.label}</p>
-                                      <p className="text-xs text-white bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-medium">
-                                        {answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0) ? (
-                                          <span className="italic text-gray-600">Não respondido</span>
-                                        ) : Array.isArray(answer) ? (
-                                          answer.join(', ')
-                                        ) : answer === true || answer === 'true' || answer === 'Sim' ? (
-                                          'Sim'
-                                        ) : answer === false || answer === 'false' || answer === 'Não' ? (
-                                          'Não'
-                                        ) : (
-                                          answer
-                                        )}
-                                      </p>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -803,52 +973,47 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                     )}
 
                     {field.type === 'yes_no' && (
-                      <div className="flex gap-3">
-                        {['Sim', 'Não'].map(opt => {
-                          const isSelected = value === opt;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => setNewResponses({ ...newResponses, [field.id]: opt })}
-                              className={`flex-1 py-3 border rounded-xl text-xs font-bold transition-all text-center cursor-pointer border-0 ${
-                                isSelected 
-                                  ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/10' 
-                                  : 'bg-black/25 border-white/5 text-gray-400 hover:text-white hover:bg-black/40'
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={field.id}
+                            checked={value === 'Sim' || value === true}
+                            onChange={() => setNewResponses({ ...newResponses, [field.id]: 'Sim' })}
+                            className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                          />
+                          Sim
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={field.id}
+                            checked={value === 'Não' || value === false}
+                            onChange={() => setNewResponses({ ...newResponses, [field.id]: 'Não' })}
+                            className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                          />
+                          Não
+                        </label>
                       </div>
                     )}
 
                     {field.type === 'multiple_choice' && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {field.options.map((opt: string) => {
-                          const currentArr = Array.isArray(value) ? value : [];
-                          const isChecked = currentArr.includes(opt);
+                        {field.options.map((opt: string, idx: number) => {
+                          const listValue = Array.isArray(value) ? value : [];
+                          const checked = listValue.includes(opt);
                           return (
-                            <label
-                              key={opt}
-                              className={`p-3 border rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all border-0 ${
-                                isChecked 
-                                  ? 'bg-purple-500/10 border-purple-500/30 text-white' 
-                                  : 'bg-black/25 border-white/5 text-gray-400 hover:text-white'
-                              }`}
-                            >
+                            <label key={idx} className="flex items-center gap-2.5 p-3.5 bg-black/20 border border-white/5 hover:border-white/10 rounded-xl text-xs text-gray-300 cursor-pointer select-none">
                               <input
                                 type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setNewResponses({ ...newResponses, [field.id]: [...currentArr, opt] });
-                                  } else {
-                                    setNewResponses({ ...newResponses, [field.id]: currentArr.filter(x => x !== opt) });
-                                  }
+                                checked={checked}
+                                onChange={() => {
+                                  const newList = checked 
+                                    ? listValue.filter((v: string) => v !== opt) 
+                                    : [...listValue, opt];
+                                  setNewResponses({ ...newResponses, [field.id]: newList });
                                 }}
-                                className="w-4 h-4 rounded border-white/10 text-purple-500 bg-black/40 focus:ring-purple-500 cursor-pointer"
+                                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-white/20 bg-black/40"
                               />
                               {opt}
                             </label>
@@ -863,39 +1028,39 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
               <div className="flex gap-3 pt-4 border-t border-white/5">
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/15 cursor-pointer border-0"
+                  className="flex-1 py-3.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
                 >
                   <Check size={14} />
-                  Salvar Respostas
+                  Salvar Ficha Clinica
                 </button>
                 <button
                   type="button"
                   onClick={() => setFillingRecord(null)}
                   className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
                 >
-                  Cancelar
+                  Voltar
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        {/* 2. ABA DE MODELOS DE FICHAS (CADASTRO E LISTA) */}
+        {/* 2. ABA DE MODELOS DE FICHA */}
         {activeSubTab === 'templates' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Construtor Visual */}
-            <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4">
+            {/* Criador de Modelos */}
+            <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Settings className="text-purple-400" size={18} />
-                  {editingTemplateId ? 'Editar Modelo' : 'Novo Modelo'}
+                  <PlusSquare className="text-purple-400" size={18} />
+                  {editingTemplateId ? 'Editar Modelo' : 'Novo Modelo de Ficha'}
                 </h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">Monte um formulário personalizado de anamnese.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Defina o nome e os campos que compõem sua ficha de avaliação.</p>
               </div>
 
               <form onSubmit={handleSaveTemplate} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome da Ficha</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Modelo</label>
                   <input
                     type="text"
                     value={templateName}
@@ -907,130 +1072,134 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição (Opcional)</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição / Objetivo</label>
                   <input
                     type="text"
                     value={templateDescription}
                     onChange={(e) => setTemplateDescription(e.target.value)}
-                    placeholder="Ex: Para avaliações físicas corporais..."
+                    placeholder="Ex: Utilizado para a primeira consulta..."
                     className="w-full px-4 py-3 bg-black/40 border border-white/15 focus:border-purple-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600"
                   />
                 </div>
 
-                {/* Adicionar Campo */}
-                <div className="p-4 bg-black/30 border border-white/5 rounded-2xl space-y-2.5">
-                  <span className="text-[9px] font-black text-purple-400 uppercase tracking-wider block">Adicionar Pergunta</span>
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-3 pt-2">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Campos / Perguntas ({templateFields.length})</span>
+                  
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => handleAddField('text_short')}
-                      className="py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5"
+                      className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-xl border border-purple-500/25 transition-all cursor-pointer flex items-center gap-1"
                     >
-                      <Plus size={10} /> Texto Curto
+                      <Plus size={10} /> Text Curto
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddField('text_paragraph')}
-                      className="py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5"
+                      className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-xl border border-purple-500/25 transition-all cursor-pointer flex items-center gap-1"
                     >
                       <Plus size={10} /> Parágrafo
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddField('yes_no')}
-                      className="py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5"
+                      className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-xl border border-purple-500/25 transition-all cursor-pointer flex items-center gap-1"
                     >
-                      <Plus size={10} /> Sim / Não
+                      <Plus size={10} /> Sim/Não
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddField('multiple_choice')}
-                      className="py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5"
+                      className="px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-xl border border-purple-500/25 transition-all cursor-pointer flex items-center gap-1"
                     >
-                      <Plus size={10} /> Múltipla Escolha
+                      <Plus size={10} /> Mult. Escolha
                     </button>
                   </div>
-                </div>
 
-                {/* Formulário de Campos criados */}
-                {templateFields.length > 0 && (
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
-                    {templateFields.map((field, idx) => (
-                      <div key={field.id} className="p-3 bg-black/40 border border-white/5 rounded-xl space-y-2 relative animate-in fade-in duration-150 text-left">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveField(field.id)}
-                          className="absolute top-2 right-2 text-gray-500 hover:text-red-400 p-0.5 border-0 bg-transparent cursor-pointer"
-                        >
-                          <X size={12} />
-                        </button>
-                        
-                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-purple-400 tracking-wider">
-                          <span>Pergunta {idx + 1}</span> &bull; 
-                          <span className="text-gray-500">{field.type === 'text_short' ? 'Texto Curto' : field.type === 'text_paragraph' ? 'Parágrafo' : field.type === 'yes_no' ? 'Sim/Não' : 'Escolha'}</span>
-                        </div>
+                  {templateFields.length === 0 ? (
+                    <div className="p-4 bg-white/[0.01] border border-dashed border-white/10 rounded-2xl text-[11px] text-gray-500 text-center font-medium">
+                      Clique nos botões acima para adicionar perguntas ao modelo.
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+                      {templateFields.map((field, index) => (
+                        <div key={field.id} className="bg-black/45 border border-white/5 hover:border-white/10 rounded-xl p-3 space-y-2 animate-in slide-in-from-top-1 duration-150 relative">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveField(field.id)}
+                            className="absolute right-3 top-3 text-red-400 hover:text-red-500 transition-all p-1 bg-red-500/5 rounded-lg border-0 cursor-pointer"
+                            title="Remover campo"
+                          >
+                            <Trash2 size={12} />
+                          </button>
 
-                        <div className="space-y-1.5">
-                          <input
-                            type="text"
-                            value={field.label}
-                            onChange={(e) => handleUpdateFieldLabel(field.id, e.target.value)}
-                            placeholder="Pergunta/Rótulo..."
-                            className="w-full px-3 py-2 bg-black/50 border border-white/10 focus:border-purple-500 text-white rounded-lg text-xs outline-none transition-all placeholder-gray-700"
-                            required
-                          />
-
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Obrigatório</span>
+                          <div className="space-y-1 pr-6">
+                            <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Pergunta {index + 1}</label>
                             <input
-                              type="checkbox"
-                              checked={field.required}
-                              onChange={(e) => handleUpdateFieldRequired(field.id, e.target.checked)}
-                              className="w-3.5 h-3.5 rounded border-white/10 text-purple-500 bg-black/40 focus:ring-purple-500 cursor-pointer"
+                              type="text"
+                              value={field.label}
+                              onChange={(e) => handleUpdateFieldLabel(field.id, e.target.value)}
+                              placeholder="Digite a pergunta..."
+                              className="w-full px-2 py-1.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-lg text-xs outline-none transition-all placeholder-gray-700"
+                              required
                             />
                           </div>
-                        </div>
 
-                        {field.type === 'multiple_choice' && (
-                          <div className="space-y-1.5 border-t border-white/5 pt-2 mt-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Opções de Escolha</span>
-                              <button
-                                type="button"
-                                onClick={() => handleAddFieldOption(field.id)}
-                                className="p-1 text-[8px] font-bold bg-white/5 hover:bg-white/10 text-white rounded cursor-pointer border-0"
-                              >
-                                + Add Opção
-                              </button>
-                            </div>
-                            
-                            <div className="space-y-1">
-                              {field.options.map((option: string, oIdx: number) => (
-                                <div key={oIdx} className="flex gap-1.5 items-center">
+                          <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <label className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold select-none cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={field.required}
+                                onChange={(e) => handleUpdateFieldRequired(field.id, e.target.checked)}
+                                className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 border-white/20 bg-black/40"
+                              />
+                              Campo Obrigatório
+                            </label>
+                            <span className="text-[9px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20">
+                              {field.type === 'text_short' ? 'Text Curto' : field.type === 'text_paragraph' ? 'Parágrafo' : field.type === 'yes_no' ? 'Sim/Não' : 'Múlt. Escolha'}
+                            </span>
+                          </div>
+
+                          {field.type === 'multiple_choice' && (
+                            <div className="pt-2 border-t border-white/5 space-y-2">
+                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Opções do Menu</span>
+                              
+                              {field.options.map((opt: string, optIdx: number) => (
+                                <div key={optIdx} className="flex items-center gap-1">
                                   <input
                                     type="text"
-                                    value={option}
-                                    onChange={(e) => handleUpdateFieldOption(field.id, oIdx, e.target.value)}
-                                    placeholder={`Opção ${oIdx + 1}`}
-                                    className="flex-1 px-2.5 py-1.5 bg-black/50 border border-white/10 focus:border-purple-500 text-white rounded-md text-[10px] outline-none transition-all"
+                                    value={opt}
+                                    onChange={(e) => handleUpdateFieldOption(field.id, optIdx, e.target.value)}
+                                    placeholder={`Opção ${optIdx + 1}`}
+                                    className="flex-1 px-2 py-1 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-lg text-[11px] outline-none transition-all placeholder-gray-700"
                                     required
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => handleRemoveFieldOption(field.id, oIdx)}
-                                    className="p-1.5 text-gray-500 hover:text-red-400 border-0 bg-transparent cursor-pointer"
+                                    onClick={() => handleRemoveFieldOption(field.id, optIdx)}
+                                    className="p-1 text-red-400 hover:text-red-500 border-0 cursor-pointer bg-transparent"
+                                    title="Remover opção"
+                                    disabled={field.options.length <= 1}
                                   >
-                                    <Trash2 size={10} />
+                                    <X size={12} />
                                   </button>
                                 </div>
                               ))}
+                              
+                              <button
+                                type="button"
+                                onClick={() => handleAddFieldOption(field.id)}
+                                className="text-[10px] text-purple-400 hover:text-purple-300 font-bold transition-all flex items-center gap-1 border-0 cursor-pointer bg-transparent"
+                              >
+                                <Plus size={10} /> Adicionar Opção
+                              </button>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-2 pt-2 border-t border-white/5">
                   <button
@@ -1079,24 +1248,29 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                       <div className="space-y-1">
                         <h4 className="font-bold text-white text-sm">{tmpl.name}</h4>
                         {tmpl.description && <p className="text-xs text-gray-400 line-clamp-2">{tmpl.description}</p>}
-                        <p className="text-[9px] text-purple-400 font-bold uppercase tracking-wider pt-1">
-                          {tmpl.fields?.length || 0} Perguntas / Campos
-                        </p>
+                        <span className="text-[9px] font-black uppercase text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20 inline-block mt-2">
+                          {tmpl.fields?.length || 0} perguntas
+                        </span>
                       </div>
-                      
-                      <div className="flex gap-2 pt-3 border-t border-white/5">
+
+                      <div className="flex items-center gap-2 border-t border-white/5 pt-3">
                         <button
-                          onClick={() => handleEditTemplate(tmpl)}
-                          className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer border-0 flex items-center justify-center gap-1"
+                          onClick={() => {
+                            setEditingTemplateId(tmpl.id);
+                            setTemplateName(tmpl.name);
+                            setTemplateDescription(tmpl.description || '');
+                            setTemplateFields(tmpl.fields || []);
+                          }}
+                          className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-0"
                         >
-                          <Edit2 size={11} /> Editar
+                          Editar
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(tmpl.id)}
-                          className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-all cursor-pointer border-0"
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl transition-all cursor-pointer border-0"
                           title="Excluir Modelo"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -1107,15 +1281,20 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
           </div>
         )}
 
-        {/* 3. ABA DE CADASTRO RÁPIDO DE CLIENTE FINAL */}
+        {/* 3. ABA DE CADASTRO / EDIÇÃO DE CLIENTE FINAL */}
         {activeSubTab === 'new_client' && (
           <div className="max-w-md mx-auto bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-4">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <User className="text-purple-400" size={18} />
-                Cadastrar Cliente Final
+                {editingClient ? 'Editar Cliente' : 'Cadastrar Cliente'}
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">Cadastre clientes de forma manual para preenchimento de prontuários clínicos.</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {editingClient 
+                  ? 'Modifique os dados de contato do cliente manual.' 
+                  : 'Cadastre clientes de forma manual para preenchimento de fichas clínicas.'
+                }
+              </p>
             </div>
 
             <form onSubmit={handleSaveClient} className="space-y-4 text-left">
@@ -1154,18 +1333,98 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSavingClient}
-                className="w-full py-3.5 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-600/40 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
-              >
-                <Check size={14} />
-                Cadastrar Cliente
-              </button>
+              <div className="flex gap-2">
+                {editingClient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingClient(null);
+                      setNewClientName('');
+                      setNewClientPhone('');
+                      setNewClientEmail('');
+                      setActiveSubTab('records');
+                    }}
+                    className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={isSavingClient}
+                  className="flex-1 py-3.5 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-600/40 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
+                >
+                  <Check size={14} />
+                  {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                </button>
+              </div>
             </form>
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação de Exclusão de Cliente */}
+      {deleteClientConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-5 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white">Excluir Cliente</h3>
+              <p className="text-xs text-gray-400">
+                Tem certeza que deseja excluir o cliente <strong>{deleteClientConfirm.client?.name}</strong>?
+                Ele será ocultado da lista, mas os agendamentos existentes na agenda não serão apagados.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteClientConfirm({ isOpen: false, client: null })}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDeleteClient(deleteClientConfirm.client)}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Ficha */}
+      {deleteRecordConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-5 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white">Excluir Ficha</h3>
+              <p className="text-xs text-gray-400">
+                Tem certeza que deseja excluir esta ficha preenchida permanentemente? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteRecordConfirm({ isOpen: false, recordId: null })}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDeleteRecord(deleteRecordConfirm.recordId!)}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

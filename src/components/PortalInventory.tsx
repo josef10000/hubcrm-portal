@@ -105,7 +105,8 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           brand: meta.brand,
           price: meta.price,
           showInPos: meta.showInPos,
-          sales: meta.sales
+          sales: meta.sales,
+          costPerUnit: data.costPerUnit !== undefined && data.costPerUnit !== null ? Number(data.costPerUnit) : 0
         } as InventoryItem;
       });
       setItems(list);
@@ -492,13 +493,13 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Custo Unitário:</span>
                       <span className="text-gray-300 font-mono font-bold">
-                        R$ {item.costPerUnit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / {item.unit}
+                        R$ {(item.costPerUnit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / {item.unit}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Custo do Lote:</span>
                       <span className="text-gray-400 font-mono text-[11px] font-bold">
-                        R$ {(item.costPerUnit * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {((item.costPerUnit || 0) * item.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">

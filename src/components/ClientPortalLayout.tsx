@@ -49,7 +49,6 @@ import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 import PortalRecords from '../views/PortalRecords';
-import PortalClients from '../views/PortalClients';
 
 const getTabTheme = (tabId: string, isLight: boolean = false) => {
   if (isLight) {
@@ -445,11 +444,7 @@ export default function ClientPortalLayout() {
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'agenda', label: 'Agenda', icon: Calendar },
     { id: 'agenda_settings', label: 'Configurações', icon: Settings },
-    { id: 'clients', label: 'Clientes', icon: Users },
-    { id: 'crm_finance', label: 'CRM Financeiro', icon: DollarSign },
-    { id: 'management', label: 'Estoque & Negócio', icon: Package },
-    { id: 'growth', label: 'Hub de Crescimento', icon: Rocket },
-    { id: 'records', label: 'Prontuários & Fichas', icon: FileText },
+    { id: 'records', label: 'Fichas', icon: FileText },
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
     ] : []),
@@ -862,13 +857,6 @@ export default function ClientPortalLayout() {
                   clientId={clientId || ''}
                 />
               )}
-              {activeTab === 'clients' && (
-                <PortalClients 
-                  orgId={orgId || ''} 
-                  clientId={clientId || ''}
-                  client={client}
-                />
-              )}
               {activeTab === 'profile' && (
                 <PortalProfile 
                   client={client} 
@@ -894,7 +882,7 @@ export default function ClientPortalLayout() {
           boxShadow: isLight ? '0 15px 50px rgba(0,0,0,0.08)' : '0 15px 50px rgba(0,0,0,0.6)'
         }}
       >
-        {navItems.filter(item => ['home', 'agenda', 'clients', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'records', 'services', 'support'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id, isLight);
           return (
@@ -1103,15 +1091,7 @@ export default function ClientPortalLayout() {
                   className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
                 >
                   <FileText size={20} className="text-purple-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Prontuários</span>
-                </button>
-
-                <button
-                  onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
-                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                >
-                  <Users size={20} className="text-blue-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Clientes</span>
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Fichas</span>
                 </button>
 
                 {/* Agenda Settings (Mobile) */}
