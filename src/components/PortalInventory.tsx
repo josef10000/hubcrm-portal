@@ -171,7 +171,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || quantity === '' || minQuantity === '' || costPerUnit === '' || !orgId) {
+    if (!name.trim() || quantity === '' || minQuantity === '' || !orgId) {
       toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -187,7 +187,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         quantity: Number(quantity),
         unit,
         minQuantity: Number(minQuantity),
-        costPerUnit: Number(costPerUnit.replace(',', '.')),
+        costPerUnit: costPerUnit ? Number(costPerUnit.replace(',', '.')) : 0,
         updatedAt: serverTimestamp()
       };
 
@@ -442,8 +442,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
             return (
               <div 
                 key={item.id}
+                onClick={() => openEditModal(item)}
                 className={`
-                  relative bg-[var(--theme-glass)] border p-6 rounded-[2rem] flex flex-col justify-between shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--theme-glass-hover)]
+                  relative bg-[var(--theme-glass)] border p-6 rounded-[2rem] flex flex-col justify-between shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--theme-glass-hover)] cursor-pointer hover:scale-[1.02] active:scale-[0.99] group/card
                   ${isLowStock 
                     ? 'border-amber-500/30' 
                     : 'border-[var(--theme-border-subtle)]'}
@@ -514,14 +515,14 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   {/* Quick +/- adjustments */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleQuickAdjust(item, item.unit === 'g' ? -100 : -1)}
+                      onClick={(e) => { e.stopPropagation(); handleQuickAdjust(item, item.unit === 'g' ? -100 : -1); }}
                       className="p-2 hover:bg-white/5 text-gray-500 hover:text-white border border-white/5 rounded-xl transition-all active:scale-90 border-0 bg-transparent cursor-pointer"
                       title={item.unit === 'g' ? "Subtrair 100g" : "Subtrair 1 unidade"}
                     >
                       <Minus size={13} />
                     </button>
                     <button
-                      onClick={() => handleQuickAdjust(item, item.unit === 'g' ? 100 : 1)}
+                      onClick={(e) => { e.stopPropagation(); handleQuickAdjust(item, item.unit === 'g' ? 100 : 1); }}
                       className="p-2 hover:bg-white/5 text-gray-500 hover:text-white border border-white/5 rounded-xl transition-all active:scale-90 border-0 bg-transparent cursor-pointer"
                       title={item.unit === 'g' ? "Somar 100g" : "Somar 1 unidade"}
                     >
@@ -532,14 +533,14 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   {/* Edit/Delete */}
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => openEditModal(item)}
+                      onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
                       className="p-2 hover:bg-primary-500/10 text-gray-500 hover:text-primary-400 rounded-xl transition-all border-0 bg-transparent cursor-pointer"
                       title="Editar"
                     >
                       <Edit2 size={13} />
                     </button>
                     <button
-                      onClick={() => handleDeleteItem(item.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
                       className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded-xl transition-all border-0 bg-transparent cursor-pointer"
                       title="Excluir"
                     >
@@ -699,10 +700,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (por {unit}) *</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (por {unit})</label>
                   <input 
                     type="text" 
-                    required
                     placeholder="0,00"
                     value={costPerUnit}
                     onChange={(e) => setCostPerUnit(e.target.value)}

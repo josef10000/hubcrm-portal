@@ -104,7 +104,7 @@ export default function PortalRecords({ orgId, clientId }: PortalRecordsProps) {
     
     // Primeiro populamos com clientes manuais do banco de dados
     manualClients.forEach(c => {
-      const cleanPhone = c.phone.replace(/\D/g, '');
+      const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,

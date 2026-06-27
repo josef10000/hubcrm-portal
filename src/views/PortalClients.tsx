@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp 
+  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc 
 } from 'firebase/firestore';
 import { 
   Users, Search, Plus, Phone, Mail, Calendar, FileText, Settings, Trash2, Save, X, Edit2, AlertCircle, Printer, Eye 
@@ -125,12 +125,12 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
     // A. Adicionar todos os clientes cadastrados fisicamente no banco manual
     dbClients.forEach(c => {
-      const cleanPhone = c.phone.replace(/\D/g, '');
+      const cleanPhone = (c.phone || '').replace(/\D/g, '');
       if (cleanPhone) {
         clientsMap.set(cleanPhone, {
           id: c.id,
           name: c.name,
-          phone: c.phone,
+          phone: c.phone || '',
           email: c.email || '',
           customFields: c.customFields || {},
           source: 'db', // Identifica se já tem documento físico
@@ -142,7 +142,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     // B. Mesclar / Adicionar clientes que aparecem nos agendamentos
     appointments.forEach(app => {
       if (app.clientPhone && app.clientName && app.serviceId !== 'bloqueio') {
-        const cleanPhone = app.clientPhone.replace(/\D/g, '');
+        const cleanPhone = (app.clientPhone || '').replace(/\D/g, '');
         if (cleanPhone) {
           const existing = clientsMap.get(cleanPhone);
           if (!existing) {
@@ -166,7 +166,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
     // Se houver um cliente selecionado, atualiza seu estado para refletir mudanças do snap
     if (selectedClientId) {
-      const updatedSelect = sorted.find(c => c.phone.replace(/\D/g, '') === selectedClientId);
+      const updatedSelect = sorted.find(c => (c.phone || '').replace(/\D/g, '') === selectedClientId);
       if (updatedSelect) {
         setTempCustomValues(updatedSelect.customFields || {});
       }
@@ -176,17 +176,17 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   // Filtrar Lista de Clientes com base na Pesquisa
   const filteredClients = consolidatedClients.filter(c => {
     const queryStr = searchQuery.toLowerCase();
-    const cleanPhone = c.phone.replace(/\D/g, '');
+    const cleanPhone = (c.phone || '').replace(/\D/g, '');
     return c.name.toLowerCase().includes(queryStr) || cleanPhone.includes(queryStr);
   });
 
   // Cliente selecionado atualmente
-  const currentClient = consolidatedClients.find(c => c.phone.replace(/\D/g, '') === selectedClientId);
+  const currentClient = consolidatedClients.find(c => (c.phone || '').replace(/\D/g, '') === selectedClientId);
 
   // Prontuários e Agendamentos vinculados ao cliente selecionado
   const currentClientRecords = selectedClientId ? clientRecords.filter(r => r.clientId === selectedClientId) : [];
   const currentClientAppointments = selectedClientId 
-    ? appointments.filter(app => app.clientPhone && app.clientPhone.replace(/\D/g, '') === selectedClientId) 
+    ? appointments.filter(app => app.clientPhone && (app.clientPhone || '').replace(/\D/g, '') === selectedClientId) 
     : [];
 
   // Salvar Novo Cliente ou Editar
@@ -214,7 +214,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       } else {
         // Criando novo cliente do zero
         // Verifica se já existe esse telefone no banco manual para evitar duplicar
-        const alreadyExists = dbClients.some(c => c.phone.replace(/\D/g, '') === cleanPhone);
+        const alreadyExists = dbClients.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
         if (alreadyExists) {
           toast.error('Já existe um cliente cadastrado com esse telefone.');
           setIsSavingClient(false);
@@ -255,7 +255,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
       } else {
         toast.error('Clientes vindos de agendamentos não podem ser excluídos. Eles somem apenas se os agendamentos forem excluídos.');
       }
-      if (selectedClientId === client.phone.replace(/\D/g, '')) {
+      if (selectedClientId === (client.phone || '').replace(/\D/g, '')) {
         setSelectedClientId(null);
       }
     } catch (err) {
@@ -269,7 +269,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
     setIsSavingCustomValues(true);
     try {
-      const cleanPhone = currentClient.phone.replace(/\D/g, '');
+      const cleanPhone = (currentClient.phone || '').replace(/\D/g, '');
       const payload = {
         name: currentClient.name,
         phone: currentClient.phone,
@@ -320,9 +320,9 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
       const updatedFields = [...customFieldsDef, newField];
 
-      await updateDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
+      await setDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
         customClientFieldsDef: updatedFields
-      });
+      }, { merge: true });
 
       toast.success(`Campo personalizado "${newFieldLabel}" criado!`);
       setNewFieldLabel('');
@@ -340,9 +340,9 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     if (!confirm('Deseja realmente excluir este campo? Os valores já salvos nos clientes continuarão no banco, mas não serão exibidos.')) return;
     try {
       const updatedFields = customFieldsDef.filter(f => f.id !== fieldId);
-      await updateDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
+      await setDoc(doc(db, 'organizations', orgId, 'clients', clientId), {
         customClientFieldsDef: updatedFields
-      });
+      }, { merge: true });
       toast.success('Campo personalizado excluído!');
     } catch (err) {
       console.error(err);
@@ -372,7 +372,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
 
   // Disparar WhatsApp
   const handleWhatsAppClick = (phone: string) => {
-    const clean = phone.replace(/\D/g, '');
+    const clean = (phone || '').replace(/\D/g, '');
     if (!clean) return;
     // Garante código de país 55 se o profissional não inseriu
     const fullPhone = clean.length <= 11 ? `55${clean}` : clean;
@@ -522,7 +522,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
               </div>
             ) : (
               filteredClients.map((c) => {
-                const cleanPhone = c.phone.replace(/\D/g, '');
+                const cleanPhone = (c.phone || '').replace(/\D/g, '');
                 const isSelected = selectedClientId === cleanPhone;
                 return (
                   <div
@@ -530,27 +530,37 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                     onClick={() => {
                       setSelectedClientId(cleanPhone);
                       setTempCustomValues(c.customFields || {});
+                      // Rolagem suave até os detalhes no mobile
+                      setTimeout(() => {
+                        const detailsElement = document.getElementById('client-details-panel');
+                        if (detailsElement) {
+                          detailsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
                     }}
-                    className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left relative flex items-center justify-between group ${
+                    className={`p-5 rounded-[2rem] cursor-pointer transition-all duration-300 border text-left relative flex items-center justify-between group shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] select-none ${
                       isSelected 
-                        ? 'bg-primary-500/10 border-primary-500/30' 
-                        : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:bg-[var(--theme-glass-hover)]'
+                        ? 'bg-primary-500/20 border-primary-500/50 translate-x-1 shadow-lg shadow-primary-500/10' 
+                        : 'bg-[var(--theme-glass)] border-[var(--theme-border-subtle)] hover:border-[var(--theme-border)] hover:bg-[var(--theme-glass-hover)]'
                     }`}
                   >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500/20 to-blue-500/20 border border-[var(--theme-border-subtle)] flex items-center justify-center font-black text-xs text-primary-500 shrink-0 uppercase">
+                    <div className="flex items-center gap-4 overflow-hidden">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500/20 to-blue-500/20 border-2 border-primary-500/30 flex items-center justify-center font-black text-base text-primary-500 shrink-0 uppercase shadow-inner duration-200 group-hover:scale-105">
                         {c.name.substring(0, 2)}
                       </div>
-                      <div className="overflow-hidden">
-                        <p className="text-xs font-black truncate" style={{ color: 'var(--theme-text-primary)' }}>{c.name}</p>
-                        <p className="text-[10px] text-gray-500 font-mono mt-0.5 truncate">{c.phone}</p>
+                      <div className="overflow-hidden space-y-1">
+                        <p className="text-base md:text-lg font-black tracking-tight truncate leading-tight" style={{ color: 'var(--theme-text-primary)' }}>{c.name}</p>
+                        <p className="text-xs md:text-sm text-gray-400 font-bold font-mono tracking-wider truncate flex items-center gap-1.5">
+                          <Phone size={11} className="text-gray-500 shrink-0" />
+                          {c.phone || 'Sem Telefone'}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleWhatsAppClick(c.phone); }}
-                        className="p-1.5 hover:bg-emerald-500/10 text-gray-500 hover:text-emerald-500 rounded-lg transition-colors bg-transparent border-0 cursor-pointer"
+                        className="p-2 hover:bg-emerald-500/10 text-gray-500 hover:text-emerald-500 rounded-xl transition-colors bg-transparent border-0 cursor-pointer"
                         title="Enviar WhatsApp"
                       >
                         <Phone size={14} />
@@ -558,7 +568,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                       {c.source === 'db' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteClient(c); }}
-                          className="p-1.5 hover:bg-rose-500/10 text-gray-500 hover:text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all bg-transparent border-0 cursor-pointer"
+                          className="p-2 hover:bg-rose-500/10 text-gray-500 hover:text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-transparent border-0 cursor-pointer"
                           title="Remover Cadastro"
                         >
                           <Trash2 size={13} />
@@ -573,7 +583,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
         </div>
 
         {/* Coluna Direita: Painel de Detalhes */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7" id="client-details-panel">
           {!currentClient ? (
             <div 
               className="h-full flex flex-col items-center justify-center border border-[var(--theme-border)] rounded-[2rem] p-12 text-center"

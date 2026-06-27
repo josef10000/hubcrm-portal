@@ -118,7 +118,7 @@ export default function PortalFidelity({ orgId, clientId }: PortalFidelityProps)
     const clientsMap: { [phone: string]: { name: string; phone: string; count: number } } = {};
 
     completedApps.forEach(app => {
-      const cleanPhone = app.clientPhone.replace(/\D/g, '');
+      const cleanPhone = (app.clientPhone || '').replace(/\D/g, '');
       if (!cleanPhone || cleanPhone === '000000000') return;
 
       if (!clientsMap[cleanPhone]) {

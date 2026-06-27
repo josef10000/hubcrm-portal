@@ -791,7 +791,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSendPixWhatsAppMessage = () => {
     if (!activeAppointmentForPix || !generatedPixCode) return;
     
-    const cleanPhone = activeAppointmentForPix.clientPhone.replace(/\D/g, '');
+    const cleanPhone = (activeAppointmentForPix.clientPhone || '').replace(/\D/g, '');
     const dateObj = new Date(activeAppointmentForPix.date + 'T12:00:00');
     const dateFormatted = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     
@@ -807,7 +807,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSendPixLinkWhatsAppMessage = () => {
     if (!activeAppointmentForPix || !pixKey) return;
     
-    const cleanPhone = activeAppointmentForPix.clientPhone.replace(/\D/g, '');
+    const cleanPhone = (activeAppointmentForPix.clientPhone || '').replace(/\D/g, '');
     const parsedAmount = parseFloat(pixBillingAmount.replace(/\./g, '').replace(',', '.'));
     const amountVal = isNaN(parsedAmount) || parsedAmount <= 0 ? 0 : parsedAmount;
     
@@ -1195,7 +1195,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
     const template = whatsappTemplates.find(t => t.id === selectedTemplateId) || whatsappTemplates[0];
     const text = renderWhatsAppText(template.text, activeAppointmentForWhatsApp);
-    const phone = activeAppointmentForWhatsApp.clientPhone.replace(/\D/g, '');
+    const phone = (activeAppointmentForWhatsApp.clientPhone || '').replace(/\D/g, '');
 
     // Atualiza o status do agendamento para 'pending' (Pendente de Confirmação) no Firestore
     try {
@@ -1215,11 +1215,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
   const getClientFidelityCount = (phone: string) => {
     if (!phone || phone === "000000000") return 0;
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = (phone || '').replace(/\D/g, '');
     return appointments.filter(app => 
       app.status === 'completed' && 
       app.clientPhone && 
-      app.clientPhone.replace(/\D/g, '') === cleanPhone
+      (app.clientPhone || '').replace(/\D/g, '') === cleanPhone
     ).length;
   };
 
@@ -3655,7 +3655,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                     <div className="space-y-1 animate-in fade-in duration-200">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Selecionar Pacote do Cliente</label>
                       {(() => {
-                        const cleanedPhone = newClientPhone.replace(/\D/g, '');
+                        const cleanedPhone = (newClientPhone || '').replace(/\D/g, '');
                         const activePkgs = clientPackages.filter(p => 
                           (p.clientPhone === cleanedPhone || p.clientName.toLowerCase() === newClientName.toLowerCase().trim()) && 
                           p.usedSessions < p.totalSessions &&
