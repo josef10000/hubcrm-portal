@@ -38,44 +38,26 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
   const [isSendingReset, setIsSendingReset] = useState(false);
 
   // Configurações de Módulos e Recursos
-  const [modulesConfig, setModulesConfig] = useState<any>(null);
-  const [loadingModules, setLoadingModules] = useState(true);
-
-  useEffect(() => {
-    if (!orgId || !clientId) {
-      setLoadingModules(false);
-      return;
+  const modulesConfig = userProfile?.modulesConfig || {
+    onboardingCompleted: true,
+    activeModules: {
+      agenda: true,
+      agenda_public: true,
+      agenda_pix: true,
+      crm_finance: true,
+      management: true,
+      management_pos: true,
+      management_calc: true,
+      growth: true,
+      clients: true,
+      clients_fidelity: true
     }
-    const clientDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
-    const unsub = onSnapshot(clientDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setModulesConfig(data.modulesConfig || {
-          onboardingCompleted: true,
-          activeModules: {
-            agenda: true,
-            agenda_public: true,
-            agenda_pix: true,
-            crm_finance: true,
-            management: true,
-            management_pos: true,
-            management_calc: true,
-            growth: true,
-            clients: true,
-            clients_fidelity: true
-          }
-        });
-      }
-      setLoadingModules(false);
-    }, (err) => {
-      console.error("[PortalProfile] Erro ao ler modulesConfig:", err);
-      setLoadingModules(false);
-    });
-    return () => unsub();
-  }, [orgId, clientId]);
+  };
+  const loadingModules = !userProfile;
 
   const toggleModule = async (key: string) => {
-    if (!orgId || !clientId || !modulesConfig) return;
+    const user = auth.currentUser;
+    if (!user || !userProfile || !modulesConfig) return;
     
     const newActiveModules = { ...modulesConfig.activeModules };
     const newValue = !newActiveModules[key];
@@ -103,8 +85,8 @@ export default function PortalProfile({ client, userProfile, orgId, clientId }: 
     if (key === 'clients_fidelity' && newValue) newActiveModules.clients = true;
 
     try {
-      const clientDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
-      await updateDoc(clientDocRef, {
+      const profileRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileRef, {
         'modulesConfig.activeModules': newActiveModules,
         'modulesConfig.onboardingCompleted': true
       });

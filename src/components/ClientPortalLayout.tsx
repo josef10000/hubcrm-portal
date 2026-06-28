@@ -350,13 +350,80 @@ export default function ClientPortalLayout() {
     }
   };
   
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isClientAdmin, setIsClientAdmin] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Escuta o perfil do usuário logado do Firestore em tempo real
+  useEffect(() => {
+    if (!currentUser) {
+      setUserProfile(null);
+      return;
+    }
+    const profileRef = doc(db, 'profiles', currentUser.uid);
+    const unsub = onSnapshot(profileRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserProfile({ id: docSnap.id, ...docSnap.data() });
+      }
+    }, (error) => {
+      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler perfil em:", profileRef.path, error);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // Escuta autenticação para verificar se o usuário está logado como client_admin
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      setAuthLoading(true);
+      if (user) {
+        setCurrentUser(user);
+        try {
+          const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
+          if (profileSnap.exists()) {
+            const pData = profileSnap.data();
+            
+            // Administradores corporativos têm acesso irrestrito ao portal
+            if (pData.role === 'admin' || pData.role === 'manager') {
+               setIsClientAdmin(true);
+               setAuthLoading(false);
+               return;
+            }
+
+            if (pData.role === 'client_admin') {
+              // Se o cliente tentar acessar o portal de outro ID de cliente, redireciona para o correto dele
+              if (pData.orgId !== orgId || pData.clientId !== clientId) {
+                console.warn(`[PortalGuard] Divergência de rota. Redirecionando para o portal correto do cliente: /${pData.orgId}/${pData.clientId}`);
+                navigate(`/${pData.orgId}/${pData.clientId}`);
+                setAuthLoading(false);
+                return;
+              }
+              setIsClientAdmin(true);
+            } else {
+              setIsClientAdmin(false);
+            }
+          } else {
+            setIsClientAdmin(false);
+          }
+        } catch (e) {
+          console.error('[PortalGuard] Erro ao carregar perfil:', e);
+          setIsClientAdmin(false);
+        }
+      } else {
+        setCurrentUser(null);
+        setIsClientAdmin(false);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsub();
+  }, [orgId, clientId, navigate]);
+
   const [activeTab, setActiveTab] = useState('home');
   const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
   const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'insights' | 'templates' | 'sales' | 'trainings'>('brand');
 
   // Configuração de Módulos & Recursos e Assistente de Configuração
-  const [modulesConfig, setModulesConfig] = useState<any>(null);
-  const [modulesConfigLoading, setModulesConfigLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [selectedProfile, setSelectedProfile] = useState<'agenda' | 'finance' | 'complete'>('complete');
@@ -373,25 +440,8 @@ export default function ClientPortalLayout() {
     clients_fidelity: true
   });
 
-  // Escuta modulesConfig no Firestore
-  useEffect(() => {
-    if (!orgId || !activeClientId) {
-      setModulesConfigLoading(false);
-      return;
-    }
-    const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
-    const unsub = onSnapshot(clientDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setModulesConfig(data.modulesConfig || null);
-      }
-      setModulesConfigLoading(false);
-    }, (error) => {
-      console.warn("[ClientPortalLayout] Erro ao escutar modulesConfig:", error);
-      setModulesConfigLoading(false);
-    });
-    return () => unsub();
-  }, [orgId, activeClientId]);
+  const modulesConfig = userProfile?.modulesConfig || null;
+  const modulesConfigLoading = authLoading || (currentUser && !userProfile);
 
   // Função auxiliar para verificar ativação dos módulos macros
   const isModuleActive = (tabId: string) => {
@@ -415,9 +465,9 @@ export default function ClientPortalLayout() {
     }
   }, [modulesConfig, activeTab]);
 
-  // Lógica heurística para onboarding: se usuário for antigo (tem agendamentos), ativa tudo silenciosamente. Se for novo, abre o Wizard.
+  // Lógica heurística para onboarding: se usuário for antigo (tem agendamentos), ativa tudo silenciosamente no seu profiles.
   useEffect(() => {
-    if (modulesConfigLoading || !orgId || !activeClientId) return;
+    if (modulesConfigLoading || !orgId || !activeClientId || !currentUser) return;
     
     if (!modulesConfig) {
       const diagnoseNewUser = async () => {
@@ -425,9 +475,9 @@ export default function ClientPortalLayout() {
           const apptsRef = collection(db, 'organizations', orgId, 'appointments');
           const apptsSnap = await getDocs(query(apptsRef, limit(1)));
           
+          const profileRef = doc(db, 'profiles', currentUser.uid);
           if (!apptsSnap.empty) {
-            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
-            await updateDoc(clientDocRef, {
+            await updateDoc(profileRef, {
               modulesConfig: {
                 onboardingCompleted: true,
                 activeModules: {
@@ -448,10 +498,10 @@ export default function ClientPortalLayout() {
             setShowOnboarding(true);
           }
         } catch (err) {
-          console.warn("[Onboarding Check] Acesso restrito. Definindo como antigo por padrão.");
+          console.warn("[Onboarding Check] Acesso restrito. Definindo como antigo por padrão no profiles.");
           try {
-            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
-            await updateDoc(clientDocRef, {
+            const profileRef = doc(db, 'profiles', currentUser.uid);
+            await updateDoc(profileRef, {
               modulesConfig: {
                 onboardingCompleted: true,
                 activeModules: {
@@ -476,7 +526,7 @@ export default function ClientPortalLayout() {
     } else if (modulesConfig.onboardingCompleted === false) {
       setShowOnboarding(true);
     }
-  }, [modulesConfig, modulesConfigLoading, orgId, activeClientId]);
+  }, [modulesConfig, modulesConfigLoading, orgId, activeClientId, currentUser]);
 
   const applyProfileSelection = (profile: 'agenda' | 'finance' | 'complete') => {
     setSelectedProfile(profile);
@@ -548,10 +598,10 @@ export default function ClientPortalLayout() {
   };
 
   const handleCompleteOnboarding = async () => {
-    if (!orgId || !activeClientId) return;
+    if (!currentUser) return;
     try {
-      const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
-      await updateDoc(clientDocRef, {
+      const profileRef = doc(db, 'profiles', currentUser.uid);
+      await updateDoc(profileRef, {
         modulesConfig: {
           onboardingCompleted: true,
           activeModules: modulesSelection
@@ -583,74 +633,7 @@ export default function ClientPortalLayout() {
     }
   }, [activeTab]);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [isClientAdmin, setIsClientAdmin] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
 
-  // Escuta o perfil do usuário logado do Firestore em tempo real
-  useEffect(() => {
-    if (!currentUser) {
-      setUserProfile(null);
-      return;
-    }
-    const profileRef = doc(db, 'profiles', currentUser.uid);
-    const unsub = onSnapshot(profileRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setUserProfile({ id: docSnap.id, ...docSnap.data() });
-      }
-    }, (error) => {
-      console.error("[DIAGNOSTICO FIRESTORE] Erro de permissão ao ler perfil em:", profileRef.path, error);
-    });
-    return () => unsub();
-  }, [currentUser]);
-
-  // Escuta autenticação para verificar se o usuário está logado como client_admin
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setAuthLoading(true);
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
-          if (profileSnap.exists()) {
-            const pData = profileSnap.data();
-            
-            // Administradores corporativos têm acesso irrestrito ao portal
-            if (pData.role === 'admin' || pData.role === 'manager') {
-              setIsClientAdmin(true);
-              setAuthLoading(false);
-              return;
-            }
-
-            if (pData.role === 'client_admin') {
-              // Se o cliente tentar acessar o portal de outro ID de cliente, redireciona para o correto dele
-              if (pData.orgId !== orgId || pData.clientId !== clientId) {
-                console.warn(`[PortalGuard] Divergência de rota. Redirecionando para o portal correto do cliente: /${pData.orgId}/${pData.clientId}`);
-                navigate(`/${pData.orgId}/${pData.clientId}`);
-                setAuthLoading(false);
-                return;
-              }
-              setIsClientAdmin(true);
-            } else {
-              setIsClientAdmin(false);
-            }
-          } else {
-            setIsClientAdmin(false);
-          }
-        } catch (e) {
-          console.error('[PortalGuard] Erro ao carregar perfil:', e);
-          setIsClientAdmin(false);
-        }
-      } else {
-        setCurrentUser(null);
-        setIsClientAdmin(false);
-      }
-      setAuthLoading(false);
-    });
-    return () => unsub();
-  }, [orgId, clientId, navigate]);
 
   const navItems = [
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
