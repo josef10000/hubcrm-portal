@@ -50,6 +50,7 @@ import PortalCRMFinance from '../views/PortalCRMFinance';
 import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 import PortalClients from '../views/PortalClients';
+import PortalModulesConfig from '../views/PortalModulesConfig';
 
 const getTabTheme = (tabId: string, isLight: boolean = false) => {
   if (isLight) {
@@ -887,12 +888,22 @@ export default function ClientPortalLayout() {
                       Editar Perfil
                     </button>
 
+                    {isModuleActive('agenda') && (
+                      <button 
+                        onClick={() => { setActiveTab('agenda_settings'); setIsProfileDropdownOpen(false); }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
+                      >
+                        <Settings size={14} className="text-gray-500" />
+                        Configurações da Agenda
+                      </button>
+                    )}
+
                     <button 
-                      onClick={() => { setActiveTab('agenda_settings'); setIsProfileDropdownOpen(false); }}
+                      onClick={() => { setActiveTab('modules_config'); setIsProfileDropdownOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5"
                     >
-                      <Settings size={14} className="text-gray-500" />
-                      Configurações da Agenda
+                      <Sliders size={14} className="text-gray-500" />
+                      Personalizar Módulos
                     </button>
 
                     <button 
@@ -1063,6 +1074,11 @@ export default function ClientPortalLayout() {
                   userProfile={userProfile} 
                   orgId={orgId} 
                   clientId={clientId} 
+                />
+              )}
+              {activeTab === 'modules_config' && (
+                <PortalModulesConfig 
+                  userProfile={userProfile} 
                 />
               )}
             </motion.div>
@@ -1240,6 +1256,14 @@ export default function ClientPortalLayout() {
                 >
                   <User size={20} className="text-violet-400" />
                   <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Perfil</span>
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab('modules_config'); setIsMobileMenuOpen(false); }}
+                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                >
+                  <Sliders size={20} className="text-pink-400" />
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Módulos</span>
                 </button>
 
                 <button
