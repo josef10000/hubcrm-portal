@@ -21,7 +21,8 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
       management_calc: true,
       growth: true,
       clients: true,
-      clients_fidelity: true
+      clients_fidelity: true,
+      clients_pets: true
     }
   };
   const loadingModules = !userProfile;
@@ -45,6 +46,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     }
     if (key === 'clients' && !newValue) {
       newActiveModules.clients_fidelity = false;
+      newActiveModules.clients_pets = false;
     }
     
     // E se o filho for ativado? Garante que o pai esteja ativado
@@ -53,6 +55,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     if (key === 'agenda_public' && newValue) newActiveModules.agenda = true;
     if (key === 'agenda_pix' && newValue) newActiveModules.agenda = true;
     if (key === 'clients_fidelity' && newValue) newActiveModules.clients = true;
+    if (key === 'clients_pets' && newValue) newActiveModules.clients = true;
 
     try {
       const profileRef = doc(db, 'profiles', user.uid);
@@ -131,6 +134,12 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
                     onChange={() => toggleModule('clients_fidelity')}
                     label="🏆 Clube de Fidelidade"
                     description="Habilita sistema de pontuação e recompensas acumuladas por visitas ou compras."
+                  />
+                  <CustomSwitch
+                    checked={modulesConfig?.activeModules?.clients_pets !== false}
+                    onChange={() => toggleModule('clients_pets')}
+                    label="🐶 Prontuário Multi-Pets"
+                    description="Permite cadastrar múltiplos animais de estimação para cada tutor no CRM, com prontuários e fichas de histórico individuais."
                   />
                 </div>
               )}

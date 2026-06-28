@@ -4,7 +4,7 @@ import {
   collection, doc, onSnapshot, query, orderBy, serverTimestamp
 } from 'firebase/firestore';
 import { 
-  Users, Search, Plus, Phone, Mail, Calendar, FileText, Trash2, X, Edit2, AlertCircle, Check, DollarSign, Clock, Tag, User
+  Users, Search, Plus, Phone, Mail, Calendar, FileText, Trash2, X, Edit2, AlertCircle, Check, DollarSign, Clock, Tag, User, PawPrint
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,9 +12,10 @@ interface PortalClientsProps {
   orgId: string;
   clientId: string;
   client?: any;
+  userProfile?: any;
 }
 
-export default function PortalClients({ orgId, clientId, client }: PortalClientsProps) {
+export default function PortalClients({ orgId, clientId, client, userProfile }: PortalClientsProps) {
   // Listas de Dados do Firestore
   const [appointments, setAppointments] = useState<any[]>([]);
   const [deletedClientsPhones, setDeletedClientsPhones] = useState<string[]>([]);
@@ -47,6 +48,31 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
   const [deleteClientConfirm, setDeleteClientConfirm] = useState<{ isOpen: boolean; client: any | null }>({
     isOpen: false,
     client: null
+  });
+
+  // Ativação do Módulo de Pets
+  const isPetsActive = userProfile?.modulesConfig?.activeModules?.clients_pets !== false;
+
+  // Estados para Controle de Pets e Inativos
+  const [crmListType, setCrmListType] = useState<'all' | 'inactive'>('all');
+  const [inactiveClientsData, setInactiveClientsData] = useState<Record<string, { daysInactive: number, lastDateStr: string }>>({});
+  const [selectedClientSubTab, setSelectedClientSubTab] = useState<'info' | 'pets'>('info');
+
+  // Modal / Formulário de Cadastro/Edição de Pet
+  const [isPetModalOpen, setIsPetModalOpen] = useState(false);
+  const [isSavingPet, setIsSavingPet] = useState(false);
+  const [editingPet, setEditingPet] = useState<any | null>(null);
+  const [petName, setPetName] = useState('');
+  const [petType, setPetType] = useState('dog');
+  const [petBreed, setPetBreed] = useState('');
+  const [petAge, setPetAge] = useState('');
+  const [petWeight, setPetWeight] = useState('');
+  const [petNotes, setPetNotes] = useState('');
+
+  // Modal de Confirmação para deletar Pet
+  const [deletePetConfirm, setDeletePetConfirm] = useState<{ isOpen: boolean; petId: string }>({
+    isOpen: false,
+    petId: ''
   });
 
   // 1. Escutar agendamentos da organização (appointments)
@@ -187,6 +213,142 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.error || 'Erro ao sincronizar dados com o servidor.');
+    }
+  };
+
+  // Controle de Modal / Ações de Pets
+  const openPetModal = (pet: any = null) => {
+    setEditingPet(pet);
+    if (pet) {
+      setPetName(pet.name || '');
+      setPetType(pet.type || 'dog');
+      setPetBreed(pet.breed || '');
+      setPetAge(pet.age || '');
+      setPetWeight(pet.weight || '');
+      setPetNotes(pet.notes || '');
+    } else {
+      setPetName('');
+      setPetType('dog');
+      setPetBreed('');
+      setPetAge('');
+      setPetWeight('');
+      setPetNotes('');
+    }
+    setIsPetModalOpen(true);
+  };
+
+  const handleSavePet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClient) {
+      toast.error('Nenhum tutor selecionado.');
+      return;
+    }
+    if (!petName.trim()) {
+      toast.error('O nome do pet é obrigatório.');
+      return;
+    }
+
+    setIsSavingPet(true);
+    try {
+      let currentCrmList = [...(fidelitySettingsObj.crmClients || [])];
+      const cleanSelectedPhone = (selectedClient.phone || '').replace(/\D/g, '');
+
+      // Localiza o cadastro manual ou cria um novo com base no selecionado (se ele veio da agenda)
+      let manualIndex = currentCrmList.findIndex(c => (c.phone || '').replace(/\D/g, '') === cleanSelectedPhone);
+      
+      let clientTarget: any;
+      if (manualIndex >= 0) {
+        clientTarget = { ...currentCrmList[manualIndex] };
+      } else {
+        // Converte em manual para podermos salvar os pets
+        clientTarget = {
+          id: `manual_${Date.now()}`,
+          name: selectedClient.name,
+          phone: selectedClient.phone,
+          email: selectedClient.email || '',
+          birthday: '',
+          notes: '',
+          createdAt: new Date().toISOString(),
+          customFields: {},
+          pets: []
+        };
+      }
+
+      const clientPets = Array.isArray(clientTarget.pets) ? [...clientTarget.pets] : [];
+
+      if (editingPet) {
+        // Atualizando Pet existente
+        const petIndex = clientPets.findIndex(p => p.id === editingPet.id);
+        if (petIndex >= 0) {
+          clientPets[petIndex] = {
+            ...clientPets[petIndex],
+            name: petName.trim(),
+            type: petType,
+            breed: petBreed.trim(),
+            age: petAge.trim(),
+            weight: petWeight.trim(),
+            notes: petNotes.trim(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+      } else {
+        // Adicionando novo Pet
+        const newPet = {
+          id: `pet_${Date.now()}`,
+          name: petName.trim(),
+          type: petType,
+          breed: petBreed.trim(),
+          age: petAge.trim(),
+          weight: petWeight.trim(),
+          notes: petNotes.trim(),
+          createdAt: new Date().toISOString()
+        };
+        clientPets.push(newPet);
+      }
+
+      clientTarget.pets = clientPets;
+
+      if (manualIndex >= 0) {
+        currentCrmList[manualIndex] = clientTarget;
+      } else {
+        currentCrmList.push(clientTarget);
+      }
+
+      // Sincroniza com Firestore / Backend
+      await syncCrmData({ crmClients: currentCrmList });
+      toast.success(editingPet ? 'Pet atualizado com sucesso!' : 'Pet cadastrado com sucesso!');
+      setIsPetModalOpen(false);
+      setEditingPet(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao salvar informações do pet.');
+    } finally {
+      setIsSavingPet(false);
+    }
+  };
+
+  const executeDeletePet = async (petId: string) => {
+    if (!selectedClient) return;
+    try {
+      let currentCrmList = [...(fidelitySettingsObj.crmClients || [])];
+      const cleanSelectedPhone = (selectedClient.phone || '').replace(/\D/g, '');
+      const manualIndex = currentCrmList.findIndex(c => (c.phone || '').replace(/\D/g, '') === cleanSelectedPhone);
+
+      if (manualIndex >= 0) {
+        const clientTarget = { ...currentCrmList[manualIndex] };
+        const clientPets = Array.isArray(clientTarget.pets) ? [...clientTarget.pets] : [];
+        const filteredPets = clientPets.filter(p => p.id !== petId);
+        clientTarget.pets = filteredPets;
+        currentCrmList[manualIndex] = clientTarget;
+
+        await syncCrmData({ crmClients: currentCrmList });
+        toast.success('Pet removido com sucesso!');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao remover pet.');
+    } finally {
+      setDeletePetConfirm({ isOpen: false, petId: '' });
     }
   };
 
@@ -379,13 +541,40 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
             <p className="text-[11px] text-gray-400 mt-0.5">Selecione para ver a ficha completa e o histórico.</p>
           </div>
 
+          {/* Abas da Lista: Todos vs Sumidos */}
+          <div className="flex bg-black/40 border border-white/10 p-0.5 rounded-xl">
+            <button
+              onClick={() => setCrmListType('all')}
+              className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all border-0 cursor-pointer ${
+                crmListType === 'all'
+                  ? 'bg-purple-500 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setCrmListType('inactive')}
+              className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all border-0 cursor-pointer flex items-center justify-center gap-1.5 ${
+                crmListType === 'inactive'
+                  ? 'bg-rose-500 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Sumidos
+              <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black ${crmListType === 'inactive' ? 'bg-black/30 text-rose-200' : 'bg-white/5 text-gray-500'}`}>
+                {Object.keys(inactiveClientsData).length}
+              </span>
+            </button>
+          </div>
+
           {/* Busca */}
           <div className="relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Pesquisar cliente..."
+              placeholder="Pesquisar client..."
               className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
             />
             <Search className="absolute right-3 top-2.5 text-gray-600" size={14} />
@@ -416,7 +605,7 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                     {isSelected && (
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
                     )}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase ${
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 ${
                       isSelected ? 'bg-purple-500 text-white' : 'bg-white/5 text-gray-400'
                     }`}>
                       {c.name.charAt(0)}
@@ -424,6 +613,11 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-white truncate">{c.name}</p>
                       <p className="text-[10px] text-gray-400 truncate mt-0.5">{c.phone}</p>
+                      {inactiveClientsData[cleanPhone] && (
+                        <span className="inline-block text-[8px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded mt-1.5">
+                          Sumido ({inactiveClientsData[cleanPhone].daysInactive}d)
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
@@ -488,94 +682,220 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
                   </div>
                 </div>
 
-                {/* Ficha Dinâmica (Campos Personalizados) */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <FileText size={13} className="text-purple-400" />
-                    Ficha do Cliente
-                  </h4>
+                {/* Banner de Reativação para Clientes Sumidos */}
+                {inactiveClientsData[selectedClientId] && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left mb-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-rose-400">
+                        <AlertCircle size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">Cliente Inativo (Sumido)</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 leading-normal">
+                        Este cliente não realiza atendimentos há <strong>{inactiveClientsData[selectedClientId].daysInactive} dias</strong> (última visita: {inactiveClientsData[selectedClientId].lastDateStr ? new Date(inactiveClientsData[selectedClientId].lastDateStr + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem registro'}).
+                      </p>
+                    </div>
+                    <a
+                      href={`https://wa.me/55${selectedClientId}?text=${encodeURIComponent(`Olá ${selectedClient.name}, tudo bem? Sentimos sua falta! Que tal agendarmos uma nova sessão para cuidarmos de você? 😊`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg shadow-rose-500/10 cursor-pointer border-0 shrink-0 text-center decoration-none"
+                    >
+                      <Phone size={12} /> Reativar WhatsApp
+                    </a>
+                  </div>
+                )}
 
-                  {customFieldsDef.length === 0 ? (
-                    <div className="p-5 border border-dashed border-white/5 rounded-2xl text-center space-y-2">
-                      <p className="text-[11px] text-gray-500">Nenhum campo personalizado cadastrado na ficha.</p>
+                {/* Abas de Informações do Cliente (Apenas se o módulo de Pets estiver ativo) */}
+                {isPetsActive && (
+                  <div className="flex border-b border-white/5 gap-4 mb-4">
+                    <button
+                      onClick={() => setSelectedClientSubTab('info')}
+                      className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2
+                        ${selectedClientSubTab === 'info' 
+                          ? 'border-purple-500 text-purple-400 font-black' 
+                          : 'border-transparent text-gray-500 hover:text-white'}`}
+                    >
+                      Informações Gerais
+                    </button>
+                    <button
+                      onClick={() => setSelectedClientSubTab('pets')}
+                      className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2 flex items-center gap-1.5
+                        ${selectedClientSubTab === 'pets' 
+                          ? 'border-purple-500 text-purple-400 font-black' 
+                          : 'border-transparent text-gray-500 hover:text-white'}`}
+                    >
+                      Pets / Pacientes
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${selectedClientSubTab === 'pets' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-gray-500'}`}>
+                        {selectedManualClient?.pets?.length || 0}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {selectedClientSubTab === 'info' ? (
+                  <div className="space-y-6">
+                    {/* Ficha Dinâmica (Campos Personalizados) */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <FileText size={13} className="text-purple-400" />
+                        Ficha do Cliente
+                      </h4>
+
+                      {customFieldsDef.length === 0 ? (
+                        <div className="p-5 border border-dashed border-white/5 rounded-2xl text-center space-y-2">
+                          <p className="text-[11px] text-gray-500">Nenhum campo personalizado cadastrado na ficha.</p>
+                          <button
+                            onClick={() => openClientModal(selectedClient)}
+                            className="text-[11px] text-purple-400 hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                          >
+                            + Criar Primeiro Campo Personalizado
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {customFieldsDef.map((fieldObj) => {
+                            const fieldName = typeof fieldObj === 'string' ? fieldObj : fieldObj.name;
+                            const value = selectedCustomFields[fieldName];
+
+                            return (
+                              <div key={fieldName} className="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-1">
+                                <span className="text-[9px] font-black text-purple-400 uppercase tracking-wider block">{fieldName}</span>
+                                <span className="text-xs text-white font-semibold">
+                                  {value || <span className="text-gray-600 italic">Não informado</span>}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Histórico de Agendamentos */}
+                    <div className="space-y-3 pt-2">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Calendar size={13} className="text-purple-400" />
+                        Histórico de Agendamentos ({selectedClientAppointments.length})
+                      </h4>
+
+                      {selectedClientAppointments.length === 0 ? (
+                        <p className="text-[11px] text-gray-500 italic p-4 bg-black/10 rounded-xl">
+                          Nenhum agendamento encontrado para este cliente na agenda.
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                          {selectedClientAppointments.map((app) => {
+                            const isCompleted = app.status === 'completed';
+                            const isCancelled = app.status === 'cancelled';
+                            const displayDate = app.date ? new Date(`${app.date}T00:00:00`).toLocaleDateString('pt-BR') : '';
+
+                            return (
+                              <div key={app.id} className="bg-black/10 border border-white/5 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-bold text-white">{app.serviceName}</p>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400">
+                                    <span className="flex items-center gap-0.5"><Calendar size={10} /> {displayDate}</span>
+                                    <span className="flex items-center gap-0.5"><Clock size={10} /> {app.time}</span>
+                                    {app.price > 0 && <span className="flex items-center gap-0.5"><DollarSign size={10} /> R$ {Number(app.price).toFixed(2).replace('.', ',')}</span>}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {app.paymentMethod && (
+                                    <span className="text-[9px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-lg border border-white/5 flex items-center gap-0.5">
+                                      <Tag size={9} /> {app.paymentMethod === 'pacote' ? 'Pacote' : 'Venda Rápida'}
+                                    </span>
+                                  )}
+                                  
+                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${
+                                    isCompleted 
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                      : isCancelled
+                                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  }`}>
+                                    {isCompleted ? 'Finalizado' : isCancelled ? 'Cancelado' : 'Agendado'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <PawPrint size={13} className="text-purple-400" />
+                        Pets Cadastrados ({selectedManualClient?.pets?.length || 0})
+                      </h4>
                       <button
-                        onClick={() => openClientModal(selectedClient)}
-                        className="text-[11px] text-purple-400 hover:underline font-bold bg-transparent border-0 cursor-pointer"
+                        onClick={() => openPetModal()}
+                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 border-0 cursor-pointer"
                       >
-                        + Criar Primeiro Campo Personalizado
+                        <Plus size={10} /> Adicionar Pet
                       </button>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {customFieldsDef.map((fieldObj) => {
-                        const fieldName = typeof fieldObj === 'string' ? fieldObj : fieldObj.name;
-                        const value = selectedCustomFields[fieldName];
 
-                        return (
-                          <div key={fieldName} className="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-1">
-                            <span className="text-[9px] font-black text-purple-400 uppercase tracking-wider block">{fieldName}</span>
-                            <span className="text-xs text-white font-semibold">
-                              {value || <span className="text-gray-600 italic">Não informado</span>}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                    {(!selectedManualClient?.pets || selectedManualClient.pets.length === 0) ? (
+                      <div className="p-8 border border-dashed border-white/5 rounded-[1.5rem] text-center space-y-2">
+                        <PawPrint size={28} className="mx-auto text-gray-700 font-light" />
+                        <p className="text-[11px] text-gray-500 font-semibold">Nenhum pet cadastrado para este tutor.</p>
+                        <p className="text-[10px] text-gray-600">Cadastre os animais de estimação para guardar prontuários clínicos separados.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                        {selectedManualClient.pets.map((pet: any) => {
+                          const icon = pet.type === 'dog' ? '🐶' : pet.type === 'cat' ? '🐱' : pet.type === 'bird' ? '🦜' : '🐾';
+                          return (
+                            <div key={pet.id} className="bg-black/20 border border-white/5 rounded-[1.5rem] p-4 flex flex-col justify-between gap-3 text-left">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-lg">
+                                    {icon}
+                                  </div>
+                                  <div>
+                                    <h5 className="text-xs font-black text-white uppercase">{pet.name}</h5>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[10px] text-gray-400">
+                                      {pet.breed && <span>Raça: <strong>{pet.breed}</strong></span>}
+                                      {pet.age && <span>Idade: <strong>{pet.age}</strong></span>}
+                                      {pet.weight && <span>Peso: <strong>{pet.weight} kg</strong></span>}
+                                    </div>
+                                  </div>
+                                </div>
 
-                {/* Histórico de Agendamentos */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Calendar size={13} className="text-purple-400" />
-                    Histórico de Agendamentos ({selectedClientAppointments.length})
-                  </h4>
-
-                  {selectedClientAppointments.length === 0 ? (
-                    <p className="text-[11px] text-gray-500 italic p-4 bg-black/10 rounded-xl">
-                      Nenhum agendamento encontrado para este cliente na agenda.
-                    </p>
-                  ) : (
-                    <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                      {selectedClientAppointments.map((app) => {
-                        const isCompleted = app.status === 'completed';
-                        const isCancelled = app.status === 'cancelled';
-                        const displayDate = app.date ? new Date(`${app.date}T00:00:00`).toLocaleDateString('pt-BR') : '';
-
-                        return (
-                          <div key={app.id} className="bg-black/10 border border-white/5 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
-                            <div className="space-y-1">
-                              <p className="text-xs font-bold text-white">{app.serviceName}</p>
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-400">
-                                <span className="flex items-center gap-0.5"><Calendar size={10} /> {displayDate}</span>
-                                <span className="flex items-center gap-0.5"><Clock size={10} /> {app.time}</span>
-                                {app.price > 0 && <span className="flex items-center gap-0.5"><DollarSign size={10} /> R$ {Number(app.price).toFixed(2).replace('.', ',')}</span>}
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => openPetModal(pet)}
+                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border-0 cursor-pointer"
+                                    title="Editar Pet"
+                                  >
+                                    <Edit2 size={11} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletePetConfirm({ isOpen: true, petId: pet.id })}
+                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border-0 cursor-pointer"
+                                    title="Excluir Pet"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              {app.paymentMethod && (
-                                <span className="text-[9px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-lg border border-white/5 flex items-center gap-0.5">
-                                  <Tag size={9} /> {app.paymentMethod === 'pacote' ? 'Pacote' : 'Venda Rápida'}
-                                </span>
+                              {pet.notes && (
+                                <div className="mt-1 p-3 bg-black/30 border border-white/5 rounded-xl">
+                                  <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-1">Prontuário / Observações</span>
+                                  <p className="text-[10px] text-gray-300 whitespace-pre-wrap leading-relaxed">{pet.notes}</p>
+                                </div>
                               )}
-                              
-                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg border ${
-                                isCompleted 
-                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                  : isCancelled
-                                    ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              }`}>
-                                {isCompleted ? 'Finalizado' : isCancelled ? 'Cancelado' : 'Agendado'}
-                              </span>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
               </div>
 
@@ -812,6 +1132,176 @@ export default function PortalClients({ orgId, clientId, client }: PortalClients
               </button>
               <button
                 onClick={() => executeDeleteClient(deleteClientConfirm.client)}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cadastro / Edição de Pet */}
+      {isPetModalOpen && (
+        <div 
+          onClick={() => {
+            setIsPetModalOpen(false);
+            setEditingPet(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <PawPrint className="text-purple-400" size={18} />
+                  {editingPet ? 'Editar Pet' : 'Cadastrar Pet'}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Insira as informações do animal para vincular a este tutor.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsPetModalOpen(false);
+                  setEditingPet(null);
+                }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePet} className="space-y-4">
+              
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nome do Pet</label>
+                  <input
+                    type="text"
+                    value={petName}
+                    onChange={(e) => setPetName(e.target.value)}
+                    placeholder="Ex: Rex, Mel, Pipoca..."
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500 animate-in fade-in"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Espécie</label>
+                    <select
+                      value={petType}
+                      onChange={(e) => setPetType(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                    >
+                      <option value="dog">🐶 Cão</option>
+                      <option value="cat">🐱 Gato</option>
+                      <option value="bird">🦜 Ave</option>
+                      <option value="other">🐾 Outro</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Raça</label>
+                    <input
+                      type="text"
+                      value={petBreed}
+                      onChange={(e) => setPetBreed(e.target.value)}
+                      placeholder="Ex: Golden, Poodle..."
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Idade / Nascimento</label>
+                    <input
+                      type="text"
+                      value={petAge}
+                      onChange={(e) => setPetAge(e.target.value)}
+                      placeholder="Ex: 2 anos, 12/04/2021"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Peso (kg)</label>
+                    <input
+                      type="text"
+                      value={petWeight}
+                      onChange={(e) => setPetWeight(e.target.value)}
+                      placeholder="Ex: 12.5"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Prontuário Clínico / Obs</label>
+                  <textarea
+                    value={petNotes}
+                    onChange={(e) => setPetNotes(e.target.value)}
+                    placeholder="Histórico clínico, vacinas, alergias, recomendações especiais..."
+                    rows={4}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPetModalOpen(false);
+                    setEditingPet(null);
+                  }}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPet}
+                  className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-600/40 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
+                >
+                  <Check size={14} />
+                  {editingPet ? 'Salvar Alterações' : 'Adicionar Pet'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Pet */}
+      {deletePetConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-5 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white">Excluir Pet</h3>
+              <p className="text-xs text-gray-400">
+                Tem certeza que deseja excluir as informações deste pet?
+                Esta ação é definitiva e apagará o prontuário deste animal.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletePetConfirm({ isOpen: false, petId: '' })}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDeletePet(deletePetConfirm.petId)}
                 className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
               >
                 Confirmar

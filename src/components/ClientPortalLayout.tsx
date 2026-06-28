@@ -1066,6 +1066,7 @@ export default function ClientPortalLayout() {
                 <PortalClients 
                   orgId={orgId || ''} 
                   clientId={clientId || ''}
+                  userProfile={userProfile}
                 />
               )}
               {activeTab === 'profile' && (

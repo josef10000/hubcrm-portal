@@ -94,6 +94,42 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     itemId: ''
   });
 
+  const calculateStockDuration = (item: InventoryItem) => {
+    const itemLogs = logs.filter(log => log.itemId === item.id && log.type === 'saida');
+    if (itemLogs.length === 0) return { label: 'Giro Baixo (30d)', color: 'text-gray-500', days: Infinity };
+
+    // Filtra logs de saída dos últimos 30 dias
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).getTime();
+    const recentLogs = itemLogs.filter(log => new Date(log.date).getTime() >= thirtyDaysAgo);
+
+    if (recentLogs.length === 0) {
+      return { label: 'Giro Baixo (30d)', color: 'text-gray-500', days: Infinity };
+    }
+
+    const totalOut = recentLogs.reduce((sum, log) => sum + (Number(log.quantity) || 0), 0);
+    
+    // Calcula divisor de dias real com base no log mais antigo nos últimos 30 dias
+    const nowTime = today.getTime();
+    const oldestLogTime = Math.min(...recentLogs.map(l => new Date(l.date).getTime()));
+    const diffDays = Math.max(1, Math.ceil((nowTime - oldestLogTime) / (1000 * 60 * 60 * 24)));
+    const divisor = Math.min(30, diffDays);
+
+    const dailyDemand = totalOut / divisor;
+    if (dailyDemand <= 0) return { label: 'Giro Baixo (30d)', color: 'text-gray-500', days: Infinity };
+
+    const daysRemaining = item.quantity / dailyDemand;
+    const roundedDays = Math.ceil(daysRemaining);
+
+    if (roundedDays <= 3) {
+      return { label: `Ruptura (~${roundedDays}d)`, color: 'text-rose-400 font-extrabold animate-pulse', days: roundedDays };
+    }
+    if (roundedDays <= 7) {
+      return { label: `Repor (~${roundedDays}d)`, color: 'text-amber-400 font-bold', days: roundedDays };
+    }
+    return { label: `Dura ~${roundedDays} dias`, color: 'text-emerald-400 font-bold', days: roundedDays };
+  };
+
   // Escuta os itens no Firestore
   useEffect(() => {
     if (!orgId) return;
@@ -137,7 +173,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   useEffect(() => {
     if (!orgId) return;
     const logsRef = collection(db, 'organizations', orgId, 'inventory_logs');
-    const q = query(logsRef, orderBy('date', 'desc'), limit(30));
+    const q = query(logsRef, orderBy('date', 'desc'), limit(200));
     
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(d => {
@@ -342,6 +378,12 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     return matchesSearch;
   });
 
+  // Recomendações de Compra com Base no Giro
+  const purchaseRecommendations = items
+    .map(item => ({ item, duration: calculateStockDuration(item) }))
+    .filter(rec => rec.duration.days <= 7)
+    .sort((a, b) => a.duration.days - b.duration.days);
+
   return (
     <div className="space-y-6 text-left">
       
@@ -401,6 +443,36 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         </div>
 
       </div>
+
+      {/* Recomendações de Compra Inteligentes */}
+      {purchaseRecommendations.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-[2rem] space-y-4 animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="text-amber-500" size={18} />
+            <h4 className="text-xs font-black text-white uppercase tracking-widest">Recomendações Urgentes de Compra</h4>
+          </div>
+          <p className="text-[11px] text-gray-400">
+            Com base no consumo diário dos últimos 30 dias, estes produtos precisam ser repostos para evitar desabastecimento:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {purchaseRecommendations.slice(0, 3).map(({ item, duration }) => (
+              <div key={item.id} className="p-3.5 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-between gap-3 text-left">
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-white block truncate uppercase">{item.name}</span>
+                  <span className="text-[10px] text-gray-500 mt-0.5 block">Estoque atual: {item.quantity} {item.unit}</span>
+                </div>
+                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border flex-shrink-0
+                  ${duration.days <= 3 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                >
+                  {duration.days <= 3 ? 'Ruptura iminente' : 'Repor urgente'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search & Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
@@ -487,6 +559,14 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                           Saudável
                         </div>
                       )}
+                      {(() => {
+                        const duration = calculateStockDuration(item);
+                        return (
+                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black uppercase tracking-tight ${duration.color}`}>
+                            {duration.label}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
