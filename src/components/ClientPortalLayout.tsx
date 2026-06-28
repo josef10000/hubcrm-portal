@@ -1675,69 +1675,39 @@ function DockItem({ mouseX, isSelected, theme, onClick, label, icon: Icon }: Doc
         style={{ width, height }}
         onClick={onClick}
         className={`
-          absolute bottom-0 flex items-center justify-center cursor-pointer active:scale-95 outline-none rounded-none shrink-0 group
+          absolute bottom-0 flex items-center justify-center cursor-pointer active:scale-95 outline-none rounded-full shrink-0 group
           ${isSelected ? theme.color : 'text-gray-500 hover:text-gray-300'}
         `}
       >
-        {/* SVG da Gota de Vidro no Fundo */}
-        <svg 
-          viewBox="0 0 100 100" 
-          className="absolute inset-0 w-full h-full transition-all duration-500"
+        {/* Aura de Brilho Neon Traseiro (Aceso) */}
+        <div 
+          className={`absolute inset-0 rounded-full filter blur-xl transition-all duration-500 opacity-0 group-hover:opacity-40
+            ${isSelected ? 'opacity-90 scale-110' : 'scale-90'}`}
           style={{
-            filter: isSelected 
-              ? `drop-shadow(0 8px 16px rgba(${glowRGB}, 0.35)) drop-shadow(0 0 8px rgba(${glowRGB}, 0.2))` 
+            background: `radial-gradient(circle, rgba(${glowRGB}, 0.8) 0%, rgba(${glowRGB}, 0) 70%)`
+          }}
+        />
+
+        {/* Círculo Flutuante de Vidro */}
+        <div 
+          className={`absolute inset-0 rounded-full border transition-all duration-300
+            ${isSelected 
+              ? 'bg-white/10 border-white/25 shadow-lg' 
+              : 'bg-white/[0.03] border-white/5 group-hover:bg-white/[0.08] group-hover:border-white/15'}`}
+          style={{
+            boxShadow: isSelected 
+              ? `0 8px 24px rgba(${glowRGB}, 0.35), inset 0 2px 4px rgba(255,255,255,0.15)` 
               : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))'
           }}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop 
-                offset="0%" 
-                stopColor={colorStart} 
-                stopOpacity={isSelected ? 0.35 : 0.04} 
-              />
-              <stop 
-                offset="100%" 
-                stopColor={colorEnd} 
-                stopOpacity={isSelected ? 0.08 : 0.01} 
-              />
-            </linearGradient>
-          </defs>
-          <path 
-            d="M50 12 C62 33 78 48 78 68 A28 28 0 0 1 22 68 C22 48 38 33 50 12 Z" 
-            fill={`url(#${gradientId})`}
-            stroke={isSelected ? colorStart : "rgba(255,255,255,0.08)"}
-            strokeWidth={isSelected ? 2 : 1}
-            strokeOpacity={isSelected ? 0.6 : 0.4}
-            className="transition-all duration-300 group-hover:stroke-opacity-80"
-          />
-          {/* Brilho Superior Refração Vidro (Luz vindo do topo) */}
-          <path 
-            d="M32 60 C32 50 42 42 50 42 C51 42 52 43 52 44 C52 45 51 46 50 46 C44 46 36 52 36 60 C36 61 35 62 34 62 C33 62 32 61 32 60 Z" 
-            fill="rgba(255,255,255,0.12)"
-            className="transition-opacity duration-300 group-hover:opacity-100 opacity-60"
-          />
-        </svg>
+        />
 
-        {/* Ícone centralizado na Gota */}
+        {/* Ícone centralizado e animado */}
         <motion.div 
           style={{ width: iconSizeSpring, height: iconSizeSpring }} 
-          className="relative z-10 shrink-0 flex items-center justify-center transition-transform group-hover:translate-y-[-2px]"
+          className="relative z-10 shrink-0 flex items-center justify-center transition-transform group-hover:scale-105"
         >
           <Icon className="w-full h-full" />
         </motion.div>
-
-        {/* Indicador de Seleção no pé da gota */}
-        {isSelected && (
-          <motion.div 
-            layoutId="activeDockDot"
-            className="absolute bottom-1.5 w-1.5 h-1.5 rounded-full bg-white shadow-lg z-10"
-            style={{
-              boxShadow: `0 0 10px ${colorStart}, 0 0 20px ${colorStart}`
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          />
-        )}
         
         {/* Tooltip Estilizado */}
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-5 px-2.5 py-1 bg-black/95 border border-white/10 text-[11px] font-black uppercase text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 tracking-wider whitespace-nowrap scale-90 group-hover:scale-100 z-50">
