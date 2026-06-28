@@ -26,7 +26,8 @@ import {
   Package,
   Sun,
   Moon,
-  Users
+  Users,
+  Sliders
 } from 'lucide-react';
 import { useTheme } from '../lib/ThemeContext';
 import { usePortalData } from '../hooks/usePortalData';
@@ -35,7 +36,7 @@ import PortalGrowthHub from '../views/PortalGrowthHub';
 import { toast, Toaster } from 'sonner';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc, collection, query, limit, getDocs } from 'firebase/firestore';
 import OnboardingTour from './OnboardingTour';
 
 // Importando as views
@@ -353,6 +354,217 @@ export default function ClientPortalLayout() {
   const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
   const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'insights' | 'templates' | 'sales' | 'trainings'>('brand');
 
+  // Configuração de Módulos & Recursos e Assistente de Configuração
+  const [modulesConfig, setModulesConfig] = useState<any>(null);
+  const [modulesConfigLoading, setModulesConfigLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [selectedProfile, setSelectedProfile] = useState<'agenda' | 'finance' | 'complete'>('complete');
+  const [modulesSelection, setModulesSelection] = useState<any>({
+    agenda: true,
+    agenda_public: true,
+    agenda_pix: true,
+    crm_finance: true,
+    management: true,
+    management_pos: true,
+    management_calc: true,
+    growth: true,
+    clients: true,
+    clients_fidelity: true
+  });
+
+  // Escuta modulesConfig no Firestore
+  useEffect(() => {
+    if (!orgId || !activeClientId) {
+      setModulesConfigLoading(false);
+      return;
+    }
+    const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+    const unsub = onSnapshot(clientDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setModulesConfig(data.modulesConfig || null);
+      }
+      setModulesConfigLoading(false);
+    }, (error) => {
+      console.warn("[ClientPortalLayout] Erro ao escutar modulesConfig:", error);
+      setModulesConfigLoading(false);
+    });
+    return () => unsub();
+  }, [orgId, activeClientId]);
+
+  // Função auxiliar para verificar ativação dos módulos macros
+  const isModuleActive = (tabId: string) => {
+    if (!modulesConfig || !modulesConfig.activeModules) return true;
+    const active = modulesConfig.activeModules;
+    
+    if (tabId === 'agenda') return active.agenda !== false;
+    if (tabId === 'crm_finance') return active.crm_finance !== false;
+    if (tabId === 'management') return active.management !== false;
+    if (tabId === 'growth') return active.growth !== false;
+    if (tabId === 'clients') return active.clients !== false;
+    
+    return true;
+  };
+
+  // Monitora se o módulo atual foi desativado e redireciona para Home
+  useEffect(() => {
+    if (activeTab === 'home' || activeTab === 'profile' || activeTab === 'support' || activeTab === 'services') return;
+    if (!isModuleActive(activeTab)) {
+      setActiveTab('home');
+    }
+  }, [modulesConfig, activeTab]);
+
+  // Lógica heurística para onboarding: se usuário for antigo (tem agendamentos), ativa tudo silenciosamente. Se for novo, abre o Wizard.
+  useEffect(() => {
+    if (modulesConfigLoading || !orgId || !activeClientId) return;
+    
+    if (!modulesConfig) {
+      const diagnoseNewUser = async () => {
+        try {
+          const apptsRef = collection(db, 'organizations', orgId, 'appointments');
+          const apptsSnap = await getDocs(query(apptsRef, limit(1)));
+          
+          if (!apptsSnap.empty) {
+            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+            await updateDoc(clientDocRef, {
+              modulesConfig: {
+                onboardingCompleted: true,
+                activeModules: {
+                  agenda: true,
+                  agenda_public: true,
+                  agenda_pix: true,
+                  crm_finance: true,
+                  management: true,
+                  management_pos: true,
+                  management_calc: true,
+                  growth: true,
+                  clients: true,
+                  clients_fidelity: true
+                }
+              }
+            });
+          } else {
+            setShowOnboarding(true);
+          }
+        } catch (err) {
+          console.warn("[Onboarding Check] Acesso restrito. Definindo como antigo por padrão.");
+          try {
+            const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+            await updateDoc(clientDocRef, {
+              modulesConfig: {
+                onboardingCompleted: true,
+                activeModules: {
+                  agenda: true,
+                  agenda_public: true,
+                  agenda_pix: true,
+                  crm_finance: true,
+                  management: true,
+                  management_pos: true,
+                  management_calc: true,
+                  growth: true,
+                  clients: true,
+                  clients_fidelity: true
+                }
+              }
+            });
+          } catch (e) {}
+        }
+      };
+      
+      diagnoseNewUser();
+    } else if (modulesConfig.onboardingCompleted === false) {
+      setShowOnboarding(true);
+    }
+  }, [modulesConfig, modulesConfigLoading, orgId, activeClientId]);
+
+  const applyProfileSelection = (profile: 'agenda' | 'finance' | 'complete') => {
+    setSelectedProfile(profile);
+    if (profile === 'agenda') {
+      setModulesSelection({
+        agenda: true,
+        agenda_public: true,
+        agenda_pix: false,
+        crm_finance: false,
+        management: false,
+        management_pos: false,
+        management_calc: false,
+        growth: false,
+        clients: true,
+        clients_fidelity: false
+      });
+    } else if (profile === 'finance') {
+      setModulesSelection({
+        agenda: true,
+        agenda_public: true,
+        agenda_pix: true,
+        crm_finance: true,
+        management: false,
+        management_pos: false,
+        management_calc: false,
+        growth: true,
+        clients: true,
+        clients_fidelity: true
+      });
+    } else {
+      setModulesSelection({
+        agenda: true,
+        agenda_public: true,
+        agenda_pix: true,
+        crm_finance: true,
+        management: true,
+        management_pos: true,
+        management_calc: true,
+        growth: true,
+        clients: true,
+        clients_fidelity: true
+      });
+    }
+  };
+
+  const toggleOnboardingModule = (key: string) => {
+    const newSelection = { ...modulesSelection };
+    const newValue = !newSelection[key];
+    newSelection[key] = newValue;
+    
+    if (key === 'management' && !newValue) {
+      newSelection.management_pos = false;
+      newSelection.management_calc = false;
+    }
+    if (key === 'agenda' && !newValue) {
+      newSelection.agenda_public = false;
+      newSelection.agenda_pix = false;
+    }
+    if (key === 'clients' && !newValue) {
+      newSelection.clients_fidelity = false;
+    }
+    if (key === 'management_pos' && newValue) newSelection.management = true;
+    if (key === 'management_calc' && newValue) newSelection.management = true;
+    if (key === 'agenda_public' && newValue) newSelection.agenda = true;
+    if (key === 'agenda_pix' && newValue) newSelection.agenda = true;
+    if (key === 'clients_fidelity' && newValue) newSelection.clients = true;
+    
+    setModulesSelection(newSelection);
+  };
+
+  const handleCompleteOnboarding = async () => {
+    if (!orgId || !activeClientId) return;
+    try {
+      const clientDocRef = doc(db, 'organizations', orgId, 'clients', activeClientId);
+      await updateDoc(clientDocRef, {
+        modulesConfig: {
+          onboardingCompleted: true,
+          activeModules: modulesSelection
+        }
+      });
+      setShowOnboarding(false);
+      toast.success("Portal configurado com sucesso! Bem-vindo!");
+    } catch (err) {
+      console.error("Erro ao salvar configuração de onboarding:", err);
+      toast.error("Erro ao concluir a configuração.");
+    }
+  };
+
   // Novos estados para a navegação App-First
   const [isPlanDropdownOpen, setIsPlanDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -442,12 +654,14 @@ export default function ClientPortalLayout() {
 
   const navItems = [
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'agenda', label: 'Agenda', icon: Calendar },
-    { id: 'agenda_settings', label: 'Configurações', icon: Settings },
-    { id: 'crm_finance', label: 'Finanças', icon: DollarSign },
-    { id: 'management', label: 'Estoque & Negócio', icon: Package },
-    { id: 'growth', label: 'Crescer', icon: Rocket },
-    { id: 'clients', label: 'Clientes', icon: Users },
+    ...(isModuleActive('agenda') ? [
+      { id: 'agenda', label: 'Agenda', icon: Calendar },
+      { id: 'agenda_settings', label: 'Configurações', icon: Settings }
+    ] : []),
+    ...(isModuleActive('crm_finance') ? [{ id: 'crm_finance', label: 'Finanças', icon: DollarSign }] : []),
+    ...(isModuleActive('management') ? [{ id: 'management', label: 'Estoque & Negócio', icon: Package }] : []),
+    ...(isModuleActive('growth') ? [{ id: 'growth', label: 'Crescer', icon: Rocket }] : []),
+    ...(isModuleActive('clients') ? [{ id: 'clients', label: 'Clientes', icon: Users }] : []),
     ...(client && !client.isCourtesy ? [
       { id: 'finance', label: 'Faturas Hub', icon: CreditCard }
     ] : []),
@@ -912,9 +1126,9 @@ export default function ClientPortalLayout() {
       >
         {[
           { id: 'home', label: 'Home', icon: LayoutDashboard },
-          { id: 'agenda', label: 'Agenda', icon: Calendar },
-          { id: 'crm_finance', label: 'Finanças', icon: DollarSign },
-          { id: 'growth', label: 'Crescer', icon: Rocket },
+          ...(isModuleActive('agenda') ? [{ id: 'agenda', label: 'Agenda', icon: Calendar }] : []),
+          ...(isModuleActive('crm_finance') ? [{ id: 'crm_finance', label: 'Finanças', icon: DollarSign }] : []),
+          ...(isModuleActive('growth') ? [{ id: 'growth', label: 'Crescer', icon: Rocket }] : []),
         ].map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id, isLight);
@@ -1081,30 +1295,36 @@ export default function ClientPortalLayout() {
                   <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Ajuda & Suporte</span>
                 </button>
 
-                <button
-                  onClick={() => { setActiveTab('management'); setIsMobileMenuOpen(false); }}
-                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                >
-                  <Package size={20} className="text-cyan-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Estoque & Negócio</span>
-                </button>
+                {isModuleActive('management') && (
+                  <button
+                    onClick={() => { setActiveTab('management'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <Package size={20} className="text-cyan-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Estoque & Negócio</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
-                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                >
-                  <Users size={20} className="text-blue-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Clientes</span>
-                </button>
+                {isModuleActive('clients') && (
+                  <button
+                    onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <Users size={20} className="text-blue-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Clientes</span>
+                  </button>
+                )}
 
                 {/* Agenda Settings (Mobile) */}
-                <button
-                  onClick={() => { setActiveTab('agenda_settings'); setIsMobileMenuOpen(false); }}
-                  className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
-                >
-                  <Settings size={20} className="text-gray-400" />
-                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Ajustes</span>
-                </button>
+                {isModuleActive('agenda') && (
+                  <button
+                    onClick={() => { setActiveTab('agenda_settings'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <Settings size={20} className="text-gray-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Ajustes</span>
+                  </button>
+                )}
               </div>
 
               {/* Botão Sair */}
@@ -1129,6 +1349,267 @@ export default function ClientPortalLayout() {
           </>
         )}
       </AnimatePresence>
+
+      {/* 4. Wizard de Onboarding Prateado Premium */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050608]/95 backdrop-blur-md select-none overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="bg-gradient-to-b from-[#181a20] to-[#0f1013] border border-white/10 rounded-[2.5rem] w-full max-w-2xl shadow-[0_0_60px_rgba(255,255,255,0.03)] overflow-hidden relative"
+            >
+              {/* Efeito de Reflexo Prateado/Metálico no topo */}
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gray-400/30 to-transparent" />
+              <div className="absolute -top-[30%] -right-[20%] w-[60%] h-[80%] bg-white/[0.02] rounded-full blur-[80px]" />
+              <div className="absolute -bottom-[30%] -left-[20%] w-[60%] h-[80%] bg-white/[0.01] rounded-full blur-[80px]" />
+
+              <div className="p-8 md:p-10 relative z-10 space-y-8">
+                {/* Cabeçalho */}
+                <div className="text-center space-y-3">
+                  <div className="inline-flex p-3 bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 rounded-2xl shadow-inner mb-2 text-gray-300">
+                    <Sliders size={24} className="text-white" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400 tracking-tight">
+                    Personalize seu Espaço
+                  </h2>
+                  <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+                    Vamos ativar os recursos essenciais do seu portal. Você poderá ajustar ou alterar isso livremente a qualquer momento no seu Perfil.
+                  </p>
+                </div>
+
+                {/* Linha de Progresso/Passos Prateada */}
+                <div className="flex items-center justify-center gap-2">
+                  <div className={`h-1.5 rounded-full transition-all duration-300 ${onboardingStep >= 1 ? 'w-10 bg-white' : 'w-2 bg-white/10'}`} />
+                  <div className={`h-1.5 rounded-full transition-all duration-300 ${onboardingStep >= 2 ? 'w-10 bg-white' : 'w-2 bg-white/10'}`} />
+                  <div className={`h-1.5 rounded-full transition-all duration-300 ${onboardingStep >= 3 ? 'w-10 bg-white' : 'w-2 bg-white/10'}`} />
+                </div>
+
+                {/* Conteúdo dos Passos */}
+                <div className="min-h-[260px] flex flex-col justify-center">
+                  {onboardingStep === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="text-center space-y-6"
+                    >
+                      <div className="space-y-2">
+                        <h3 className="text-base font-bold text-white">Preparado para modernizar sua gestão?</h3>
+                        <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                          O portal do profissional permite modularizar a navegação. Escolha os módulos corretos para uma interface sem distrações.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setOnboardingStep(2)}
+                        className="px-8 py-4 bg-gradient-to-r from-gray-200 via-white to-gray-300 hover:from-white hover:to-gray-200 text-black font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-xl transition-all duration-200 cursor-pointer active:scale-95 mx-auto"
+                      >
+                        Iniciar Configuração
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {onboardingStep === 2 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-4"
+                    >
+                      <h3 className="text-sm font-bold text-center text-gray-300 uppercase tracking-widest mb-2">Selecione seu Perfil de Trabalho</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Perfil 1: Apenas Agenda */}
+                        <button
+                          type="button"
+                          onClick={() => applyProfileSelection('agenda')}
+                          className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 cursor-pointer active:scale-98 ${
+                            selectedProfile === 'agenda'
+                              ? 'bg-white/5 border-white text-white shadow-lg'
+                              : 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <Calendar size={20} className={selectedProfile === 'agenda' ? 'text-white' : 'text-gray-500'} />
+                          <div>
+                            <span className="text-xs font-bold block">Apenas Agendamentos</span>
+                            <span className="text-[9px] mt-1 block leading-relaxed opacity-60">Agenda de horários e cadastro simples de clientes.</span>
+                          </div>
+                        </button>
+
+                        {/* Perfil 2: Financeiro */}
+                        <button
+                          type="button"
+                          onClick={() => applyProfileSelection('finance')}
+                          className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 cursor-pointer active:scale-98 ${
+                            selectedProfile === 'finance'
+                              ? 'bg-white/5 border-white text-white shadow-lg'
+                              : 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <DollarSign size={20} className={selectedProfile === 'finance' ? 'text-white' : 'text-gray-500'} />
+                          <div>
+                            <span className="text-xs font-bold block">Finanças & Agenda</span>
+                            <span className="text-[9px] mt-1 block leading-relaxed opacity-60">Controle contábil, agendamento online e clube fidelidade.</span>
+                          </div>
+                        </button>
+
+                        {/* Perfil 3: Completo */}
+                        <button
+                          type="button"
+                          onClick={() => applyProfileSelection('complete')}
+                          className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 cursor-pointer active:scale-98 ${
+                            selectedProfile === 'complete'
+                              ? 'bg-white/5 border-white text-white shadow-lg'
+                              : 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <Rocket size={20} className={selectedProfile === 'complete' ? 'text-white' : 'text-gray-500'} />
+                          <div>
+                            <span className="text-xs font-bold block">Completo & Vendas</span>
+                            <span className="text-[9px] mt-1 block leading-relaxed opacity-60">Agenda, fluxo de caixa, estoque físico, PDV e marketing.</span>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="flex justify-end pt-4 gap-3">
+                        <button
+                          onClick={() => setOnboardingStep(1)}
+                          className="px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Voltar
+                        </button>
+                        <button
+                          onClick={() => setOnboardingStep(3)}
+                          className="px-6 py-3.5 bg-gradient-to-r from-gray-200 via-white to-gray-300 hover:from-white hover:to-gray-200 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Avançar
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {onboardingStep === 3 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-5"
+                    >
+                      <h3 className="text-sm font-bold text-center text-gray-300 uppercase tracking-widest">Rever e Confirmar Módulos</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04]">
+                          <div>
+                            <span className="text-xs font-bold text-white block">📅 Agenda</span>
+                            <span className="text-[9px] text-gray-500 block">Agenda e bloqueios de horários.</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={modulesSelection.agenda}
+                            onChange={() => toggleOnboardingModule('agenda')}
+                            className="w-4 h-4 accent-white rounded"
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04]">
+                          <div>
+                            <span className="text-xs font-bold text-white block">👥 Clientes (CRM)</span>
+                            <span className="text-[9px] text-gray-500 block">Cadastro e ficha de evolução clínica.</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={modulesSelection.clients}
+                            onChange={() => toggleOnboardingModule('clients')}
+                            className="w-4 h-4 accent-white rounded"
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04]">
+                          <div>
+                            <span className="text-xs font-bold text-white block">💰 Finanças</span>
+                            <span className="text-[9px] text-gray-500 block">Fluxo de caixa contábil básico.</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={modulesSelection.crm_finance}
+                            onChange={() => toggleOnboardingModule('crm_finance')}
+                            className="w-4 h-4 accent-white rounded"
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04]">
+                          <div>
+                            <span className="text-xs font-bold text-white block">📦 Estoque & Insumos</span>
+                            <span className="text-[9px] text-gray-500 block">Controle físico de produtos.</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={modulesSelection.management}
+                            onChange={() => toggleOnboardingModule('management')}
+                            className="w-4 h-4 accent-white rounded"
+                          />
+                        </label>
+
+                        <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04]">
+                          <div>
+                            <span className="text-xs font-bold text-white block">🚀 Crescer</span>
+                            <span className="text-[9px] text-gray-500 block">Recursos de atração de marketing.</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={modulesSelection.growth}
+                            onChange={() => toggleOnboardingModule('growth')}
+                            className="w-4 h-4 accent-white rounded"
+                          />
+                        </label>
+
+                        {/* PDV (Opcional - Requer Estoque) */}
+                        {modulesSelection.management && (
+                          <label className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 rounded-xl text-left cursor-pointer hover:bg-white/[0.04] pl-6 border-l border-white/20">
+                            <div>
+                              <span className="text-xs font-bold text-white block">🛒 Caixa Rápido / PDV</span>
+                              <span className="text-[9px] text-gray-500 block">Faturamento e baixa em estoque.</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={modulesSelection.management_pos}
+                              onChange={() => toggleOnboardingModule('management_pos')}
+                              className="w-4 h-4 accent-white rounded"
+                            />
+                          </label>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end pt-4 gap-3">
+                        <button
+                          onClick={() => setOnboardingStep(2)}
+                          className="px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          Voltar
+                        </button>
+                        <button
+                          onClick={handleCompleteOnboarding}
+                          className="px-6 py-3.5 bg-gradient-to-r from-gray-200 via-white to-gray-300 hover:from-white hover:to-gray-200 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg"
+                        >
+                          Salvar e Começar
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Onboarding Tour */}
       <OnboardingTour setActiveTab={setActiveTab} />
     </div>

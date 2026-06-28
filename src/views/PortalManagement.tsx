@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Calculator, Briefcase, ChevronDown, ShoppingCart } from 'lucide-react';
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
 import PortalPOS from './PortalPOS';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface PortalManagementProps {
   orgId: string;
@@ -14,11 +16,42 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'pos' | 'calculator'>('inventory');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Escuta modulesConfig do profissional
+  const [modulesConfig, setModulesConfig] = useState<any>(null);
+
+  useEffect(() => {
+    if (!orgId || !clientId) return;
+    const clientDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
+    const unsub = onSnapshot(clientDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setModulesConfig(data.modulesConfig || null);
+      }
+    });
+    return () => unsub();
+  }, [orgId, clientId]);
+
+  const isSubTabActive = (subTabId: string) => {
+    if (!modulesConfig || !modulesConfig.activeModules) return true;
+    const active = modulesConfig.activeModules;
+    if (subTabId === 'pos') return active.management_pos !== false;
+    if (subTabId === 'calculator') return active.management_calc !== false;
+    return true;
+  };
+
+  // Redirecionamento se a sub-aba ativa for desativada
+  useEffect(() => {
+    if (activeSubTab === 'inventory') return;
+    if (!isSubTabActive(activeSubTab)) {
+      setActiveSubTab('inventory');
+    }
+  }, [modulesConfig, activeSubTab]);
+
   const subTabs = [
     { id: 'inventory', label: 'Estoque & Produtos', icon: Package },
-    { id: 'pos', label: 'Caixa Rápido (PDV)', icon: ShoppingCart },
-    { id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }
-  ] as const;
+    ...(isSubTabActive('pos') ? [{ id: 'pos', label: 'Caixa Rápido (PDV)', icon: ShoppingCart }] : []),
+    ...(isSubTabActive('calculator') ? [{ id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }] : [])
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -83,36 +116,40 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
                 <Package size={16} className={activeSubTab === 'inventory' ? 'text-primary-400' : 'text-gray-500'} />
                 Estoque & Produtos
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveSubTab('pos');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                  activeSubTab === 'pos' 
-                    ? 'bg-primary-500/15 text-primary-400 font-black' 
-                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                }`}
-              >
-                <ShoppingCart size={16} className={activeSubTab === 'pos' ? 'text-primary-400' : 'text-gray-500'} />
-                Caixa Rápido (PDV)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveSubTab('calculator');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
-                  activeSubTab === 'calculator' 
-                    ? 'bg-primary-500/15 text-primary-400 font-black' 
-                    : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
-                }`}
-              >
-                <Calculator size={16} className={activeSubTab === 'calculator' ? 'text-primary-400' : 'text-gray-500'} />
-                Calculadora de Orçamentos
-              </button>
+              {isSubTabActive('pos') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSubTab('pos');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                    activeSubTab === 'pos' 
+                      ? 'bg-primary-500/15 text-primary-400 font-black' 
+                      : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                  }`}
+                >
+                  <ShoppingCart size={16} className={activeSubTab === 'pos' ? 'text-primary-400' : 'text-gray-500'} />
+                  Caixa Rápido (PDV)
+                </button>
+              )}
+              {isSubTabActive('calculator') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSubTab('calculator');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                    activeSubTab === 'calculator' 
+                      ? 'bg-primary-500/15 text-primary-400 font-black' 
+                      : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                  }`}
+                >
+                  <Calculator size={16} className={activeSubTab === 'calculator' ? 'text-primary-400' : 'text-gray-500'} />
+                  Calculadora de Orçamentos
+                </button>
+              )}
             </div>
           </>
         )}
@@ -126,7 +163,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveSubTab(tab.id)}
+              onClick={() => setActiveSubTab(tab.id as 'inventory' | 'pos' | 'calculator')}
               className={`
                 flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-bold transition-all whitespace-nowrap relative
                 ${isActive 
