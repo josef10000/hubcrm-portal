@@ -4,8 +4,9 @@ import { Package, Calculator, Briefcase, ChevronDown, ShoppingCart } from 'lucid
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
 import PortalPOS from './PortalPOS';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface PortalManagementProps {
   orgId: string;
@@ -16,20 +17,31 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
   const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'pos' | 'calculator'>('inventory');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Escuta modulesConfig do profissional
+  // Escuta modulesConfig do profissional no seu profiles do Firestore
   const [modulesConfig, setModulesConfig] = useState<any>(null);
 
   useEffect(() => {
-    if (!orgId || !clientId) return;
-    const clientDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
-    const unsub = onSnapshot(clientDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setModulesConfig(data.modulesConfig || null);
+    let unsubProfile: (() => void) | undefined;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const profileRef = doc(db, 'profiles', user.uid);
+        unsubProfile = onSnapshot(profileRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setModulesConfig(data.modulesConfig || null);
+          }
+        });
+      } else {
+        setModulesConfig(null);
+        if (unsubProfile) unsubProfile();
       }
     });
-    return () => unsub();
-  }, [orgId, clientId]);
+
+    return () => {
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
+    };
+  }, []);
 
   const isSubTabActive = (subTabId: string) => {
     if (!modulesConfig || !modulesConfig.activeModules) return true;
