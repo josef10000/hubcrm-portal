@@ -546,20 +546,20 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   </div>
 
                   {/* Edit/Delete */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
-                      className="p-2 hover:bg-primary-500/10 text-gray-500 hover:text-primary-400 rounded-xl transition-all border-0 bg-transparent cursor-pointer"
+                      className="p-2.5 bg-white/5 hover:bg-primary-500/20 text-gray-400 hover:text-primary-400 border border-white/5 rounded-xl transition-all active:scale-90 cursor-pointer"
                       title="Editar"
                     >
-                      <Edit2 size={13} />
+                      <Edit2 size={15} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
-                      className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded-xl transition-all border-0 bg-transparent cursor-pointer"
+                      className="p-2.5 bg-white/5 hover:bg-red-500/25 text-gray-400 hover:text-red-400 border border-white/5 rounded-xl transition-all active:scale-90 cursor-pointer"
                       title="Excluir"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
