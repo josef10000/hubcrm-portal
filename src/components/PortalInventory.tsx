@@ -46,9 +46,15 @@ export const parseNameAndMetadata = (rawName: string) => {
       const [key, value] = part.split(':').map(s => s.trim());
       if (key && value) {
         if (key === 'brand') brand = value;
-        if (key === 'price') price = Number(value) || 0;
+        if (key === 'price') {
+          const parsed = Number(value.replace(',', '.'));
+          price = isNaN(parsed) ? 0 : parsed;
+        }
         if (key === 'pdv') showInPos = value === 'true';
-        if (key === 'sales') sales = Number(value) || 0;
+        if (key === 'sales') {
+          const parsed = Number(value);
+          sales = isNaN(parsed) ? 0 : parsed;
+        }
       }
     });
   }
@@ -98,15 +104,23 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
       const list = snapshot.docs.map(d => {
         const data = d.data() as any;
         const meta = parseNameAndMetadata(data.name);
+        
+        const quantity = data.quantity !== undefined && data.quantity !== null && !isNaN(Number(data.quantity)) ? Number(data.quantity) : 0;
+        const minQuantity = data.minQuantity !== undefined && data.minQuantity !== null && !isNaN(Number(data.minQuantity)) ? Number(data.minQuantity) : 0;
+        const costPerUnit = data.costPerUnit !== undefined && data.costPerUnit !== null && !isNaN(Number(data.costPerUnit)) ? Number(data.costPerUnit) : 0;
+        const price = meta.price !== undefined && meta.price !== null && !isNaN(Number(meta.price)) ? Number(meta.price) : 0;
+
         return {
           id: d.id,
           ...data,
           name: meta.name,
           brand: meta.brand,
-          price: meta.price,
+          price,
           showInPos: meta.showInPos,
           sales: meta.sales,
-          costPerUnit: data.costPerUnit !== undefined && data.costPerUnit !== null ? Number(data.costPerUnit) : 0
+          costPerUnit,
+          quantity,
+          minQuantity
         } as InventoryItem;
       });
       setItems(list);
@@ -160,10 +174,10 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const openEditModal = (item: InventoryItem) => {
     setEditingItemId(item.id);
     setName(item.name);
-    setQuantity(item.quantity.toString());
-    setUnit(item.unit);
-    setMinQuantity(item.minQuantity.toString());
-    setCostPerUnit(item.costPerUnit.toString().replace('.', ','));
+    setQuantity((item.quantity ?? 0).toString());
+    setUnit(item.unit || 'un');
+    setMinQuantity((item.minQuantity ?? 0).toString());
+    setCostPerUnit((item.costPerUnit ?? 0).toString().replace('.', ','));
     setBrand(item.brand || '');
     setShowInPos(item.showInPos || false);
     setPrice(item.price ? item.price.toString().replace('.', ',') : '');
@@ -313,9 +327,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   };
 
   // Métricas Financeiras
-  const totalCostValuation = items.reduce((acc, item) => acc + (item.quantity * item.costPerUnit), 0);
-  const totalSellValuation = items.reduce((acc, item) => acc + (item.quantity * (item.price || 0)), 0);
-  const totalProfitValuation = totalSellValuation - items.reduce((acc, item) => item.price ? acc + (item.quantity * item.costPerUnit) : acc, 0);
+  const totalCostValuation = items.reduce((acc, item) => acc + ((item.quantity || 0) * (item.costPerUnit || 0)), 0);
+  const totalSellValuation = items.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
+  const totalProfitValuation = totalSellValuation - items.reduce((acc, item) => item.price ? acc + ((item.quantity || 0) * (item.costPerUnit || 0)) : acc, 0);
 
   const criticalItemsCount = items.filter(item => item.quantity <= item.minQuantity).length;
 
@@ -350,7 +364,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         {/* Card 2: Faturamento Potencial */}
         <div className="bg-[var(--theme-glass)] border border-[var(--theme-border-subtle)] p-5 rounded-[2rem] flex items-center justify-between shadow-xl">
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Valuation (Venda)</span>
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Valoração de Venda</span>
             <span className="text-xl font-black text-emerald-400 block">
               R$ {totalSellValuation.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
