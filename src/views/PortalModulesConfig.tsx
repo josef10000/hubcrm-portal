@@ -22,7 +22,8 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
       growth: true,
       clients: true,
       clients_fidelity: true,
-      clients_pets: true
+      clients_pets: true,
+      clients_vehicles: true
     }
   };
   const loadingModules = !userProfile;
@@ -47,6 +48,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     if (key === 'clients' && !newValue) {
       newActiveModules.clients_fidelity = false;
       newActiveModules.clients_pets = false;
+      newActiveModules.clients_vehicles = false;
     }
     
     // E se o filho for ativado? Garante que o pai esteja ativado
@@ -56,6 +58,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     if (key === 'agenda_pix' && newValue) newActiveModules.agenda = true;
     if (key === 'clients_fidelity' && newValue) newActiveModules.clients = true;
     if (key === 'clients_pets' && newValue) newActiveModules.clients = true;
+    if (key === 'clients_vehicles' && newValue) newActiveModules.clients = true;
 
     try {
       const profileRef = doc(db, 'profiles', user.uid);
@@ -140,6 +143,12 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
                     onChange={() => toggleModule('clients_pets')}
                     label="🐶 Prontuário Multi-Pets"
                     description="Permite cadastrar múltiplos animais de estimação para cada tutor no CRM, com prontuários e fichas de histórico individuais."
+                  />
+                  <CustomSwitch
+                    checked={modulesConfig?.activeModules?.clients_vehicles !== false}
+                    onChange={() => toggleModule('clients_vehicles')}
+                    label="🚗 Cadastro de Veículos"
+                    description="Permite cadastrar carros, motos e outros veículos vinculados aos clientes no CRM para controle e histórico."
                   />
                 </div>
               )}

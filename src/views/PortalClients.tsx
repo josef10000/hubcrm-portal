@@ -4,7 +4,7 @@ import {
   collection, doc, onSnapshot, query, orderBy, serverTimestamp
 } from 'firebase/firestore';
 import { 
-  Users, Search, Plus, Phone, Mail, Calendar, FileText, Trash2, X, Edit2, AlertCircle, Check, DollarSign, Clock, Tag, User, PawPrint
+  Users, Search, Plus, Phone, Mail, Calendar, FileText, Trash2, X, Edit2, AlertCircle, Check, DollarSign, Clock, Tag, User, PawPrint, Car
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,13 +50,14 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
     client: null
   });
 
-  // Ativação do Módulo de Pets
+  // Ativação do Módulo de Pets e Veículos
   const isPetsActive = userProfile?.modulesConfig?.activeModules?.clients_pets !== false;
+  const isVehiclesActive = userProfile?.modulesConfig?.activeModules?.clients_vehicles !== false;
 
-  // Estados para Controle de Pets e Inativos
+  // Estados para Controle de Sub-abas e Inativos
   const [crmListType, setCrmListType] = useState<'all' | 'inactive'>('all');
   const [inactiveClientsData, setInactiveClientsData] = useState<Record<string, { daysInactive: number, lastDateStr: string }>>({});
-  const [selectedClientSubTab, setSelectedClientSubTab] = useState<'info' | 'pets'>('info');
+  const [selectedClientSubTab, setSelectedClientSubTab] = useState<'info' | 'pets' | 'vehicles'>('info');
 
   // Modal / Formulário de Cadastro/Edição de Pet
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
@@ -73,6 +74,23 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
   const [deletePetConfirm, setDeletePetConfirm] = useState<{ isOpen: boolean; petId: string }>({
     isOpen: false,
     petId: ''
+  });
+
+  // Modal / Formulário de Cadastro/Edição de Veículo
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [isSavingVehicle, setIsSavingVehicle] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
+  const [vehicleBrandModel, setVehicleBrandModel] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [vehicleYear, setVehicleYear] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
+  const [vehicleKm, setVehicleKm] = useState('');
+  const [vehicleNotes, setVehicleNotes] = useState('');
+
+  // Modal de Confirmação para deletar Veículo
+  const [deleteVehicleConfirm, setDeleteVehicleConfirm] = useState<{ isOpen: boolean; vehicleId: string }>({
+    isOpen: false,
+    vehicleId: ''
   });
 
   // 1. Escutar agendamentos da organização (appointments)
@@ -349,6 +367,143 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
       toast.error('Erro ao remover pet.');
     } finally {
       setDeletePetConfirm({ isOpen: false, petId: '' });
+    }
+  };
+
+  // Controle de Modal / Ações de Veículos
+  const openVehicleModal = (vehicle: any = null) => {
+    setEditingVehicle(vehicle);
+    if (vehicle) {
+      setVehicleBrandModel(vehicle.brandModel || '');
+      setVehiclePlate(vehicle.plate || '');
+      setVehicleYear(vehicle.year || '');
+      setVehicleColor(vehicle.color || '');
+      setVehicleKm(vehicle.km || '');
+      setVehicleNotes(vehicle.notes || '');
+    } else {
+      setVehicleBrandModel('');
+      setVehiclePlate('');
+      setVehicleYear('');
+      setVehicleColor('');
+      setVehicleKm('');
+      setVehicleNotes('');
+    }
+    setIsVehicleModalOpen(true);
+  };
+
+  const handleSaveVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClient) {
+      toast.error('Nenhum proprietário selecionado.');
+      return;
+    }
+    if (!vehicleBrandModel.trim()) {
+      toast.error('Marca/Modelo do veículo é obrigatório.');
+      return;
+    }
+
+    setIsSavingVehicle(true);
+    try {
+      let currentCrmList = [...(fidelitySettingsObj.crmClients || [])];
+      const cleanSelectedPhone = (selectedClient.phone || '').replace(/\D/g, '');
+
+      // Localiza o cadastro manual ou cria um novo com base no selecionado (se ele veio da agenda)
+      let manualIndex = currentCrmList.findIndex(c => (c.phone || '').replace(/\D/g, '') === cleanSelectedPhone);
+      
+      let clientTarget: any;
+      if (manualIndex >= 0) {
+        clientTarget = { ...currentCrmList[manualIndex] };
+      } else {
+        // Converte em manual para podermos salvar os veículos
+        clientTarget = {
+          id: `manual_${Date.now()}`,
+          name: selectedClient.name,
+          phone: selectedClient.phone,
+          email: selectedClient.email || '',
+          birthday: '',
+          notes: '',
+          createdAt: new Date().toISOString(),
+          customFields: {},
+          pets: [],
+          vehicles: []
+        };
+      }
+
+      const clientVehicles = Array.isArray(clientTarget.vehicles) ? [...clientTarget.vehicles] : [];
+
+      if (editingVehicle) {
+        // Atualizando Veículo existente
+        const vehicleIndex = clientVehicles.findIndex(v => v.id === editingVehicle.id);
+        if (vehicleIndex >= 0) {
+          clientVehicles[vehicleIndex] = {
+            ...clientVehicles[vehicleIndex],
+            brandModel: vehicleBrandModel.trim(),
+            plate: vehiclePlate.trim(),
+            year: vehicleYear.trim(),
+            color: vehicleColor.trim(),
+            km: vehicleKm.trim(),
+            notes: vehicleNotes.trim(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+      } else {
+        // Adicionando novo Veículo
+        const newVehicle = {
+          id: `vehicle_${Date.now()}`,
+          brandModel: vehicleBrandModel.trim(),
+          plate: vehiclePlate.trim(),
+          year: vehicleYear.trim(),
+          color: vehicleColor.trim(),
+          km: vehicleKm.trim(),
+          notes: vehicleNotes.trim(),
+          createdAt: new Date().toISOString()
+        };
+        clientVehicles.push(newVehicle);
+      }
+
+      clientTarget.vehicles = clientVehicles;
+
+      if (manualIndex >= 0) {
+        currentCrmList[manualIndex] = clientTarget;
+      } else {
+        currentCrmList.push(clientTarget);
+      }
+
+      // Sincroniza com Firestore / Backend
+      await syncCrmData({ crmClients: currentCrmList });
+      toast.success(editingVehicle ? 'Veículo atualizado com sucesso!' : 'Veículo cadastrado com sucesso!');
+      setIsVehicleModalOpen(false);
+      setEditingVehicle(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao salvar informações do veículo.');
+    } finally {
+      setIsSavingVehicle(false);
+    }
+  };
+
+  const executeDeleteVehicle = async (vehicleId: string) => {
+    if (!selectedClient) return;
+    try {
+      let currentCrmList = [...(fidelitySettingsObj.crmClients || [])];
+      const cleanSelectedPhone = (selectedClient.phone || '').replace(/\D/g, '');
+      const manualIndex = currentCrmList.findIndex(c => (c.phone || '').replace(/\D/g, '') === cleanSelectedPhone);
+
+      if (manualIndex >= 0) {
+        const clientTarget = { ...currentCrmList[manualIndex] };
+        const clientVehicles = Array.isArray(clientTarget.vehicles) ? [...clientTarget.vehicles] : [];
+        const filteredVehicles = clientVehicles.filter(v => v.id !== vehicleId);
+        clientTarget.vehicles = filteredVehicles;
+        currentCrmList[manualIndex] = clientTarget;
+
+        await syncCrmData({ crmClients: currentCrmList });
+        toast.success('Veículo removido com sucesso!');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao remover veículo.');
+    } finally {
+      setDeleteVehicleConfirm({ isOpen: false, vehicleId: '' });
     }
   };
 
@@ -705,34 +860,50 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
                   </div>
                 )}
 
-                {/* Abas de Informações do Cliente (Apenas se o módulo de Pets estiver ativo) */}
-                {isPetsActive && (
-                  <div className="flex border-b border-white/5 gap-4 mb-4">
+                {/* Abas de Informações do Cliente (Apenas se o módulo de Pets ou Veículos estiver ativo) */}
+                {(isPetsActive || isVehiclesActive) && (
+                  <div className="flex border-b border-white/5 gap-4 mb-4 overflow-x-auto scrollbar-none">
                     <button
                       onClick={() => setSelectedClientSubTab('info')}
-                      className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2
+                      className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2 shrink-0
                         ${selectedClientSubTab === 'info' 
                           ? 'border-purple-500 text-purple-400 font-black' 
                           : 'border-transparent text-gray-500 hover:text-white'}`}
                     >
                       Informações Gerais
                     </button>
-                    <button
-                      onClick={() => setSelectedClientSubTab('pets')}
-                      className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2 flex items-center gap-1.5
-                        ${selectedClientSubTab === 'pets' 
-                          ? 'border-purple-500 text-purple-400 font-black' 
-                          : 'border-transparent text-gray-500 hover:text-white'}`}
-                    >
-                      Pets / Pacientes
-                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${selectedClientSubTab === 'pets' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-gray-500'}`}>
-                        {selectedManualClient?.pets?.length || 0}
-                      </span>
-                    </button>
+                    {isPetsActive && (
+                      <button
+                        onClick={() => setSelectedClientSubTab('pets')}
+                        className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2 flex items-center gap-1.5 shrink-0
+                          ${selectedClientSubTab === 'pets' 
+                            ? 'border-purple-500 text-purple-400 font-black' 
+                            : 'border-transparent text-gray-500 hover:text-white'}`}
+                      >
+                        Pets / Pacientes
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${selectedClientSubTab === 'pets' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-gray-500'}`}>
+                          {selectedManualClient?.pets?.length || 0}
+                        </span>
+                      </button>
+                    )}
+                    {isVehiclesActive && (
+                      <button
+                        onClick={() => setSelectedClientSubTab('vehicles')}
+                        className={`pb-2 text-xs font-bold uppercase tracking-wider bg-transparent border-0 cursor-pointer transition-all border-b-2 flex items-center gap-1.5 shrink-0
+                          ${selectedClientSubTab === 'vehicles' 
+                            ? 'border-purple-500 text-purple-400 font-black' 
+                            : 'border-transparent text-gray-500 hover:text-white'}`}
+                      >
+                        Veículos
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${selectedClientSubTab === 'vehicles' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-gray-500'}`}>
+                          {selectedManualClient?.vehicles?.length || 0}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 )}
 
-                {selectedClientSubTab === 'info' ? (
+                {selectedClientSubTab === 'info' && (
                   <div className="space-y-6">
                     {/* Ficha Dinâmica (Campos Personalizados) */}
                     <div className="space-y-3">
@@ -823,7 +994,9 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
                       )}
                     </div>
                   </div>
-                ) : (
+                )}
+
+                {selectedClientSubTab === 'pets' && isPetsActive && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="flex justify-between items-center">
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -887,6 +1060,80 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
                                 <div className="mt-1 p-3 bg-black/30 border border-white/5 rounded-xl">
                                   <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-1">Prontuário / Observações</span>
                                   <p className="text-[10px] text-gray-300 whitespace-pre-wrap leading-relaxed">{pet.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedClientSubTab === 'vehicles' && isVehiclesActive && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Car size={13} className="text-purple-400" />
+                        Veículos Cadastrados ({selectedManualClient?.vehicles?.length || 0})
+                      </h4>
+                      <button
+                        onClick={() => openVehicleModal()}
+                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 border-0 cursor-pointer"
+                      >
+                        <Plus size={10} /> Adicionar Veículo
+                      </button>
+                    </div>
+
+                    {(!selectedManualClient?.vehicles || selectedManualClient.vehicles.length === 0) ? (
+                      <div className="p-8 border border-dashed border-white/5 rounded-[1.5rem] text-center space-y-2">
+                        <Car size={28} className="mx-auto text-gray-700 font-light" />
+                        <p className="text-[11px] text-gray-500 font-semibold">Nenhum veículo cadastrado para este cliente.</p>
+                        <p className="text-[10px] text-gray-600">Cadastre os veículos para associar orçamentos e históricos de manutenção.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                        {selectedManualClient.vehicles.map((vehicle: any) => {
+                          return (
+                            <div key={vehicle.id} className="bg-black/20 border border-white/5 rounded-[1.5rem] p-4 flex flex-col justify-between gap-3 text-left">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-lg">
+                                    🚗
+                                  </div>
+                                  <div>
+                                    <h5 className="text-xs font-black text-white uppercase">{vehicle.brandModel}</h5>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[10px] text-gray-400">
+                                      {vehicle.plate && <span>Placa: <strong className="text-purple-300">{vehicle.plate.toUpperCase()}</strong></span>}
+                                      {vehicle.year && <span>Ano: <strong>{vehicle.year}</strong></span>}
+                                      {vehicle.color && <span>Cor: <strong>{vehicle.color}</strong></span>}
+                                      {vehicle.km && <span>KM: <strong>{vehicle.km} km</strong></span>}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => openVehicleModal(vehicle)}
+                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border-0 cursor-pointer"
+                                    title="Editar Veículo"
+                                  >
+                                    <Edit2 size={11} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteVehicleConfirm({ isOpen: true, vehicleId: vehicle.id })}
+                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border-0 cursor-pointer"
+                                    title="Excluir Veículo"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {vehicle.notes && (
+                                <div className="mt-1 p-3 bg-black/30 border border-white/5 rounded-xl">
+                                  <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest block mb-1">Histórico de Manutenções / Observações</span>
+                                  <p className="text-[10px] text-gray-300 whitespace-pre-wrap leading-relaxed">{vehicle.notes}</p>
                                 </div>
                               )}
                             </div>
@@ -1302,6 +1549,171 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
               </button>
               <button
                 onClick={() => executeDeletePet(deletePetConfirm.petId)}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cadastro / Edição de Veículo */}
+      {isVehicleModalOpen && (
+        <div 
+          onClick={() => {
+            setIsVehicleModalOpen(false);
+            setEditingVehicle(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Car className="text-purple-400" size={18} />
+                  {editingVehicle ? 'Editar Veículo' : 'Cadastrar Veículo'}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Insira as informações do veículo para vincular a este cliente.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsVehicleModalOpen(false);
+                  setEditingVehicle(null);
+                }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVehicle} className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Marca / Modelo</label>
+                  <input
+                    type="text"
+                    value={vehicleBrandModel}
+                    onChange={(e) => setVehicleBrandModel(e.target.value)}
+                    placeholder="Ex: Honda Civic, Toyota Corolla..."
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Placa</label>
+                    <input
+                      type="text"
+                      value={vehiclePlate}
+                      onChange={(e) => setVehiclePlate(e.target.value)}
+                      placeholder="Ex: ABC1D23, ABC-1234"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500 animate-in fade-in"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Ano</label>
+                    <input
+                      type="text"
+                      value={vehicleYear}
+                      onChange={(e) => setVehicleYear(e.target.value)}
+                      placeholder="Ex: 2021"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cor</label>
+                    <input
+                      type="text"
+                      value={vehicleColor}
+                      onChange={(e) => setVehicleColor(e.target.value)}
+                      placeholder="Ex: Preto, Prata, Branco..."
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Quilometragem (KM)</label>
+                    <input
+                      type="text"
+                      value={vehicleKm}
+                      onChange={(e) => setVehicleKm(e.target.value)}
+                      placeholder="Ex: 85.000"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Histórico / Observações</label>
+                  <textarea
+                    value={vehicleNotes}
+                    onChange={(e) => setVehicleNotes(e.target.value)}
+                    placeholder="Histórico de revisões, troca de óleo, desgastes, serviços recomendados..."
+                    rows={4}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-purple-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-purple-500 resize-none animate-in fade-in"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVehicleModalOpen(false);
+                    setEditingVehicle(null);
+                  }}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingVehicle}
+                  className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-600/40 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-purple-500/10 cursor-pointer border-0"
+                >
+                  <Check size={14} />
+                  {editingVehicle ? 'Salvar Alterações' : 'Adicionar Veículo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Veículo */}
+      {deleteVehicleConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-5 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white">Excluir Veículo</h3>
+              <p className="text-xs text-gray-400">
+                Tem certeza que deseja excluir as informações deste veículo?
+                Esta ação é definitiva e apagará o histórico deste veículo.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteVehicleConfirm({ isOpen: false, vehicleId: '' })}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDeleteVehicle(deleteVehicleConfirm.vehicleId)}
                 className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
               >
                 Confirmar

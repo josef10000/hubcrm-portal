@@ -90,6 +90,7 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Campos Personalizados do Nicho:** Painel onde o profissional pode criar, excluir e organizar campos customizados específicos (ex: Peso, Altura, Faturamento, Restrições Alimentares, Vinho Preferido, etc.) para os cards de seus clientes, com preenchimento reativo.
 *   **Edição Irrestrita de Cards:** Capacidade de editar qualquer informação básica ou campos extras de qualquer cliente a qualquer momento. Edições manuais feitas no CRM têm prioridade de exibição, permitindo corrigir erros de digitação de clientes.
 *   **Atalho Rápido WhatsApp:** Botão com disparo automático para abrir conversa no WhatsApp (`https://wa.me/...`) do cliente selecionado.
+*   **Cadastro e Histórico de Veículos:** Subaba dedicada para cadastrar e gerenciar veículos vinculados a cada cliente (Marca/Modelo, Placa, Ano, Cor, KM e histórico de manutenções/observações) visando o nicho automotivo e estética veicular. A subaba pode ser ocultada/desativada de forma independente através do painel de módulos.
 *   **Histórico Completo Unificado:** Visualize no card de cada cliente todos os agendamentos correspondentes (passados e futuros) e os prontuários/fichas de anamnese preenchidos para ele (com botão de visualização/impressão direta).
 
 ### 12. ☀️ Modo Claro Elegante (Light Mode)
