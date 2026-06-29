@@ -516,9 +516,14 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       const clientData = getData.client || getData || {};
       const fid = clientData.fidelitySettings || {};
       const currentCrmClients = fid.crmClients || [];
+      const currentDeletedPhones = fid.crmDeletedPhones || [];
+
+      // Remover do limbo de deletados para restaurar
+      const updatedDeletedPhones = currentDeletedPhones.filter((p: string) => p.replace(/\D/g, '') !== cleanPhone);
 
       // 2. Verificar se já existe
       const exists = currentCrmClients.some((c: any) => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+      let updatedClients = [...currentCrmClients];
       if (exists) {
         toast.info("Cliente já cadastrado no CRM!");
         setCrmClientsList(currentCrmClients);
@@ -533,7 +538,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         phone: newClientPhone.trim(),
         email: newClientEmail.trim()
       };
-      const updatedClients = [...currentCrmClients, newClientObj];
+      updatedClients.push(newClientObj);
 
       // 4. Salvar de volta na API do CRM
       const updateRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
@@ -548,7 +553,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           email: auth.currentUser?.email || '',
           fidelitySettings: {
             ...fid,
-            crmClients: updatedClients
+            crmClients: updatedClients,
+            crmDeletedPhones: updatedDeletedPhones
           }
         })
       });
@@ -596,6 +602,10 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       const clientData = getData.client || getData || {};
       const fid = clientData.fidelitySettings || {};
       const currentCrmClients = [...(fid.crmClients || [])];
+      const currentDeletedPhones = fid.crmDeletedPhones || [];
+
+      // Remover do limbo de deletados para restaurar
+      const updatedDeletedPhones = currentDeletedPhones.filter((p: string) => p.replace(/\D/g, '') !== cleanPhone);
 
       // 2. Achar o cliente pelo telefone e atualizar o nome
       const clientIndex = currentCrmClients.findIndex((c: any) => (c.phone || '').replace(/\D/g, '') === cleanPhone);
@@ -624,7 +634,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
           email: auth.currentUser?.email || '',
           fidelitySettings: {
             ...fid,
-            crmClients: currentCrmClients
+            crmClients: currentCrmClients,
+            crmDeletedPhones: updatedDeletedPhones
           }
         })
       });

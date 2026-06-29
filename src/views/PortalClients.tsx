@@ -175,7 +175,7 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
           return appPhone === cleanPhone && app.status !== 'cancelled' && app.serviceId !== 'bloqueio';
         });
         const isDeleted = deletedClientsPhones.includes(cleanPhone) && !hasActiveAppt;
-        return !isDeleted && cleanPhone !== '11914573272' && c.id !== clientId;
+        return !isDeleted && c.id !== clientId;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
