@@ -73,6 +73,8 @@ O Portal Hub compartilha o mesmo banco de dados do Firebase Firestore do CRM adm
 *   **Reativação de Clientes Inativos (LTV):** Análise na Dashboard (`PortalHome.tsx`) que detecta clientes inativos há mais de 30 dias com gatilhos rápidos para reativação por WhatsApp.
 *   **Arsenal de Vendas e Templates:** Cofre de ativos de marca, scripts de vendas com cópia instantânea e vídeos de treinamento em Lightbox com reprodução fluida e efeito desfocado (*backdrop-blur*).
 *   **Central de Insights & Dicas (Blog do Empreendedor - `PortalInsights.tsx`):** Portal de conteúdo educativo integrado ao Hub de Crescimento com artigos focados em gestão, vendas, finanças e marketing para escalar o negócio de parceiros, com leitor imersivo, curtidas persistentes locais, compartilhamento fácil no WhatsApp e links inteligentes que integram diretamente com outras seções do Portal Hub (Dica de Crescimento).
+*   **Manual e Guia Público do Hóspede (`/guia/:orgId/:resourceId`):** Rota pública sem autenticação com layout premium dark. Exibe o nome do item locado, descrição, manual com instruções de entrada passo a passo, regras de convivência, Wi-Fi com botão de cópia com um clique e botão direto de suporte via WhatsApp com o anfitrião.
+*   **Modal de Impressão de Placa QR Code:** O proprietário pode visualizar o QR Code gerado automaticamente do imóvel em seu painel e imprimir uma placa formatada de instruções em tamanho A4 para emoldurar fisicamente na propriedade com apenas um clique.
 
 ### 9. 📱 Navegação Global e Layout "App-First" (Estilo Linear/Vercel)
 *   **Remoção de Sidebar:** Substituição da antiga barra lateral por uma navegação limpa, focada em reter e guiar o usuário em tarefas diárias.

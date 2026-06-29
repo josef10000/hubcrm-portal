@@ -4,7 +4,8 @@ import {
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy 
 } from 'firebase/firestore';
 import { 
-  Plus, Edit2, Trash2, X, Check, AlertCircle, Home, Building2, Wrench, FileText, Wifi
+  Plus, Edit2, Trash2, X, Check, AlertCircle, Home, Building2, Wrench, FileText, Wifi,
+  ExternalLink, Printer, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,10 +27,16 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState('property');
   const [description, setDescription] = useState('');
+  const [rules, setRules] = useState('');
   const [price, setPrice] = useState('');
   const [wifiName, setWifiName] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
   const [accessInstructions, setAccessInstructions] = useState('');
+
+  // Estados para Modal do Guia / QR Code
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [selectedGuideResource, setSelectedGuideResource] = useState<any | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Modal de Confirmação para deletar
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string }>({
@@ -66,6 +73,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       setName(resource.name || '');
       setType(resource.type || 'property');
       setDescription(resource.description || '');
+      setRules(resource.rules || '');
       setPrice(resource.price ? resource.price.toString() : '');
       setWifiName(resource.wifiName || '');
       setWifiPassword(resource.wifiPassword || '');
@@ -74,6 +82,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       setName('');
       setType('property');
       setDescription('');
+      setRules('');
       setPrice('');
       setWifiName('');
       setWifiPassword('');
@@ -96,6 +105,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       name: name.trim(),
       type,
       description: description.trim(),
+      rules: rules.trim(),
       price: parsedPrice,
       wifiName: wifiName.trim(),
       wifiPassword: wifiPassword.trim(),
@@ -139,6 +149,82 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
     } finally {
       setDeleteConfirm({ isOpen: false, id: '' });
     }
+  };
+
+  const handlePrintQR = (resourceName: string, url: string) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("O bloqueador de pop-ups impediu a impressão. Por favor, permita pop-ups para este site.");
+      return;
+    }
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Imprimir QR Code - ${resourceName}</title>
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              text-align: center;
+              background: white;
+              color: black;
+              padding: 50px;
+            }
+            .container {
+              max-width: 400px;
+              margin: 0 auto;
+              border: 2px solid #eaeaea;
+              border-radius: 20px;
+              padding: 40px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            }
+            h1 {
+              font-size: 24px;
+              margin-bottom: 5px;
+              font-weight: 800;
+            }
+            p {
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 30px;
+              line-height: 1.5;
+            }
+            img {
+              width: 250px;
+              height: 250px;
+              margin-bottom: 30px;
+            }
+            .footer {
+              font-size: 11px;
+              color: #999;
+              margin-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Conecte-se ao Wi-Fi & Manual</h1>
+            <p>Escaneie o QR Code abaixo para acessar o manual do hóspede, instruções e rede Wi-Fi do <strong>${resourceName}</strong>.</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}" alt="QR Code" />
+            <div class="footer">Powered by Portal Hub CRM</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleCopyGuideUrl = (resourceId: string) => {
+    const guideUrl = `${window.location.origin}/guia/${orgId}/${resourceId}`;
+    navigator.clipboard.writeText(guideUrl);
+    setCopiedLink(true);
+    toast.success("Link do Guia copiado para a área de transferência!");
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const getIcon = (resourceType: string) => {
@@ -215,6 +301,16 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setSelectedGuideResource(resource);
+                        setIsGuideModalOpen(true);
+                      }}
+                      className="p-1.5 bg-primary-500/10 hover:bg-primary-500/25 border border-primary-500/20 text-primary-400 rounded-lg transition-all border-0 cursor-pointer"
+                      title="Guia do Hóspede / QR Code"
+                    >
+                      <FileText size={12} />
+                    </button>
                     <button
                       onClick={() => openModal(resource)}
                       className="p-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border-0 cursor-pointer"
@@ -343,12 +439,23 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição / Regras</label>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição Curta</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descrição geral, limites de hóspedes, regras de som, horários..."
-                    rows={3}
+                    placeholder="Descrição geral ou resumo da propriedade..."
+                    rows={2}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Regras de Uso e Convivência</label>
+                  <textarea
+                    value={rules}
+                    onChange={(e) => setRules(e.target.value)}
+                    placeholder="Ex: Não fazer barulho após às 22h, proibido fumar, recolher lixo ao sair..."
+                    rows={2}
                     className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
                   />
                 </div>
@@ -448,6 +555,92 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
               >
                 Confirmar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Guia do Hóspede / QR Code */}
+      {isGuideModalOpen && selectedGuideResource && (
+        <div 
+          onClick={() => {
+            setIsGuideModalOpen(false);
+            setSelectedGuideResource(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-6 text-center text-left"
+          >
+            <div className="flex justify-between items-start text-left">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <FileText className="text-primary-400" size={18} />
+                  Guia do Hóspede & Manual
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Compartilhe as instruções de acesso e rede Wi-Fi com seus hóspedes.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsGuideModalOpen(false);
+                  setSelectedGuideResource(null);
+                }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* QR Code */}
+            <div className="bg-white p-4 rounded-3xl w-fit mx-auto shadow-inner border border-white/10">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/guia/${orgId}/${selectedGuideResource.id}`)}`} 
+                alt="QR Code Guia do Hóspede"
+                className="w-[180px] h-[180px] block"
+              />
+            </div>
+
+            {/* URL e Cópia */}
+            <div className="space-y-2 text-left">
+              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Link Público do Guia</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={`${window.location.origin}/guia/${orgId}/${selectedGuideResource.id}`}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-black/40 border border-white/10 text-gray-400 rounded-xl text-xs outline-none truncate"
+                />
+                <button
+                  onClick={() => handleCopyGuideUrl(selectedGuideResource.id)}
+                  className="px-3.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all cursor-pointer border-0 text-xs font-bold flex items-center gap-1.5"
+                >
+                  {copiedLink ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedLink ? 'Copiado' : 'Copiar'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => handlePrintQR(selectedGuideResource.name, `${window.location.origin}/guia/${orgId}/${selectedGuideResource.id}`)}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
+              >
+                <Printer size={14} />
+                Imprimir Placa QR
+              </button>
+              <a
+                href={`${window.location.origin}/guia/${orgId}/${selectedGuideResource.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer no-underline text-center border-0 text-black"
+              >
+                <ExternalLink size={14} />
+                Visualizar Guia
+              </a>
             </div>
           </div>
         </div>
