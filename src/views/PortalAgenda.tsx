@@ -372,6 +372,53 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         toast.success(isBlocking ? 'Horário bloqueado com sucesso!' : 'Agendamento realizado com sucesso!');
       }
 
+      // Sincronização automática do cliente com a aba Clientes (CRM)
+      if (!isBlocking) {
+        const cleanPhone = newClientPhone.replace(/\D/g, '');
+        if (cleanPhone) {
+          const clientExists = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+          if (!clientExists) {
+            const newClientObj = {
+              id: `client-${Date.now()}`,
+              name: newClientName.trim(),
+              phone: newClientPhone.trim(),
+              email: newClientEmail.trim()
+            };
+            const updatedClients = [...crmClientsList, newClientObj];
+            
+            // Sincroniza via Firestore diretamente
+            const clientsDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
+            await updateDoc(clientsDocRef, {
+              'fidelitySettings.crmClients': updatedClients
+            });
+            
+            // Também sincroniza com API do crm
+            try {
+              const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+              const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+              await fetch(`${crmApiUrl}/api/portal_handler`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'update_client',
+                  orgId,
+                  clientId,
+                  token,
+                  uid: auth.currentUser?.uid || '',
+                  email: auth.currentUser?.email || '',
+                  fidelitySettings: {
+                    ...fidelitySettingsObj,
+                    crmClients: updatedClients
+                  }
+                })
+              });
+            } catch (apiErr) {
+              console.warn('[PortalAgenda] Erro ao sincronizar novo cliente via API externa:', apiErr);
+            }
+          }
+        }
+      }
+
       closeAppointmentModal();
     } catch (err) {
       console.error(err);
@@ -412,6 +459,10 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   // Escuta modulesConfig do profissional
   const [modulesConfig, setModulesConfig] = useState<any>(null);
   const isRentalsActive = modulesConfig?.activeModules?.management_rentals !== false;
+
+  // Estados locais do CRM para unificação automática de clientes
+  const [crmClientsList, setCrmClientsList] = useState<any[]>([]);
+  const [fidelitySettingsObj, setFidelitySettingsObj] = useState<any>({});
 
   useEffect(() => {
     let unsubProfile: (() => void) | undefined;
@@ -482,6 +533,12 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
       setBioAvatarUrl(bio.avatarUrl || '');
       setBioLinks(bio.links || []);
       setBioShowBooking(bio.showBooking !== undefined ? bio.showBooking : true);
+
+      const fid = clientData.fidelitySettings || {};
+      setFidelitySettingsObj(fid);
+      if (fid.crmClients) {
+        setCrmClientsList(fid.crmClients);
+      }
     };
 
     const fetchFromApi = async () => {

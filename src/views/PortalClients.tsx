@@ -170,7 +170,12 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
     const sorted = Array.from(clientsMap.values())
       .filter(c => {
         const cleanPhone = (c.phone || '').replace(/\D/g, '');
-        return !deletedClientsPhones.includes(cleanPhone) && cleanPhone !== '11914573272' && c.id !== clientId;
+        const hasActiveAppt = appointments.some(app => {
+          const appPhone = (app.clientPhone || '').replace(/\D/g, '');
+          return appPhone === cleanPhone && app.status !== 'cancelled' && app.serviceId !== 'bloqueio';
+        });
+        const isDeleted = deletedClientsPhones.includes(cleanPhone) && !hasActiveAppt;
+        return !isDeleted && cleanPhone !== '11914573272' && c.id !== clientId;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     setConsolidatedClients(sorted);
