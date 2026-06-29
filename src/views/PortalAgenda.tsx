@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { 
   collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp 
 } from 'firebase/firestore';
 import { 
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
-  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight, Upload, Loader2
+  Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight, Upload, Loader2,
+  Home, Briefcase
 } from 'lucide-react';
 import { Offer, Client } from '../types';
 import { toast } from 'sonner';
@@ -189,9 +191,17 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [newPaymentMethod, setNewPaymentMethod] = useState<'dinheiro_pix_cartao' | 'pacote'>('dinheiro_pix_cartao');
   const [selectedPackageId, setSelectedPackageId] = useState('');
 
+  // Estados para Gestão de Locação/Recursos
+  const [resources, setResources] = useState<any[]>([]);
+  const [newResourceId, setNewResourceId] = useState('');
+  const [newCheckoutDate, setNewCheckoutDate] = useState('');
+  const [filterResourceId, setFilterResourceId] = useState('');
+
   useEffect(() => {
     if (!editingAppointmentId) {
       setNewDate(selectedDate);
+      setNewResourceId('');
+      setNewCheckoutDate('');
     }
   }, [selectedDate, isModalOpen, editingAppointmentId]);
 
@@ -217,6 +227,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setNewPaymentStatus('unpaid');
     setNewPaymentMethod('dinheiro_pix_cartao');
     setSelectedPackageId('');
+    setNewResourceId('');
+    setNewCheckoutDate('');
   };
 
   const handleOpenBlockModal = () => {
@@ -244,6 +256,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setNewPaymentStatus(app.paymentStatus || 'unpaid');
     setNewPaymentMethod(app.paymentMethod || 'dinheiro_pix_cartao');
     setSelectedPackageId(app.packageId || '');
+    setNewResourceId(app.resourceId || '');
+    setNewCheckoutDate(app.checkoutDate || '');
     setIsModalOpen(true);
   };
 
@@ -277,6 +291,41 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
     setIsSubmittingAppointment(true);
     try {
+      // Validação de Overbooking/Conflito para Recursos Locáveis
+      if (!isBlocking && isRentalsActive && newResourceId) {
+        if (!newCheckoutDate) {
+          toast.error('Informe a data de check-out.');
+          setIsSubmittingAppointment(false);
+          return;
+        }
+        if (newCheckoutDate < newDate) {
+          toast.error('A data de check-out deve ser igual ou posterior à data de check-in.');
+          setIsSubmittingAppointment(false);
+          return;
+        }
+
+        // Verificar conflito com agendamentos existentes
+        const hasConflict = appointments.some(app => {
+          if (app.status === 'cancelled' || app.id === editingAppointmentId) return false;
+          if (app.resourceId !== newResourceId) return false;
+
+          const checkinExistente = app.date;
+          const checkoutExistente = app.checkoutDate || app.date;
+
+          const checkinNovo = newDate;
+          const checkoutNovo = newCheckoutDate;
+
+          // Condição de sobreposição:
+          return !(checkoutNovo < checkinExistente || checkinNovo > checkoutExistente);
+        });
+
+        if (hasConflict) {
+          toast.error('Este item/recurso já está reservado/bloqueado nesse período.');
+          setIsSubmittingAppointment(false);
+          return;
+        }
+      }
+
       const payload: any = {
         clientName: newClientName.trim(),
         clientPhone: newClientPhone.trim(),
@@ -289,6 +338,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         paymentStatus: isBlocking ? "paid" : (newPaymentMethod === 'pacote' ? 'paid' : newPaymentStatus),
         paymentMethod: isBlocking ? 'dinheiro_pix_cartao' : newPaymentMethod,
         packageId: isBlocking ? '' : (newPaymentMethod === 'pacote' ? selectedPackageId : ''),
+        resourceId: isBlocking ? '' : (newResourceId || ''),
+        checkoutDate: isBlocking ? '' : (newCheckoutDate || ''),
         updatedAt: serverTimestamp()
       };
 
@@ -340,6 +391,47 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     });
     return () => unsub();
   }, [orgId]);
+
+  // Escuta modulesConfig do profissional
+  const [modulesConfig, setModulesConfig] = useState<any>(null);
+  const isRentalsActive = modulesConfig?.activeModules?.management_rentals !== false;
+
+  useEffect(() => {
+    let unsubProfile: (() => void) | undefined;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const profileRef = doc(db, 'profiles', user.uid);
+        unsubProfile = onSnapshot(profileRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setModulesConfig(data.modulesConfig || null);
+          }
+        });
+      } else {
+        setModulesConfig(null);
+        if (unsubProfile) unsubProfile();
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
+    };
+  }, []);
+
+  // Escuta recursos da organização
+  useEffect(() => {
+    if (!orgId || !isRentalsActive) return;
+    const resourcesRef = collection(db, 'organizations', orgId, 'resources');
+    const q = query(resourcesRef, orderBy('name', 'asc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setResources(list);
+    }, (error) => {
+      console.warn("Erro ao escutar recursos no PortalAgenda:", error.message);
+    });
+    return () => unsub();
+  }, [orgId, isRentalsActive]);
 
   // Escuta as configurações da Agenda no próprio documento do cliente
   // Sempre busca via API no mount para garantir dados persistidos
@@ -524,7 +616,12 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   };
 
   const getAppointmentsForDay = (dateStr: string) => {
-    return appointments.filter(app => app.date === dateStr && app.status !== 'cancelled');
+    return appointments.filter(app => {
+      const isInsideRange = app.date === dateStr || 
+        (app.checkoutDate && app.date <= dateStr && dateStr <= app.checkoutDate);
+      const matchesFilter = !filterResourceId || app.resourceId === filterResourceId;
+      return isInsideRange && matchesFilter && app.status !== 'cancelled';
+    });
   };
 
   const getDayStats = (dateStr: string) => {
@@ -1223,7 +1320,12 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     ).length;
   };
 
-  const appointmentsToday = appointments.filter(app => app.date === selectedDate);
+  const appointmentsToday = appointments.filter(app => {
+    const isInsideRange = app.date === selectedDate || 
+      (app.checkoutDate && app.date <= selectedDate && selectedDate <= app.checkoutDate);
+    const matchesFilter = !filterResourceId || app.resourceId === filterResourceId;
+    return isInsideRange && matchesFilter;
+  });
   const timelineItems = useMemo(() => {
     const sortedToday = [...appointmentsToday].sort((a, b) => a.time.localeCompare(b.time));
     const processedIds = new Set<string>();
@@ -1443,6 +1545,19 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             </div>
             
             <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap sm:flex-nowrap">
+              {isRentalsActive && resources.length > 0 && (
+                <div className="flex-1 sm:flex-initial w-full sm:w-48 shrink-0">
+                  <CustomSelect
+                    value={filterResourceId}
+                    onChange={(val) => setFilterResourceId(val)}
+                    placeholder="Filtrar por Item..."
+                    options={[
+                      { value: '', label: '🔍 Todos os Itens' },
+                      ...resources.map(r => ({ value: r.id, label: r.name }))
+                    ]}
+                  />
+                </div>
+              )}
               {/* Toggle Diária/Mensal */}
               <div className="flex bg-black/40 border border-white/10 rounded-xl p-0.5 shrink-0">
                 <button
@@ -1682,11 +1797,29 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                           </div>
                           <h3 className="text-base font-bold text-white">{app.clientName}</h3>
                           {app.serviceId !== 'bloqueio' && (
-                            <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                              <Scissors size={12} className="text-gray-600" />
-                              Serviço: <span className="text-white font-medium">{app.serviceName}</span> &bull; 
-                              <DollarSign size={12} className="text-gray-600 ml-1" /> Valor: <span className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</span>
-                            </p>
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="flex items-center gap-1"><Briefcase size={12} className="text-gray-600" /> Serviço: <strong className="text-white font-medium">{app.serviceName}</strong></span>
+                                <span className="text-gray-700 font-light">&bull;</span>
+                                <span className="flex items-center gap-1"><DollarSign size={12} className="text-gray-600" /> Valor: <strong className="text-white font-medium">R$ {app.price?.toFixed(2).replace('.', ',')}</strong></span>
+                              </p>
+                              {app.resourceId && (
+                                <p className="text-xs text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                                  <span className="flex items-center gap-1 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/10 text-purple-300">
+                                    <Home size={10} />
+                                    Item: {resources.find(r => r.id === app.resourceId)?.name || 'Carregando...'}
+                                  </span>
+                                  {app.checkoutDate && (
+                                    <>
+                                      <span className="text-gray-700 font-light">&bull;</span>
+                                      <span className="flex items-center gap-1 text-[11px] text-gray-300">
+                                        Período: <strong>{app.date ? new Date(`${app.date}T00:00:00`).toLocaleDateString('pt-BR') : ''}</strong> até <strong>{new Date(`${app.checkoutDate}T00:00:00`).toLocaleDateString('pt-BR')}</strong>
+                                      </span>
+                                    </>
+                                  )}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
 
@@ -3597,6 +3730,42 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       label: `${s.name} (R$ ${s.price})`
                     }))}
                   />
+                </div>
+              )}
+
+              {!isBlocking && isRentalsActive && resources.length > 0 && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recurso / Item Locado</label>
+                    <CustomSelect
+                      value={newResourceId}
+                      onChange={(val) => {
+                        setNewResourceId(val);
+                        const selectedResource = resources.find(r => r.id === val);
+                        if (selectedResource && selectedResource.price) {
+                          setNewPrice(selectedResource.price.toString().replace('.', ','));
+                        }
+                      }}
+                      placeholder="Selecione um item (Ex: Apartamento, Brinquedo)..."
+                      options={resources.map(r => ({
+                        value: r.id,
+                        label: `${r.name} (R$ ${r.price})`
+                      }))}
+                    />
+                  </div>
+
+                  {newResourceId && (
+                    <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data de Check-out (Saída)</label>
+                      <input
+                        type="date"
+                        value={newCheckoutDate}
+                        onChange={(e) => setNewCheckoutDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
