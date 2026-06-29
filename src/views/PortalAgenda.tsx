@@ -1974,6 +1974,13 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                                      app.status === 'pending' ? 'PENDENTE CONFIRMAÇÃO' :
                                      app.status === 'created' ? 'AGENDADO' : 'CONFIRMADO'}
                                   </span>
+                                  {app.resourceId && (
+                                    <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                      app.contractSigned ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse'
+                                    }`}>
+                                      {app.contractSigned ? '✓ CONTRATO ASSINADO' : '⚠️ CONTRATO PENDENTE'}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-[11px] text-gray-400">
                                   Telefone: <span className="text-gray-300 font-medium font-mono">{app.clientPhone}</span> &bull; 
@@ -3880,6 +3887,76 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       ]}
                     />
                   </div>
+                </div>
+              )}
+
+              {!isBlocking && isRentalsActive && newResourceId && editingAppointmentId && (
+                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3 text-left">
+                  <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                    📜 Contrato de Locação
+                  </span>
+
+                  {(() => {
+                    const currentApp = appointments.find(a => a.id === editingAppointmentId);
+                    if (!currentApp) return null;
+
+                    if (currentApp.contractSigned) {
+                      return (
+                        <div className="space-y-2 animate-in fade-in duration-200">
+                          <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                            <Check size={12} />
+                            Assinado Eletronicamente
+                          </p>
+                          <div className="text-[10px] text-gray-500 space-y-0.5">
+                            <p>Assinado por: <strong>{currentApp.contractSignedName}</strong></p>
+                            <p>CPF/Documento: <strong>{currentApp.contractSignedDocument}</strong></p>
+                            <p>IP: <strong>{currentApp.contractSignedIp}</strong></p>
+                            <p>Hash: <strong>{currentApp.contractSecurityHash}</strong></p>
+                          </div>
+                          <a
+                            href={`${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 w-full py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 no-underline border border-primary-500/20 text-center"
+                          >
+                            <ExternalLink size={12} />
+                            Visualizar Contrato Assinado
+                          </a>
+                        </div>
+                      );
+                    }
+
+                    const contractUrl = `${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`;
+                    return (
+                      <div className="space-y-2 animate-in fade-in duration-200">
+                        <p className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                          <AlertTriangle size={12} />
+                          Aguardando Assinatura do Cliente
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          Copie o link abaixo e envie ao cliente para assinatura do termo.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={contractUrl}
+                            readOnly
+                            className="flex-1 px-3 py-1.5 bg-black/40 border border-white/10 text-gray-500 rounded-lg text-xs outline-none truncate"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(contractUrl);
+                              toast.success("Link do contrato copiado!");
+                            }}
+                            className="px-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all text-xs font-bold cursor-pointer border-0"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
