@@ -567,6 +567,82 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     }
   };
 
+  const handleUpdateClientNameInCrm = async () => {
+    if (isSyncingCrm) return;
+    setIsSyncingCrm(true);
+    try {
+      const cleanPhone = newClientPhone.replace(/\D/g, '');
+      if (!cleanPhone) {
+        toast.error("Telefone inválido.");
+        setIsSyncingCrm(false);
+        return;
+      }
+
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      // 1. Buscar a lista atualizada de clientes da API do CRM
+      const getRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_client', orgId, clientId, token })
+      });
+
+      if (!getRes.ok) {
+        throw new Error('Falha ao buscar dados atuais do CRM.');
+      }
+
+      const getData = await getRes.json();
+      const clientData = getData.client || getData || {};
+      const fid = clientData.fidelitySettings || {};
+      const currentCrmClients = [...(fid.crmClients || [])];
+
+      // 2. Achar o cliente pelo telefone e atualizar o nome
+      const clientIndex = currentCrmClients.findIndex((c: any) => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+      if (clientIndex >= 0) {
+        currentCrmClients[clientIndex] = {
+          ...currentCrmClients[clientIndex],
+          name: newClientName.trim(),
+          email: newClientEmail.trim() || currentCrmClients[clientIndex].email || ''
+        };
+      } else {
+        toast.error("Cliente não encontrado para atualizar.");
+        setIsSyncingCrm(false);
+        return;
+      }
+
+      // 3. Salvar de volta na API do CRM
+      const updateRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          uid: auth.currentUser?.uid || '',
+          email: auth.currentUser?.email || '',
+          fidelitySettings: {
+            ...fid,
+            crmClients: currentCrmClients
+          }
+        })
+      });
+
+      if (!updateRes.ok) {
+        throw new Error('Erro ao atualizar nome no CRM.');
+      }
+
+      setCrmClientsList(currentCrmClients);
+      toast.success(`Nome do cliente atualizado para "${newClientName.trim()}" com sucesso!`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao atualizar dados do cliente.');
+    } finally {
+      setIsSyncingCrm(false);
+    }
+  };
+
   useEffect(() => {
     let unsubProfile: (() => void) | undefined;
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -4262,29 +4338,60 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                   {/* Catálogo de Clientes no CRM */}
                   {editingAppointmentId && !isBlocking && (() => {
                     const cleanPhone = newClientPhone.replace(/\D/g, '');
-                    const isClientInCrm = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+                    const existingCrmClient = crmClientsList.find(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
 
-                    if (isClientInCrm) {
-                      return (
-                        <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center justify-between text-left mt-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
-                              <Check size={12} className="stroke-[3]" />
+                    if (existingCrmClient) {
+                      const namesMatch = existingCrmClient.name.trim().toLowerCase() === newClientName.trim().toLowerCase();
+                      if (namesMatch) {
+                        return (
+                          <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center justify-between text-left mt-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                <Check size={12} className="stroke-[3]" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-white leading-none">Cliente Cadastrado no CRM</p>
+                                <p className="text-[9px] text-gray-500 mt-0.5">Este contato já faz parte do seu catálogo de clientes.</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-white leading-none">Cliente Cadastrado no CRM</p>
-                              <p className="text-[9px] text-gray-500 mt-0.5">Este contato já faz parte do seu catálogo de clientes.</p>
-                            </div>
+                            <button
+                              type="button"
+                              disabled
+                              className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold opacity-60 flex items-center gap-1 cursor-default border-0"
+                            >
+                              Cadastrado
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            disabled
-                            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold opacity-60 flex items-center gap-1 cursor-default border-0"
-                          >
-                            Cadastrado
-                          </button>
-                        </div>
-                      );
+                        );
+                      } else {
+                        return (
+                          <div className="p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center justify-between text-left mt-3">
+                            <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                              <div className="w-6 h-6 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle size={12} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-bold text-white leading-none">Telefone já cadastrado no CRM</p>
+                                <p className="text-[9px] text-gray-500 mt-1 leading-normal">
+                                  Cadastrado como <strong className="text-gray-300">"{existingCrmClient.name}"</strong>. Deseja atualizar para <strong className="text-amber-400">"{newClientName}"</strong>?
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={isSyncingCrm}
+                              onClick={handleUpdateClientNameInCrm}
+                              className="px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-600/50 text-black rounded-xl text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer border-0 active:scale-95 flex-shrink-0"
+                            >
+                              {isSyncingCrm ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-black"></div>
+                              ) : (
+                                "Atualizar Nome"
+                              )}
+                            </button>
+                          </div>
+                        );
+                      }
                     }
 
                     return (
