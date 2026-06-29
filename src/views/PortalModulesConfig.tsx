@@ -19,6 +19,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
       management: true,
       management_pos: true,
       management_calc: true,
+      management_rentals: true,
       growth: true,
       clients: true,
       clients_fidelity: true,
@@ -40,6 +41,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     if (key === 'management' && !newValue) {
       newActiveModules.management_pos = false;
       newActiveModules.management_calc = false;
+      newActiveModules.management_rentals = false;
     }
     if (key === 'agenda' && !newValue) {
       newActiveModules.agenda_public = false;
@@ -54,6 +56,7 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
     // E se o filho for ativado? Garante que o pai esteja ativado
     if (key === 'management_pos' && newValue) newActiveModules.management = true;
     if (key === 'management_calc' && newValue) newActiveModules.management = true;
+    if (key === 'management_rentals' && newValue) newActiveModules.management = true;
     if (key === 'agenda_public' && newValue) newActiveModules.agenda = true;
     if (key === 'agenda_pix' && newValue) newActiveModules.agenda = true;
     if (key === 'clients_fidelity' && newValue) newActiveModules.clients = true;
@@ -187,6 +190,12 @@ export default function PortalModulesConfig({ userProfile }: PortalModulesConfig
                     onChange={() => toggleModule('management_calc')}
                     label="🧮 Calculadora de Orçamentos"
                     description="Ferramenta de precificação dinâmica para simular custos de produção e propor preços de venda."
+                  />
+                  <CustomSwitch
+                    checked={modulesConfig?.activeModules?.management_rentals !== false}
+                    onChange={() => toggleModule('management_rentals')}
+                    label="🏠 Gestão de Aluguel por Temporada & Itens"
+                    description="Permite cadastrar imóveis, salões, brinquedos e outros itens locáveis e gerenciar suas regras e informações de acesso."
                   />
                 </div>
               )}

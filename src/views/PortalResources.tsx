@@ -1,0 +1,457 @@
+import React, { useState, useEffect } from 'react';
+import { db } from '../lib/firebase';
+import { 
+  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy 
+} from 'firebase/firestore';
+import { 
+  Plus, Edit2, Trash2, X, Check, AlertCircle, Home, Building2, Wrench, FileText, Wifi
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface PortalResourcesProps {
+  orgId: string;
+  clientId: string;
+}
+
+export default function PortalResources({ orgId }: PortalResourcesProps) {
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estados do Modal / Formulário
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingResource, setEditingResource] = useState<any | null>(null);
+
+  // Campos do Formulário
+  const [name, setName] = useState('');
+  const [type, setType] = useState('property');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [wifiName, setWifiName] = useState('');
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [accessInstructions, setAccessInstructions] = useState('');
+
+  // Modal de Confirmação para deletar
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string }>({
+    isOpen: false,
+    id: ''
+  });
+
+  // Escuta os recursos cadastrados no Firestore
+  useEffect(() => {
+    if (!orgId) return;
+
+    const resourcesRef = collection(db, 'organizations', orgId, 'resources');
+    const q = query(resourcesRef, orderBy('createdAt', 'desc'));
+
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setResources(list);
+      setLoading(false);
+    }, (error) => {
+      console.error("Erro ao carregar recursos:", error);
+      toast.error("Erro ao carregar os itens locáveis.");
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, [orgId]);
+
+  const openModal = (resource: any = null) => {
+    setEditingResource(resource);
+    if (resource) {
+      setName(resource.name || '');
+      setType(resource.type || 'property');
+      setDescription(resource.description || '');
+      setPrice(resource.price ? resource.price.toString() : '');
+      setWifiName(resource.wifiName || '');
+      setWifiPassword(resource.wifiPassword || '');
+      setAccessInstructions(resource.accessInstructions || '');
+    } else {
+      setName('');
+      setType('property');
+      setDescription('');
+      setPrice('');
+      setWifiName('');
+      setWifiPassword('');
+      setAccessInstructions('');
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error("O nome do item é obrigatório.");
+      return;
+    }
+
+    setIsSaving(true);
+    const parsedPrice = parseFloat(price.replace(',', '.')) || 0;
+
+    const resourceData = {
+      name: name.trim(),
+      type,
+      description: description.trim(),
+      price: parsedPrice,
+      wifiName: wifiName.trim(),
+      wifiPassword: wifiPassword.trim(),
+      accessInstructions: accessInstructions.trim(),
+      updatedAt: serverTimestamp()
+    };
+
+    try {
+      if (editingResource) {
+        // Atualiza item existente
+        const docRef = doc(db, 'organizations', orgId, 'resources', editingResource.id);
+        await updateDoc(docRef, resourceData);
+        toast.success("Item locável atualizado com sucesso!");
+      } else {
+        // Cria novo item
+        const colRef = collection(db, 'organizations', orgId, 'resources');
+        await addDoc(colRef, {
+          ...resourceData,
+          createdAt: serverTimestamp()
+        });
+        toast.success("Item locável cadastrado com sucesso!");
+      }
+      setIsModalOpen(false);
+      setEditingResource(null);
+    } catch (error) {
+      console.error("Erro ao salvar recurso:", error);
+      toast.error("Erro ao salvar as informações do item.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const executeDelete = async (id: string) => {
+    try {
+      const docRef = doc(db, 'organizations', orgId, 'resources', id);
+      await deleteDoc(docRef);
+      toast.success("Item removido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao deletar recurso:", error);
+      toast.error("Erro ao remover o item.");
+    } finally {
+      setDeleteConfirm({ isOpen: false, id: '' });
+    }
+  };
+
+  const getIcon = (resourceType: string) => {
+    switch (resourceType) {
+      case 'property':
+        return <Home size={18} className="text-purple-400" />;
+      case 'space':
+        return <Building2 size={18} className="text-blue-400" />;
+      case 'equipment':
+        return <Wrench size={18} className="text-emerald-400" />;
+      default:
+        return <FileText size={18} className="text-amber-400" />;
+    }
+  };
+
+  const getLabelType = (resourceType: string) => {
+    switch (resourceType) {
+      case 'property': return 'Imóvel / Temporada';
+      case 'space': return 'Salão / Espaço';
+      case 'equipment': return 'Equipamento / Brinquedo';
+      default: return 'Outros';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Topo informativo */}
+      <div className="flex justify-between items-center">
+        <div className="text-left">
+          <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+            Itens e Recursos Cadastrados ({resources.length})
+          </h4>
+          <p className="text-gray-500 text-xs mt-1">
+            Cadastre os itens locados aos clientes para associar regras, valores e instruções de acesso.
+          </p>
+        </div>
+        <button
+          onClick={() => openModal()}
+          className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 border-0 cursor-pointer shadow-lg shadow-primary-500/10"
+        >
+          <Plus size={14} /> Adicionar Item
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="p-12 text-center text-gray-500 text-xs">Carregando itens...</div>
+      ) : resources.length === 0 ? (
+        <div className="p-16 border border-dashed border-white/5 rounded-[2rem] text-center space-y-4 bg-white/[0.01]">
+          <Home size={36} className="mx-auto text-gray-700 font-light" />
+          <div className="space-y-1">
+            <p className="text-xs text-gray-400 font-bold">Nenhum item cadastrado ainda.</p>
+            <p className="text-[11px] text-gray-600">Cadastre casas, salões ou brinquedos de festa para gerenciar reservas.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {resources.map((resource) => (
+            <div 
+              key={resource.id} 
+              className="bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-3xl p-5 flex flex-col justify-between gap-4 text-left transition-all"
+            >
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center">
+                      {getIcon(resource.type)}
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-white uppercase tracking-wide truncate max-w-[150px]">{resource.name}</h5>
+                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block mt-0.5">
+                        {getLabelType(resource.type)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openModal(resource)}
+                      className="p-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border-0 cursor-pointer"
+                      title="Editar Item"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm({ isOpen: true, id: resource.id })}
+                      className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border-0 cursor-pointer"
+                      title="Excluir Item"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                {resource.description && (
+                  <p className="text-[11px] text-gray-400 line-clamp-2 leading-relaxed">
+                    {resource.description}
+                  </p>
+                )}
+
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Preço Base</span>
+                  <span className="text-xs font-black text-white">
+                    R$ {Number(resource.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {(resource.wifiName || resource.accessInstructions) && (
+                  <div className="pt-2 border-t border-white/5 space-y-1">
+                    <span className="text-[8px] font-black text-primary-400 uppercase tracking-widest block">Manual & Instruções</span>
+                    {resource.wifiName && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                        <Wifi size={10} className="text-gray-500" />
+                        <span>Wi-Fi: <strong>{resource.wifiName}</strong></span>
+                      </div>
+                    )}
+                    {resource.accessInstructions && (
+                      <p className="text-[9px] text-gray-500 truncate italic">
+                        Instr: {resource.accessInstructions}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal de Cadastro / Edição de Recurso */}
+      {isModalOpen && (
+        <div 
+          onClick={() => {
+            setIsModalOpen(false);
+            setEditingResource(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Home className="text-primary-400" size={18} />
+                  {editingResource ? 'Editar Item Locável' : 'Cadastrar Item Locável'}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Adicione ou edite detalhes do imóvel ou recurso para aluguel.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingResource(null);
+                }}
+                className="p-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all cursor-pointer border-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nome do Item / Recurso</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Apartamento 101, Chácara Recanto, Cama Elástica..."
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tipo</label>
+                    <select
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
+                    >
+                      <option value="property">🏠 Imóvel</option>
+                      <option value="space">🏢 Salão / Espaço</option>
+                      <option value="equipment">⚙️ Equipamento</option>
+                      <option value="other">📦 Outros</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Preço Base (R$)</label>
+                    <input
+                      type="text"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="Ex: 250,00"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição / Regras</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Descrição geral, limites de hóspedes, regras de som, horários..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
+                  />
+                </div>
+
+                {/* Sub-seção de manuais de acesso / Wi-Fi */}
+                <div className="p-4 bg-black/30 border border-white/5 rounded-2xl space-y-3 text-left">
+                  <span className="text-[9px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                    Guia de Acesso do Hóspede (Opcional)
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Nome da Rede Wi-Fi</label>
+                      <input
+                        type="text"
+                        value={wifiName}
+                        onChange={(e) => setWifiName(e.target.value)}
+                        placeholder="Ex: WiFi_Casa_Praia"
+                        className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Senha do Wi-Fi</label>
+                      <input
+                        type="text"
+                        value={wifiPassword}
+                        onChange={(e) => setWifiPassword(e.target.value)}
+                        placeholder="Ex: 12345678"
+                        className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Instruções de Acesso / Chaves</label>
+                    <textarea
+                      value={accessInstructions}
+                      onChange={(e) => setAccessInstructions(e.target.value)}
+                      placeholder="Senha do cofre de chaves, senha da fechadura eletrônica, instruções de montagem..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-3 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingResource(null);
+                  }}
+                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 py-3 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/40 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary-500/10 cursor-pointer border-0"
+                >
+                  <Check size={14} />
+                  {editingResource ? 'Salvar Alterações' : 'Adicionar Item'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-5 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-white">Excluir Item</h3>
+              <p className="text-xs text-gray-400">
+                Tem certeza que deseja excluir as informações deste recurso?
+                Esta ação é definitiva e removerá o item da lista de locações.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ isOpen: false, id: '' })}
+                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDelete(deleteConfirm.id)}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

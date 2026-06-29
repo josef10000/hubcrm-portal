@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Calculator, Briefcase, ChevronDown, ShoppingCart } from 'lucide-react';
+import { Package, Calculator, Briefcase, ChevronDown, ShoppingCart, Home } from 'lucide-react';
 import PortalInventory from '../components/PortalInventory';
 import PortalCalculator from '../components/PortalCalculator';
 import PortalPOS from './PortalPOS';
+import PortalResources from './PortalResources';
 import { db, auth } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -14,7 +15,7 @@ interface PortalManagementProps {
 }
 
 export default function PortalManagement({ orgId, clientId }: PortalManagementProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'pos' | 'calculator'>('inventory');
+  const [activeSubTab, setActiveSubTab] = useState<'inventory' | 'pos' | 'calculator' | 'rentals'>('inventory');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Escuta modulesConfig do profissional no seu profiles do Firestore
@@ -48,6 +49,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
     const active = modulesConfig.activeModules;
     if (subTabId === 'pos') return active.management_pos !== false;
     if (subTabId === 'calculator') return active.management_calc !== false;
+    if (subTabId === 'rentals') return active.management_rentals !== false;
     return true;
   };
 
@@ -62,7 +64,8 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
   const subTabs = [
     { id: 'inventory', label: 'Estoque & Produtos', icon: Package },
     ...(isSubTabActive('pos') ? [{ id: 'pos', label: 'Caixa Rápido (PDV)', icon: ShoppingCart }] : []),
-    ...(isSubTabActive('calculator') ? [{ id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }] : [])
+    ...(isSubTabActive('calculator') ? [{ id: 'calculator', label: 'Calculadora de Orçamentos', icon: Calculator }] : []),
+    ...(isSubTabActive('rentals') ? [{ id: 'rentals', label: 'Itens Locáveis (Recursos)', icon: Home }] : [])
   ];
 
   return (
@@ -93,7 +96,8 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
             {(() => {
               if (activeSubTab === 'inventory') return <Package size={18} />;
               if (activeSubTab === 'pos') return <ShoppingCart size={18} />;
-              return <Calculator size={18} />;
+              if (activeSubTab === 'calculator') return <Calculator size={18} />;
+              return <Home size={18} />;
             })()}
           </div>
           <span>
@@ -101,7 +105,9 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
               ? 'Estoque & Produtos' 
               : activeSubTab === 'pos' 
                 ? 'Caixa Rápido (PDV)' 
-                : 'Calculadora de Orçamentos'}
+                : activeSubTab === 'calculator'
+                  ? 'Calculadora de Orçamentos'
+                  : 'Itens Locáveis (Recursos)'}
           </span>
           <ChevronDown 
             size={16} 
@@ -162,6 +168,23 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
                   Calculadora de Orçamentos
                 </button>
               )}
+              {isSubTabActive('rentals') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSubTab('rentals');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full px-4 py-3.5 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-colors cursor-pointer border-0 ${
+                    activeSubTab === 'rentals' 
+                      ? 'bg-primary-500/15 text-primary-400 font-black' 
+                      : 'text-gray-400 hover:bg-primary-500/10 hover:text-primary-400'
+                  }`}
+                >
+                  <Home size={16} className={activeSubTab === 'rentals' ? 'text-primary-400' : 'text-gray-500'} />
+                  Itens Locáveis (Recursos)
+                </button>
+              )}
             </div>
           </>
         )}
@@ -175,7 +198,7 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveSubTab(tab.id as 'inventory' | 'pos' | 'calculator')}
+              onClick={() => setActiveSubTab(tab.id as 'inventory' | 'pos' | 'calculator' | 'rentals')}
               className={`
                 flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-bold transition-all whitespace-nowrap relative
                 ${isActive 
@@ -214,6 +237,9 @@ export default function PortalManagement({ orgId, clientId }: PortalManagementPr
             )}
             {activeSubTab === 'calculator' && (
               <PortalCalculator orgId={orgId} />
+            )}
+            {activeSubTab === 'rentals' && (
+              <PortalResources orgId={orgId} clientId={clientId} />
             )}
           </motion.div>
         </AnimatePresence>
