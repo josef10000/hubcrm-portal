@@ -298,7 +298,17 @@ export default function PortalRentalContract() {
               4. Do Valor e Condições
             </h3>
             <p>
-              Pelo período de ocupação e uso do objeto locado, o LOCATÁRIO pagará a quantia total acordada de <strong>R$ {appointment.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>.
+              Pelo período de ocupação e uso do objeto locado, o LOCATÁRIO pagará a quantia total acordada de <strong>R$ {appointment.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              {resource?.price && (
+                <span className="text-gray-400 print:text-black">
+                  {' '}(com base na tarifa de R$ {resource.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {resource.priceType === 'daily' && ' por diária'}
+                  {resource.priceType === 'hourly' && ' por hora'}
+                  {resource.priceType === 'event' && ' por evento'}
+                  {resource.priceType === 'fixed' && ' de valor fixo'}
+                  )
+                </span>
+              )}.
             </p>
             <p>
               O valor supra abrange as taxas de consumo e impostos do respectivo período de uso do recurso locável, salvo outras despesas combinadas diretamente entre as partes.

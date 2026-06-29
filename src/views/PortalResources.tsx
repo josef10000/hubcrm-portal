@@ -32,6 +32,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
   const [wifiName, setWifiName] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
   const [accessInstructions, setAccessInstructions] = useState('');
+  const [priceType, setPriceType] = useState('daily');
 
   // Estados para Modal do Guia / QR Code
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       setWifiName(resource.wifiName || '');
       setWifiPassword(resource.wifiPassword || '');
       setAccessInstructions(resource.accessInstructions || '');
+      setPriceType(resource.priceType || 'daily');
     } else {
       setName('');
       setType('property');
@@ -87,6 +89,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       setWifiName('');
       setWifiPassword('');
       setAccessInstructions('');
+      setPriceType('daily');
     }
     setIsModalOpen(true);
   };
@@ -107,6 +110,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
       description: description.trim(),
       rules: rules.trim(),
       price: parsedPrice,
+      priceType,
       wifiName: wifiName.trim(),
       wifiPassword: wifiPassword.trim(),
       accessInstructions: accessInstructions.trim(),
@@ -338,6 +342,10 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                   <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Preço Base</span>
                   <span className="text-xs font-black text-white">
                     R$ {Number(resource.price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {resource.priceType === 'daily' && ' / dia'}
+                    {resource.priceType === 'hourly' && ' / hora'}
+                    {resource.priceType === 'event' && ' / evento'}
+                    {resource.priceType === 'fixed' && ' / fixo'}
                   </span>
                 </div>
 
@@ -370,11 +378,11 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
             setIsModalOpen(false);
             setEditingResource(null);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto custom-scrollbar"
+            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[82vh] overflow-y-auto pb-6 custom-scrollbar"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -411,18 +419,18 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-1">
                     <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tipo</label>
                     <select
                       value={type}
                       onChange={(e) => setType(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
+                      className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
                     >
                       <option value="property">🏠 Imóvel</option>
-                      <option value="space">🏢 Salão / Espaço</option>
+                      <option value="space">🏢 Salão</option>
                       <option value="equipment">⚙️ Equipamento</option>
-                      <option value="other">📦 Outros</option>
+                      <option value="other">📦 Outro</option>
                     </select>
                   </div>
 
@@ -433,8 +441,22 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="Ex: 250,00"
-                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                      className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cobrança</label>
+                    <select
+                      value={priceType}
+                      onChange={(e) => setPriceType(e.target.value)}
+                      className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
+                    >
+                      <option value="daily">📅 Diária</option>
+                      <option value="hourly">⏱️ Hora</option>
+                      <option value="event">🎉 Evento</option>
+                      <option value="fixed">📦 Fixo</option>
+                    </select>
                   </div>
                 </div>
 
