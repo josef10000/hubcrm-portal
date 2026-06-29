@@ -8,7 +8,7 @@ import {
 import { 
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
   Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight, Upload, Loader2,
-  Home, Briefcase, FileText
+  Home, Briefcase, FileText, Users, UserPlus
 } from 'lucide-react';
 import { Offer, Client } from '../types';
 import { toast } from 'sonner';
@@ -485,6 +485,87 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   // Estados locais do CRM para unificação automática de clientes
   const [crmClientsList, setCrmClientsList] = useState<any[]>([]);
   const [fidelitySettingsObj, setFidelitySettingsObj] = useState<any>({});
+  const [isSyncingCrm, setIsSyncingCrm] = useState(false);
+
+  const handleAddToCrm = async () => {
+    if (isSyncingCrm) return;
+    setIsSyncingCrm(true);
+    try {
+      const cleanPhone = newClientPhone.replace(/\D/g, '');
+      if (!cleanPhone) {
+        toast.error("Telefone inválido para cadastrar no CRM.");
+        setIsSyncingCrm(false);
+        return;
+      }
+
+      const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+      const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+      // 1. Buscar a lista atualizada de clientes da API do CRM
+      const getRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_client', orgId, clientId, token })
+      });
+
+      if (!getRes.ok) {
+        throw new Error('Falha ao buscar dados atuais do CRM.');
+      }
+
+      const getData = await getRes.json();
+      const clientData = getData.client || getData || {};
+      const fid = clientData.fidelitySettings || {};
+      const currentCrmClients = fid.crmClients || [];
+
+      // 2. Verificar se já existe
+      const exists = currentCrmClients.some((c: any) => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+      if (exists) {
+        toast.info("Cliente já cadastrado no CRM!");
+        setCrmClientsList(currentCrmClients);
+        setIsSyncingCrm(false);
+        return;
+      }
+
+      // 3. Adicionar o novo cliente
+      const newClientObj = {
+        id: `client-${Date.now()}`,
+        name: newClientName.trim(),
+        phone: newClientPhone.trim(),
+        email: newClientEmail.trim()
+      };
+      const updatedClients = [...currentCrmClients, newClientObj];
+
+      // 4. Salvar de volta na API do CRM
+      const updateRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_client',
+          orgId,
+          clientId,
+          token,
+          uid: auth.currentUser?.uid || '',
+          email: auth.currentUser?.email || '',
+          fidelitySettings: {
+            ...fid,
+            crmClients: updatedClients
+          }
+        })
+      });
+
+      if (!updateRes.ok) {
+        throw new Error('Erro ao salvar novo cliente no CRM.');
+      }
+
+      setCrmClientsList(updatedClients);
+      toast.success("Cliente adicionado ao catálogo do CRM com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Erro ao adicionar cliente ao CRM.');
+    } finally {
+      setIsSyncingCrm(false);
+    }
+  };
 
   useEffect(() => {
     let unsubProfile: (() => void) | undefined;
@@ -4177,6 +4258,64 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       })()}
                     </div>
                   )}
+
+                  {/* Catálogo de Clientes no CRM */}
+                  {editingAppointmentId && !isBlocking && (() => {
+                    const cleanPhone = newClientPhone.replace(/\D/g, '');
+                    const isClientInCrm = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+
+                    if (isClientInCrm) {
+                      return (
+                        <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center justify-between text-left mt-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                              <Check size={12} className="stroke-[3]" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-white leading-none">Cliente Cadastrado no CRM</p>
+                              <p className="text-[9px] text-gray-500 mt-0.5">Este contato já faz parte do seu catálogo de clientes.</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled
+                            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold opacity-60 flex items-center gap-1 cursor-default border-0"
+                          >
+                            Cadastrado
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="p-3.5 bg-purple-500/5 border border-purple-500/10 rounded-2xl flex items-center justify-between text-left mt-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
+                            <Users size={12} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-white leading-none">Cliente fora do CRM</p>
+                            <p className="text-[9px] text-gray-500 mt-0.5">Adicione este contato ao catálogo para gerenciar prontuário e histórico.</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isSyncingCrm}
+                          onClick={handleAddToCrm}
+                          className="px-3.5 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-600/50 text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1.5 cursor-pointer border-0 active:scale-95 flex-shrink-0"
+                        >
+                          {isSyncingCrm ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                          ) : (
+                            <>
+                              <UserPlus size={11} />
+                              <span>Adicionar ao CRM</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
