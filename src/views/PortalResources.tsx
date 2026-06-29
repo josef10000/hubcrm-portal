@@ -39,6 +39,10 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
   const [selectedGuideResource, setSelectedGuideResource] = useState<any | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
+
   // Modal de Confirmação para deletar
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string }>({
     isOpen: false,
@@ -58,6 +62,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
         ...doc.data()
       }));
       setResources(list);
+      setCurrentPage(1);
       setLoading(false);
     }, (error) => {
       console.error("Erro ao carregar recursos:", error);
@@ -253,6 +258,12 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
     }
   };
 
+  // Paginação lógica
+  const totalPages = Math.ceil(resources.length / ITEMS_PER_PAGE);
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentItems = resources.slice(indexOfFirstItem, indexOfLastItem);
+
   return (
     <div className="space-y-6">
       {/* Topo informativo */}
@@ -284,11 +295,12 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {resources.map((resource) => (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 justify-center">
+          {currentItems.map((resource) => (
             <div 
               key={resource.id} 
-              className="bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-3xl p-5 flex flex-col justify-between gap-4 text-left transition-all"
+              className="bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-3xl p-5 flex flex-col justify-between gap-4 text-left transition-all max-w-[350px] w-full mx-auto"
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
@@ -297,7 +309,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                       {getIcon(resource.type)}
                     </div>
                     <div>
-                      <h5 className="text-sm font-black text-white uppercase tracking-wide truncate max-w-[150px]">{resource.name}</h5>
+                      <h5 className="text-sm font-black text-white uppercase tracking-wide truncate max-w-[140px]">{resource.name}</h5>
                       <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block mt-0.5">
                         {getLabelType(resource.type)}
                       </span>
@@ -369,6 +381,29 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-3 pt-6 animate-in fade-in duration-200">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3.5 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 border border-white/10 text-gray-300 hover:text-white disabled:hover:bg-white/5 disabled:hover:text-gray-300 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed border-0"
+            >
+              Anterior
+            </button>
+            <span className="text-xs text-gray-500 font-bold tracking-wider">
+              Página <span className="text-gray-300">{currentPage}</span> de <span className="text-gray-300">{totalPages}</span>
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3.5 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 border border-white/10 text-gray-300 hover:text-white disabled:hover:bg-white/5 disabled:hover:text-gray-300 text-xs font-bold rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed border-0"
+            >
+              Próxima
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* Modal de Cadastro / Edição de Recurso */}
