@@ -374,48 +374,55 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
       // Sincronização automática do cliente com a aba Clientes (CRM)
       if (!isBlocking) {
-        const cleanPhone = newClientPhone.replace(/\D/g, '');
-        if (cleanPhone) {
-          const clientExists = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
-          if (!clientExists) {
-            const newClientObj = {
-              id: `client-${Date.now()}`,
-              name: newClientName.trim(),
-              phone: newClientPhone.trim(),
-              email: newClientEmail.trim()
-            };
-            const updatedClients = [...crmClientsList, newClientObj];
-            
-            // Sincroniza via Firestore diretamente
-            const clientsDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
-            await updateDoc(clientsDocRef, {
-              'fidelitySettings.crmClients': updatedClients
-            });
-            
-            // Também sincroniza com API do crm
-            try {
-              const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-              const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-              await fetch(`${crmApiUrl}/api/portal_handler`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'update_client',
-                  orgId,
-                  clientId,
-                  token,
-                  uid: auth.currentUser?.uid || '',
-                  email: auth.currentUser?.email || '',
-                  fidelitySettings: {
-                    ...fidelitySettingsObj,
-                    crmClients: updatedClients
-                  }
-                })
-              });
-            } catch (apiErr) {
-              console.warn('[PortalAgenda] Erro ao sincronizar novo cliente via API externa:', apiErr);
+        try {
+          const cleanPhone = newClientPhone.replace(/\D/g, '');
+          if (cleanPhone) {
+            const clientExists = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+            if (!clientExists) {
+              const newClientObj = {
+                id: `client-${Date.now()}`,
+                name: newClientName.trim(),
+                phone: newClientPhone.trim(),
+                email: newClientEmail.trim()
+              };
+              const updatedClients = [...crmClientsList, newClientObj];
+              
+              // Sincroniza via Firestore com setDoc (cria o documento se não existir)
+              const clientsDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
+              await setDoc(clientsDocRef, {
+                fidelitySettings: {
+                  ...fidelitySettingsObj,
+                  crmClients: updatedClients
+                }
+              }, { merge: true });
+              
+              // Também sincroniza com API do crm
+              try {
+                const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+                const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+                await fetch(`${crmApiUrl}/api/portal_handler`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'update_client',
+                    orgId,
+                    clientId,
+                    token,
+                    uid: auth.currentUser?.uid || '',
+                    email: auth.currentUser?.email || '',
+                    fidelitySettings: {
+                      ...fidelitySettingsObj,
+                      crmClients: updatedClients
+                    }
+                  })
+                });
+              } catch (apiErr) {
+                console.warn('[PortalAgenda] Erro ao sincronizar novo cliente via API externa:', apiErr);
+              }
             }
           }
+        } catch (crmErr) {
+          console.warn('[PortalAgenda] Erro ao processar sincronização automática de cliente no CRM:', crmErr);
         }
       }
 
