@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy 
+  collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc 
 } from 'firebase/firestore';
 import { 
   Plus, Edit2, Trash2, X, Check, AlertCircle, Home, Building2, Wrench, FileText, Wifi,
@@ -48,6 +48,28 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
     isOpen: false,
     id: ''
   });
+
+  // Estados para Minuta do Contrato Customizada
+  const [templateText, setTemplateText] = useState('');
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // Carrega template da minuta do contrato da organização
+  useEffect(() => {
+    if (!orgId) return;
+    async function loadOrgTemplate() {
+      try {
+        const orgRef = doc(db, 'organizations', orgId);
+        const orgSnap = await getDoc(orgRef);
+        if (orgSnap.exists()) {
+          setTemplateText(orgSnap.data().rentalContractTemplate || '');
+        }
+      } catch (err) {
+        console.error("Erro ao carregar template do contrato:", err);
+      }
+    }
+    loadOrgTemplate();
+  }, [orgId]);
 
   // Escuta os recursos cadastrados no Firestore
   useEffect(() => {
@@ -236,6 +258,22 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const handleSaveTemplate = async () => {
+    if (!orgId) return;
+    setIsSavingTemplate(true);
+    try {
+      const orgRef = doc(db, 'organizations', orgId);
+      await updateDoc(orgRef, { rentalContractTemplate: templateText });
+      toast.success("Minuta do contrato salva com sucesso!");
+      setIsTemplateModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar a minuta do contrato.");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   const getIcon = (resourceType: string) => {
     switch (resourceType) {
       case 'property':
@@ -276,12 +314,21 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
             Cadastre os itens locados aos clientes para associar regras, valores e instruções de acesso.
           </p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 border-0 cursor-pointer shadow-lg shadow-primary-500/10"
-        >
-          <Plus size={14} /> Adicionar Item
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer border-0"
+          >
+            <FileText size={14} /> Minuta do Contrato
+          </button>
+          <button
+            onClick={() => openModal()}
+            className="px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 border-0 cursor-pointer shadow-lg shadow-primary-500/10"
+          >
+            <Plus size={14} /> Adicionar Item
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -711,6 +758,92 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
                 <ExternalLink size={14} />
                 Visualizar Guia
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Minuta do Contrato */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-3xl w-full max-h-[88vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300 text-left flex flex-col">
+            <button
+              onClick={() => setIsTemplateModalOpen(false)}
+              className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <FileText size={20} className="text-primary-400" />
+                Minuta do Contrato de Locação
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Escreva o modelo geral de contrato de locação por temporada. O hóspede assinará digitalmente este termo.
+              </p>
+            </div>
+
+            <div className="space-y-4 flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col space-y-1 min-h-[300px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Texto do Contrato (Suporta tags dinâmicas)</label>
+                <textarea
+                  value={templateText}
+                  onChange={(e) => setTemplateText(e.target.value)}
+                  className="flex-1 w-full p-4 bg-black/40 border border-white/10 text-gray-300 rounded-2xl text-xs outline-none focus:border-primary-500 font-mono resize-none leading-relaxed"
+                  placeholder="Escreva os termos do contrato aqui..."
+                />
+              </div>
+
+              {/* Legenda de Tags */}
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-2">
+                <span className="text-[9px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                  💡 Marcadores Dinâmicos (Tags)
+                </span>
+                <p className="text-[10px] text-gray-500 leading-normal">
+                  Insira estes termos no contrato para que o sistema substitua automaticamente com os dados reais da reserva:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-[10px] font-mono text-gray-400">
+                  <div><span className="text-primary-400">{`{cliente}`}</span>: Nome do hóspede</div>
+                  <div><span className="text-primary-400">{`{documento}`}</span>: CPF do hóspede</div>
+                  <div><span className="text-primary-400">{`{recurso}`}</span>: Nome do imóvel</div>
+                  <div><span className="text-primary-400">{`{checkin}`}</span>: Entrada (data)</div>
+                  <div><span className="text-primary-400">{`{checkout}`}</span>: Saída (data)</div>
+                  <div><span className="text-primary-400">{`{valor}`}</span>: Valor da estadia</div>
+                  <div><span className="text-primary-400">{`{anfitriao}`}</span>: Nome da empresa</div>
+                  <div><span className="text-primary-400">{`{regras}`}</span>: Regras do imóvel</div>
+                  <div><span className="text-primary-400">{`{wifi}`}</span>: Nome da rede Wi-Fi</div>
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveTemplate}
+                  disabled={isSavingTemplate}
+                  className="flex-1 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-600/50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-primary-500/10 flex items-center justify-center gap-2 cursor-pointer border-0"
+                >
+                  {isSavingTemplate ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Salvar Minuta</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ import {
 import { 
   Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Check, X, Phone, DollarSign, Settings, Scissors, AlertTriangle, ChevronDown,
   Globe, Link, Instagram, Youtube, Facebook, Gift, Copy, ExternalLink, Eye, Award, Sparkles, ChevronLeft, ChevronRight, Upload, Loader2,
-  Home, Briefcase
+  Home, Briefcase, FileText
 } from 'lucide-react';
 import { Offer, Client } from '../types';
 import { toast } from 'sonner';
@@ -1867,6 +1867,21 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto md:justify-end">
                           {app.serviceId !== 'bloqueio' && (
                             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                              {app.resourceId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const contractUrl = `${window.location.origin}/contrato/${orgId}/${app.id}`;
+                                    navigator.clipboard.writeText(contractUrl);
+                                    toast.success("Link do contrato de locação copiado!");
+                                  }}
+                                  className="flex-1 sm:flex-initial justify-center p-2.5 bg-emerald-600/10 hover:bg-emerald-600/25 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border-0"
+                                  title="Copiar link do contrato de locação"
+                                >
+                                  <FileText size={14} />
+                                  <span>Link Contrato</span>
+                                </button>
+                              )}
                               {app.clientPhone && (app.status === 'created' || app.status === 'pending') && (
                                 <button
                                   onClick={() => handleOpenWhatsAppModal(app)}
@@ -2085,6 +2100,21 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                                       <X size={12} />
                                     </button>
                                   </>
+                                )}
+
+                                {app.resourceId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const contractUrl = `${window.location.origin}/contrato/${orgId}/${app.id}`;
+                                      navigator.clipboard.writeText(contractUrl);
+                                      toast.success("Link do contrato de locação copiado!");
+                                    }}
+                                    className="p-2 bg-emerald-600/10 hover:bg-emerald-600/25 border border-emerald-500/20 text-emerald-400 rounded-lg transition-all cursor-pointer border-0"
+                                    title="Copiar link do contrato de locação"
+                                  >
+                                    <FileText size={12} />
+                                  </button>
                                 )}
 
                                 <button

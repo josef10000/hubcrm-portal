@@ -97,7 +97,7 @@ export default function PortalClients({ orgId, clientId, client, userProfile }: 
   useEffect(() => {
     if (!orgId) return;
     const ref = collection(db, 'organizations', orgId, 'appointments');
-    const q = query(ref, orderBy('time', 'asc'));
+    const q = query(ref);
     const unsub = onSnapshot(q, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setAppointments(list);

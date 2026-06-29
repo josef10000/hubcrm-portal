@@ -155,6 +155,31 @@ export default function PortalRentalContract() {
   const checkinDateFormatted = appointment.date ? new Date(`${appointment.date}T00:00:00`).toLocaleDateString('pt-BR') : '';
   const checkoutDateFormatted = appointment.checkoutDate ? new Date(`${appointment.checkoutDate}T00:00:00`).toLocaleDateString('pt-BR') : '';
 
+  const getCustomContractHtml = () => {
+    if (!organization?.rentalContractTemplate) return '';
+    
+    let text = organization.rentalContractTemplate;
+    
+    const replacements: { [key: string]: string } = {
+      '{cliente}': fullName || appointment.clientName || '',
+      '{documento}': documentNumber || appointment.contractSignedDocument || 'Não informado',
+      '{recurso}': resource?.name || 'Imóvel/Recurso',
+      '{checkin}': checkinDateFormatted,
+      '{checkout}': checkoutDateFormatted,
+      '{valor}': `R$ ${appointment.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      '{anfitriao}': organization?.name || 'Anfitrião',
+      '{regras}': resource?.rules || 'Sem regras cadastradas',
+      '{wifi}': resource?.wifiName ? `${resource.wifiName} (Senha: ${resource.wifiPassword || 'sem senha'})` : 'Não informado'
+    };
+
+    Object.keys(replacements).forEach(key => {
+      const regex = new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+      text = text.replace(regex, replacements[key]);
+    });
+
+    return text;
+  };
+
   // WhatsApp de suporte
   const phoneClean = (organization?.phone || '').replace(/\D/g, '');
   const supportText = `Olá! Sou hóspede na propriedade *${resource?.name || 'Imóvel'}* e preciso de suporte com meu contrato.`;
@@ -240,94 +265,101 @@ export default function PortalRentalContract() {
 
         {/* Corpo do Contrato (Papel do Contrato - Branco no PDF) */}
         <div className="bg-[#0b0c10] border border-white/10 rounded-3xl p-6 md:p-12 shadow-2xl text-left text-gray-300 space-y-6 leading-relaxed text-sm print:bg-white print:text-black print:border-0 print:shadow-none print:p-0">
-          
-          {/* Cabeçalho do Papel */}
-          <div className="text-center border-b border-white/10 pb-6 print:border-black/10">
-            <h2 className="text-lg font-black text-white uppercase tracking-wider print:text-black">
-              Contrato de Locação por Temporada
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Código de Identificação da Reserva: {appointment.id}
-            </p>
-          </div>
-
-          {/* Cláusula 1 - Qualificação das Partes */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
-              1. Das Partes
-            </h3>
-            <p>
-              <strong>LOCADOR (ANFITRIÃO):</strong> {organization?.name || 'Administrador do Imóvel'}, pessoa física ou jurídica devidamente cadastrada no sistema Portal Hub.
-            </p>
-            <p>
-              <strong>LOCATÁRIO (HÓSPEDE):</strong> {fullName || appointment.clientName}, de telefone {appointment.clientPhone} e e-mail {appointment.clientEmail || 'Não informado'}.
-            </p>
-          </div>
-
-          {/* Cláusula 2 - Do Objeto */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
-              2. Do Objeto da Locação
-            </h3>
-            <p>
-              Constitui objeto deste instrumento a locação temporária do imóvel/recurso denominado <strong>{resource?.name || 'Imóvel'}</strong>, cadastrado sob a responsabilidade do LOCADOR.
-            </p>
-            {resource?.description && (
-              <p className="italic text-xs text-gray-400 bg-white/[0.02] p-3 rounded-xl border border-white/5 print:bg-gray-50 print:text-gray-700 print:border-gray-200">
-                Descrição complementar do item: {resource.description}
-              </p>
-            )}
-          </div>
-
-          {/* Cláusula 3 - Do Prazo e Período */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
-              3. Do Prazo da Estadia e Ocupação
-            </h3>
-            <p>
-              O período acordado de estadia compreende o ingresso (Check-in) na data de <strong>{checkinDateFormatted}</strong> a partir do horário reservado, e a saída (Check-out) impreterivelmente na data de <strong>{checkoutDateFormatted}</strong>.
-            </p>
-            <p>
-              Qualquer prorrogação deste período deve ser previamente consultada e formalizada junto ao LOCADOR.
-            </p>
-          </div>
-
-          {/* Cláusula 4 - Do Valor e Forma de Pagamento */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
-              4. Do Valor e Condições
-            </h3>
-            <p>
-              Pelo período de ocupação e uso do objeto locado, o LOCATÁRIO pagará a quantia total acordada de <strong>R$ {appointment.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-              {resource?.price && (
-                <span className="text-gray-400 print:text-black">
-                  {' '}(com base na tarifa de R$ {resource.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  {resource.priceType === 'daily' && ' por diária'}
-                  {resource.priceType === 'hourly' && ' por hora'}
-                  {resource.priceType === 'event' && ' por evento'}
-                  {resource.priceType === 'fixed' && ' de valor fixo'}
-                  )
-                </span>
-              )}.
-            </p>
-            <p>
-              O valor supra abrange as taxas de consumo e impostos do respectivo período de uso do recurso locável, salvo outras despesas combinadas diretamente entre as partes.
-            </p>
-          </div>
-
-          {/* Cláusula 5 - Das Regras e Convivência */}
-          {resource?.rules && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
-                5. Das Regras de Uso e Convivência
-              </h3>
-              <p>
-                O LOCATÁRIO se compromete a zelar pelo bom estado do objeto locado e respeitar as seguintes regras específicas do imóvel estabelecidas pelo LOCADOR:
-              </p>
-              <div className="bg-black/30 border border-white/5 p-4 rounded-xl text-xs text-gray-400 whitespace-pre-wrap leading-relaxed print:bg-white print:text-black print:border-gray-200">
-                {resource.rules}
-              </div>
+          {organization?.rentalContractTemplate ? (
+            <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-300 print:text-black font-sans">
+              {getCustomContractHtml()}
             </div>
+          ) : (
+            <>
+              {/* Cabeçalho do Papel */}
+              <div className="text-center border-b border-white/10 pb-6 print:border-black/10">
+                <h2 className="text-lg font-black text-white uppercase tracking-wider print:text-black">
+                  Contrato de Locação por Temporada
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Código de Identificação da Reserva: {appointment.id}
+                </p>
+              </div>
+
+              {/* Cláusula 1 - Qualificação das Partes */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
+                  1. Das Partes
+                </h3>
+                <p>
+                  <strong>LOCADOR (ANFITRIÃO):</strong> {organization?.name || 'Administrador do Imóvel'}, pessoa física ou jurídica devidamente cadastrada no sistema Portal Hub.
+                </p>
+                <p>
+                  <strong>LOCATÁRIO (HÓSPEDE):</strong> {fullName || appointment.clientName}, de telefone {appointment.clientPhone} e e-mail {appointment.clientEmail || 'Não informado'}.
+                </p>
+              </div>
+
+              {/* Cláusula 2 - Do Objeto */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
+                  2. Do Objeto da Locação
+                </h3>
+                <p>
+                  Constitui objeto deste instrumento a locação temporária do imóvel/recurso denominado <strong>{resource?.name || 'Imóvel'}</strong>, cadastrado sob a responsabilidade do LOCADOR.
+                </p>
+                {resource?.description && (
+                  <p className="italic text-xs text-gray-400 bg-white/[0.02] p-3 rounded-xl border border-white/5 print:bg-gray-50 print:text-gray-700 print:border-gray-200">
+                    Descrição complementar do item: {resource.description}
+                  </p>
+                )}
+              </div>
+
+              {/* Cláusula 3 - Do Prazo e Período */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
+                  3. Do Prazo da Estadia e Ocupação
+                </h3>
+                <p>
+                  O período acordado de estadia compreende o ingresso (Check-in) na data de <strong>{checkinDateFormatted}</strong> a partir do horário reservado, e a saída (Check-out) impreterivelmente na data de <strong>{checkoutDateFormatted}</strong>.
+                </p>
+                <p>
+                  Qualquer prorrogação deste período deve ser previamente consultada e formalizada junto ao LOCADOR.
+                </p>
+              </div>
+
+              {/* Cláusula 4 - Do Valor e Forma de Pagamento */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
+                  4. Do Valor e Condições
+                </h3>
+                <p>
+                  Pelo período de ocupação e uso do objeto locado, o LOCATÁRIO pagará a quantia total acordada de <strong>R$ {appointment.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                  {resource?.price && (
+                    <span className="text-gray-400 print:text-black">
+                      {' '}(com base na tarifa de R$ {resource.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {resource.priceType === 'daily' && ' por diária'}
+                      {resource.priceType === 'hourly' && ' por hora'}
+                      {resource.priceType === 'event' && ' por evento'}
+                      {resource.priceType === 'fixed' && ' de valor fixo'}
+                      )
+                    </span>
+                  )}.
+                </p>
+                <p>
+                  O valor supra abrange as taxas de consumo e impostos do respectivo período de uso do recurso locável, salvo outras despesas combinadas diretamente entre as partes.
+                </p>
+              </div>
+
+              {/* Cláusula 5 - Das Regras e Convivência */}
+              {resource?.rules && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-black uppercase text-white tracking-wider border-l-2 border-primary-500 pl-2 print:text-black print:border-black">
+                    5. Das Regras de Uso e Convivência
+                  </h3>
+                  <p>
+                    O LOCATÁRIO se compromete a zelar pelo bom estado do objeto locado e respeitar as seguintes regras específicas do imóvel estabelecidas pelo LOCADOR:
+                  </p>
+                  <div className="bg-black/30 border border-white/5 p-4 rounded-xl text-xs text-gray-400 whitespace-pre-wrap leading-relaxed print:bg-white print:text-black print:border-gray-200">
+                    {resource.rules}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Assinaturas Digitais Geradas no Documento (Visível em Impressão) */}
