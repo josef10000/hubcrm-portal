@@ -3653,8 +3653,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
       {/* Modal Novo Agendamento */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-md w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] max-w-2xl md:max-w-3xl w-full max-h-[82vh] overflow-y-auto pb-6 custom-scrollbar shadow-2xl relative animate-in fade-in zoom-in duration-300">
             <button
               onClick={closeAppointmentModal}
               className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors cursor-pointer border-0 bg-transparent"
@@ -3664,7 +3664,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
             <div className="mb-6">
               <h3 className="text-xl font-bold text-white mb-1">
-                {editingAppointmentId 
+{editingAppointmentId 
                   ? (isBlocking ? 'Editar Bloqueio' : `Editar ${labelSingular}`) 
                   : (isBlocking ? 'Bloquear Horário' : `Novo(a) ${labelSingular}`)}
               </h3>
@@ -3676,289 +3676,306 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
             </div>
 
             <form onSubmit={handleSaveAppointment} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Cliente / Identificador</label>
-                <input
-                  type="text"
-                  value={newClientName}
-                  onChange={(e) => setNewClientName(e.target.value)}
-                  placeholder="Ex: João Silva"
-                  className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
-                  required
-                  disabled={isBlocking}
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                {/* Coluna da Esquerda: Dados do Cliente & Pagamento */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                    👥 Cliente & Pagamento
+                  </span>
 
-              {!isBlocking && (
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">WhatsApp / Tel</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nome do Cliente / Identificador</label>
                     <input
                       type="text"
-                      value={newClientPhone}
-                      onChange={(e) => setNewClientPhone(e.target.value)}
-                      placeholder="5511999999999"
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(e.target.value)}
+                      placeholder="Ex: João Silva"
                       className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
                       required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">E-mail (Opcional)</label>
-                    <input
-                      type="email"
-                      value={newClientEmail}
-                      onChange={(e) => setNewClientEmail(e.target.value)}
-                      placeholder="exemplo@email.com"
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {isBlocking ? (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipo de Bloqueio</label>
-                  <input
-                    type="text"
-                    value="Bloqueio de Horário"
-                    disabled
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-gray-500 rounded-xl text-sm outline-none font-bold"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
-                  <CustomSelect
-                    value={newServiceId}
-                    onChange={(val) => handleServiceChange(val)}
-                    placeholder="Selecione um serviço..."
-                    options={services.map(s => ({
-                      value: s.id,
-                      label: `${s.name} (R$ ${s.price})`
-                    }))}
-                  />
-                </div>
-              )}
-
-              {!isBlocking && isRentalsActive && resources.length > 0 && (
-                <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recurso / Item Locado</label>
-                    <CustomSelect
-                      value={newResourceId}
-                      onChange={(val) => {
-                        setNewResourceId(val);
-                        const selectedResource = resources.find(r => r.id === val);
-                        if (selectedResource && selectedResource.price) {
-                          setNewPrice(selectedResource.price.toString().replace('.', ','));
-                        }
-                      }}
-                      placeholder="Selecione um item (Ex: Apartamento, Brinquedo)..."
-                      options={resources.map(r => ({
-                        value: r.id,
-                        label: `${r.name} (R$ ${r.price})`
-                      }))}
+                      disabled={isBlocking}
                     />
                   </div>
 
-                  {newResourceId && (
-                    <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data de Check-out (Saída)</label>
+                  {!isBlocking && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">WhatsApp / Tel</label>
+                        <input
+                          type="text"
+                          value={newClientPhone}
+                          onChange={(e) => setNewClientPhone(e.target.value)}
+                          placeholder="5511999999999"
+                          className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">E-mail (Opcional)</label>
+                        <input
+                          type="email"
+                          value={newClientEmail}
+                          onChange={(e) => setNewClientEmail(e.target.value)}
+                          placeholder="exemplo@email.com"
+                          className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {isBlocking ? (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipo de Bloqueio</label>
                       <input
-                        type="date"
-                        value={newCheckoutDate}
-                        onChange={(e) => setNewCheckoutDate(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                        required
+                        type="text"
+                        value="Bloqueio de Horário"
+                        disabled
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 text-gray-500 rounded-xl text-sm outline-none font-bold"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
+                      <CustomSelect
+                        value={newServiceId}
+                        onChange={(val) => handleServiceChange(val)}
+                        placeholder="Selecione um serviço..."
+                        options={services.map(s => ({
+                          value: s.id,
+                          label: `${s.name} (R$ ${s.price})`
+                        }))}
                       />
                     </div>
                   )}
-                </div>
-              )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-sm outline-none transition-all focus:border-primary-500 font-bold"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
-                  <CustomSelect
-                    value={newTime}
-                    onChange={(val) => setNewTime(val)}
-                    placeholder="Selecione o horário..."
-                    options={[
-                      ...(newDate ? getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).map(slot => ({ value: slot, label: slot })) : []),
-                      ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).includes(newTime) 
-                        ? [{ value: newTime, label: `${newTime} (Atual)` }] 
-                        : [])
-                    ]}
-                  />
-                </div>
-              </div>
+                  {!isBlocking && expediente.packagesActive && (
+                    <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Forma de Pagamento</label>
+                        <CustomSelect
+                          value={newPaymentMethod}
+                          onChange={(val) => {
+                            setNewPaymentMethod(val as any);
+                            if (val === 'pacote') {
+                              setNewPrice('0,00');
+                            } else {
+                              if (newServiceId) {
+                                const srv = services.find(s => s.id === newServiceId);
+                                if (srv) setNewPrice(srv.price?.toString().replace('.', ',') || '');
+                              }
+                            }
+                          }}
+                          options={[
+                            { value: 'dinheiro_pix_cartao', label: 'DINHEIRO / PIX / CARTÃO' },
+                            { value: 'pacote', label: 'USAR SALDO DE PACOTE' }
+                          ]}
+                        />
+                      </div>
 
-              {!isBlocking && expediente.packagesActive && (
-                <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Forma de Pagamento</label>
-                    <CustomSelect
-                      value={newPaymentMethod}
-                      onChange={(val) => {
-                        setNewPaymentMethod(val as any);
-                        if (val === 'pacote') {
-                          setNewPrice('0,00');
-                        } else {
-                          if (newServiceId) {
-                            const srv = services.find(s => s.id === newServiceId);
-                            if (srv) setNewPrice(srv.price?.toString().replace('.', ',') || '');
-                          }
-                        }
-                      }}
-                      options={[
-                        { value: 'dinheiro_pix_cartao', label: 'DINHEIRO / PIX / CARTÃO' },
-                        { value: 'pacote', label: 'USAR SALDO DE PACOTE' }
-                      ]}
-                    />
+                      {newPaymentMethod === 'pacote' && (
+                        <div className="space-y-1 animate-in fade-in duration-200">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Selecionar Pacote</label>
+                          {(() => {
+                            const cleanedPhone = (newClientPhone || '').replace(/\D/g, '');
+                            const activePkgs = clientPackages.filter(p => 
+                              (p.clientPhone === cleanedPhone || p.clientName.toLowerCase() === newClientName.toLowerCase().trim()) && 
+                              p.usedSessions < p.totalSessions &&
+                              p.serviceId === newServiceId
+                            );
+
+                            if (activePkgs.length === 0) {
+                              return (
+                                <p className="text-[11px] text-amber-400 font-semibold italic bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 mt-1">
+                                  Nenhum pacote ativo com créditos.
+                                </p>
+                              );
+                            }
+
+                            return (
+                              <CustomSelect
+                                value={selectedPackageId}
+                                onChange={(val) => setSelectedPackageId(val)}
+                                placeholder="Selecione o pacote..."
+                                options={activePkgs.map(p => ({
+                                  value: p.id,
+                                  label: `${p.clientName} - Saldo: ${p.totalSessions - p.usedSessions} sessões`
+                                }))}
+                              />
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isBlocking && newPaymentMethod !== 'pacote' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor Cobrado (R$)</label>
+                        <input
+                          type="text"
+                          value={newPrice}
+                          onChange={(e) => setNewPrice(e.target.value)}
+                          placeholder="Ex: 150,00"
+                          className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold font-mono"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status Pagamento</label>
+                        <CustomSelect
+                          value={newPaymentStatus}
+                          onChange={(val) => setNewPaymentStatus(val as 'unpaid' | 'paid')}
+                          options={[
+                            { value: 'unpaid', label: 'PENDENTE' },
+                            { value: 'paid', label: 'PAGO' }
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Coluna da Direita: Agenda & Recursos Locados */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                    📅 Agendamento & Recursos
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
+                      <input
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
+                      <CustomSelect
+                        value={newTime}
+                        onChange={(val) => setNewTime(val)}
+                        placeholder="Horário..."
+                        options={[
+                          ...(newDate ? getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).map(slot => ({ value: slot, label: slot })) : []),
+                          ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).includes(newTime) 
+                            ? [{ value: newTime, label: `${newTime} (Atual)` }] 
+                            : [])
+                        ]}
+                      />
+                    </div>
                   </div>
 
-                  {newPaymentMethod === 'pacote' && (
-                    <div className="space-y-1 animate-in fade-in duration-200">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Selecionar Pacote do Cliente</label>
-                      {(() => {
-                        const cleanedPhone = (newClientPhone || '').replace(/\D/g, '');
-                        const activePkgs = clientPackages.filter(p => 
-                          (p.clientPhone === cleanedPhone || p.clientName.toLowerCase() === newClientName.toLowerCase().trim()) && 
-                          p.usedSessions < p.totalSessions &&
-                          p.serviceId === newServiceId
-                        );
+                  {!isBlocking && isRentalsActive && resources.length > 0 && (
+                    <div className="space-y-3 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recurso / Item Locado</label>
+                        <CustomSelect
+                          value={newResourceId}
+                          onChange={(val) => {
+                            setNewResourceId(val);
+                            const selectedResource = resources.find(r => r.id === val);
+                            if (selectedResource && selectedResource.price) {
+                              setNewPrice(selectedResource.price.toString().replace('.', ','));
+                            }
+                          }}
+                          placeholder="Selecione um item (Ex: Apartamento)..."
+                          options={resources.map(r => ({
+                            value: r.id,
+                            label: `${r.name} (R$ ${r.price})`
+                          }))}
+                        />
+                      </div>
 
-                        if (activePkgs.length === 0) {
+                      {newResourceId && (
+                        <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data de Check-out (Saída)</label>
+                          <input
+                            type="date"
+                            value={newCheckoutDate}
+                            onChange={(e) => setNewCheckoutDate(e.target.value)}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isBlocking && isRentalsActive && newResourceId && editingAppointmentId && (
+                    <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3 text-left">
+                      <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                        📜 Contrato de Locação
+                      </span>
+
+                      {(() => {
+                        const currentApp = appointments.find(a => a.id === editingAppointmentId);
+                        if (!currentApp) return null;
+
+                        if (currentApp.contractSigned) {
                           return (
-                            <p className="text-[11px] text-amber-400 font-semibold italic bg-amber-500/5 p-3 rounded-xl border border-amber-500/10 mt-1">
-                              Nenhum pacote ativo com créditos disponível para este cliente e serviço. Lance um pacote nas configurações primeiro.
-                            </p>
+                            <div className="space-y-2 animate-in fade-in duration-200">
+                              <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                                <Check size={12} />
+                                Assinado Eletronicamente
+                              </p>
+                              <div className="text-[10px] text-gray-500 space-y-0.5">
+                                <p>Assinado por: <strong>{currentApp.contractSignedName}</strong></p>
+                                <p>CPF: <strong>{currentApp.contractSignedDocument}</strong></p>
+                                <p>IP: <strong>{currentApp.contractSignedIp}</strong></p>
+                                <p>Hash: <strong>{currentApp.contractSecurityHash}</strong></p>
+                              </div>
+                              <a
+                                href={`${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 w-full py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 no-underline border border-primary-500/20 text-center"
+                              >
+                                <ExternalLink size={12} />
+                                Visualizar Contrato Assinado
+                              </a>
+                            </div>
                           );
                         }
 
+                        const contractUrl = `${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`;
                         return (
-                          <CustomSelect
-                            value={selectedPackageId}
-                            onChange={(val) => setSelectedPackageId(val)}
-                            placeholder="Selecione o pacote..."
-                            options={activePkgs.map(p => ({
-                              value: p.id,
-                              label: `${p.clientName} - Saldo: ${p.totalSessions - p.usedSessions} sessões`
-                            }))}
-                          />
+                          <div className="space-y-2 animate-in fade-in duration-200">
+                            <p className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
+                              <AlertTriangle size={12} />
+                              Aguardando Assinatura do Cliente
+                            </p>
+                            <p className="text-[10px] text-gray-500">
+                              Envie o link ao cliente para assinatura.
+                            </p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={contractUrl}
+                                readOnly
+                                className="flex-1 px-3 py-1.5 bg-black/40 border border-white/10 text-gray-500 rounded-lg text-[10px] outline-none truncate"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(contractUrl);
+                                  toast.success("Link do contrato copiado!");
+                                }}
+                                className="px-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all text-xs font-bold cursor-pointer border-0"
+                              >
+                                Copiar
+                              </button>
+                            </div>
+                          </div>
                         );
                       })()}
                     </div>
                   )}
                 </div>
-              )}
-
-              {!isBlocking && newPaymentMethod !== 'pacote' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Valor Cobrado (R$)</label>
-                    <input
-                      type="text"
-                      value={newPrice}
-                      onChange={(e) => setNewPrice(e.target.value)}
-                      placeholder="Ex: 150,00"
-                      className="w-full px-4 py-3 bg-black/40 border border-white/10 hover:border-white/20 focus:border-primary-500 text-white rounded-xl text-sm outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-bold font-mono"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status do Pagamento</label>
-                    <CustomSelect
-                      value={newPaymentStatus}
-                      onChange={(val) => setNewPaymentStatus(val as 'unpaid' | 'paid')}
-                      options={[
-                        { value: 'unpaid', label: 'PENDENTE' },
-                        { value: 'paid', label: 'PAGO' }
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {!isBlocking && isRentalsActive && newResourceId && editingAppointmentId && (
-                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-3 text-left">
-                  <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
-                    📜 Contrato de Locação
-                  </span>
-
-                  {(() => {
-                    const currentApp = appointments.find(a => a.id === editingAppointmentId);
-                    if (!currentApp) return null;
-
-                    if (currentApp.contractSigned) {
-                      return (
-                        <div className="space-y-2 animate-in fade-in duration-200">
-                          <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
-                            <Check size={12} />
-                            Assinado Eletronicamente
-                          </p>
-                          <div className="text-[10px] text-gray-500 space-y-0.5">
-                            <p>Assinado por: <strong>{currentApp.contractSignedName}</strong></p>
-                            <p>CPF/Documento: <strong>{currentApp.contractSignedDocument}</strong></p>
-                            <p>IP: <strong>{currentApp.contractSignedIp}</strong></p>
-                            <p>Hash: <strong>{currentApp.contractSecurityHash}</strong></p>
-                          </div>
-                          <a
-                            href={`${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 w-full py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 no-underline border border-primary-500/20 text-center"
-                          >
-                            <ExternalLink size={12} />
-                            Visualizar Contrato Assinado
-                          </a>
-                        </div>
-                      );
-                    }
-
-                    const contractUrl = `${window.location.origin}/contrato/${orgId}/${editingAppointmentId}`;
-                    return (
-                      <div className="space-y-2 animate-in fade-in duration-200">
-                        <p className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
-                          <AlertTriangle size={12} />
-                          Aguardando Assinatura do Cliente
-                        </p>
-                        <p className="text-[10px] text-gray-500">
-                          Copie o link abaixo e envie ao cliente para assinatura do termo.
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={contractUrl}
-                            readOnly
-                            className="flex-1 px-3 py-1.5 bg-black/40 border border-white/10 text-gray-500 rounded-lg text-xs outline-none truncate"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(contractUrl);
-                              toast.success("Link do contrato copiado!");
-                            }}
-                            className="px-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all text-xs font-bold cursor-pointer border-0"
-                          >
-                            Copiar
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
