@@ -20,7 +20,10 @@ import {
   X,
   Trash2,
   AlertCircle,
-  BookOpen
+  BookOpen,
+  Copy,
+  Edit,
+  Award
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, query, where } from 'firebase/firestore';
@@ -37,6 +40,14 @@ interface PortalHomeProps {
 
 export default function PortalHome({ client, announcement, setActiveTab, supportRequests, clientId }: PortalHomeProps) {
   const { orgId } = useParams<{ orgId: string }>();
+  const linkAgendamento = `${window.location.origin}/agendar/${orgId}`;
+  
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(linkAgendamento);
+    toast.success("Link de agendamento copiado para a área de transferência!");
+  };
+
+  const isClientVip = client.isCourtesy || (client.plan && client.plan.toUpperCase().includes('VIP'));
   const [appointmentsToday, setAppointmentsToday] = useState<any[]>([]);
   const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
   const [inactiveClients, setInactiveClients] = useState<any[]>([]);
@@ -51,6 +62,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
   const [loadingApps, setLoadingApps] = useState(true);
   const [recentPost, setRecentPost] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
+  const [crmClientsList, setCrmClientsList] = useState<any[]>([]);
 
   // Rótulos Dinâmicos
   const labelSingular = expediente?.appointmentLabelSingular || 'Agendamento';
@@ -72,7 +84,7 @@ export default function PortalHome({ client, announcement, setActiveTab, support
     month: 'long'
   });
 
-  // Escuta Configuração de Expediente
+  // Escuta Configuração de Expediente e Clientes CRM
   useEffect(() => {
     if (!orgId) return;
     
@@ -91,6 +103,9 @@ export default function PortalHome({ client, announcement, setActiveTab, support
           if (sched.whatsappTemplates && Array.isArray(sched.whatsappTemplates)) {
             setWhatsappTemplates(sched.whatsappTemplates);
           }
+          // Extrai o catálogo do CRM de forma dinâmica
+          const fid = data.fidelitySettings || {};
+          setCrmClientsList(fid.crmClients || []);
         } else {
           setExpediente(data);
           if (data.whatsappTemplates && Array.isArray(data.whatsappTemplates)) {
@@ -405,79 +420,136 @@ export default function PortalHome({ client, announcement, setActiveTab, support
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Project Progress Card */}
-        <div className="lg:col-span-2 group bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] relative overflow-hidden transition-all duration-500 hover:border-white/20">
-          <div className="flex flex-col md:flex-row items-center gap-6 lg:gap-10">
-            {progress < 100 ? (
-              <div className="flex-1 w-full text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Status do Projeto</span>
-                </div>
-                <h2 className="text-xl lg:text-3xl font-bold text-white mb-2 lg:mb-4 tracking-tight">Seu site está ganhando vida!</h2>
-                
-                <div className="mb-6">
-                  <div className="flex justify-between items-end mb-2">
-                     <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">Progresso Total</span>
-                     <span className="text-xl font-black text-primary-500">{progress}%</span>
-                  </div>
-                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                     <motion.div 
-                       initial={{ width: 0 }}
-                       animate={{ width: `${progress}%` }}
-                       transition={{ duration: 1.5, ease: "easeOut" }}
-                       className="h-full bg-gradient-to-r from-primary-500 to-primary-600 shadow-[0_0_15px_rgba(242,125,38,0.3)]"
-                     />
-                  </div>
-                </div>
+        {/* Brand & Marketing Hub Card */}
+        <div className="lg:col-span-2 group bg-white/[0.02] backdrop-blur-3xl border border-white/10 p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] relative overflow-hidden transition-all duration-500 hover:border-white/20 flex flex-col justify-between gap-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+          {/* Luzes de Fundo Decorativas */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full blur-[80px] pointer-events-none -z-10 group-hover:bg-primary-500/15 transition-all duration-500" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-[60px] pointer-events-none -z-10" />
 
-                <p className="text-gray-400 text-xs lg:text-sm leading-relaxed mb-6">
-                  Estamos na etapa de <strong className="text-white">"{client.stages?.find((s: any) => !s.completed)?.name || 'Desenvolvimento'}"</strong>. 
-                </p>
-                
-                <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Plano Selecionado</span>
-                    <div className="flex items-center gap-2 text-white font-bold">
-                      <Globe size={16} className="text-blue-500" />
-                      {client.plan}
-                    </div>
+          {/* Topo: Logo, Nome da Marca e Status Assinatura */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              {/* Logo do Cliente CRM */}
+              <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 bg-black/40 shadow-2xl flex items-center justify-center shrink-0 group-hover:border-primary-500/30 transition-colors">
+                {client.logoUrl || client.logo || client.imageUrl ? (
+                  <img 
+                    src={client.logoUrl || client.logo || client.imageUrl} 
+                    alt="Logo da Empresa" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center font-black text-2xl uppercase text-white">
+                    {client.name ? client.name.charAt(0) : 'E'}
                   </div>
+                )}
+              </div>
+
+              {/* Nome e Categoria da Marca */}
+              <div className="text-left">
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Minha Empresa</span>
+                <h3 className="text-xl lg:text-2xl font-black text-white leading-tight tracking-tight mt-0.5 group-hover:text-primary-400 transition-colors">
+                  {client.name}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span className="text-[9px] px-2 py-0.5 bg-white/5 border border-white/10 rounded-full font-bold text-gray-400 uppercase tracking-wider">
+                    {client.plan || 'Plano Ativo'}
+                  </span>
+                  
+                  {/* Status do Site Clicável */}
+                  {client.siteLink && (
+                    <a 
+                      href={client.siteLink.startsWith('http') ? client.siteLink : `https://${client.siteLink}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/30 rounded-full text-[9px] font-bold text-emerald-400 transition-all active:scale-95 group/site"
+                    >
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      Site Online & Ativo
+                      <ExternalLink size={8} className="text-emerald-400/70 group-hover/site:translate-x-0.5 transition-transform" />
+                    </a>
+                  )}
                 </div>
               </div>
-            ) : (
-              /* Concluded State */
-              <div className="flex-1 w-full text-center md:text-left py-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Projeto Finalizado</span>
+            </div>
+
+            {/* Badges de Assinatura VIP vs Padrão */}
+            <div className="flex flex-col items-start sm:items-end gap-2">
+              {isClientVip ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-yellow-500/30 rounded-2xl">
+                  <Award size={14} className="text-yellow-400 animate-pulse" />
+                  <span className="text-[10px] font-black text-yellow-400 uppercase tracking-wider">★ Membro VIP Partner</span>
                 </div>
-                <h2 className="text-2xl lg:text-4xl font-black text-white mb-4 tracking-tight">
-                  Tudo pronto! Seu projeto foi <span className="text-primary-500">concluído.</span>
-                </h2>
-                <p className="text-gray-400 text-sm lg:text-base leading-relaxed mb-8 max-w-2xl">
-                  Parabéns! Sua jornada de desenvolvimento terminou. Você já pode acessar seu novo ambiente digital através do link oficial abaixo.
-                </p>
-                
-                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-2xl">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">★ Plano Hub Padrão</span>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('support')}
+                    className="text-[9px] font-bold text-primary-400 hover:text-primary-300 transition-colors uppercase tracking-wider flex items-center gap-1 underline underline-offset-2"
+                  >
+                    Upgrade para VIP ↗
+                  </button>
+                </div>
+              )}
+              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest sm:text-right">Faturas em Dia</span>
+            </div>
+          </div>
+
+          {/* Seção de Métricas Rápidas do Negócio */}
+          <div className="grid grid-cols-2 gap-4 bg-white/[0.01] border border-white/5 rounded-2xl p-4">
+            <div>
+              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block mb-0.5">Clientes no CRM</span>
+              <span className="text-lg font-black text-white">{crmClientsList.length} contatos</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block mb-0.5">Operação</span>
+              <span className="text-lg font-black text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              Ativa & Aberta</span>
+            </div>
+          </div>
+
+          <div className="h-px bg-white/5 w-full my-1" />
+
+          {/* Baixo: Links de Divulgação e Ações Rápidas */}
+          <div className="space-y-4">
+            <div>
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-2">Divulgue Seu Negócio (Link de Agendamentos)</span>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex-1 bg-black/40 border border-white/5 hover:border-white/10 rounded-2xl px-4 py-3 flex items-center justify-between text-xs text-gray-400 font-mono truncate transition-all">
+                  <span className="truncate select-all">{linkAgendamento}</span>
+                  <button 
+                    onClick={handleCopyLink}
+                    className="p-1 hover:bg-white/10 rounded text-gray-500 hover:text-white transition-all shrink-0 ml-2"
+                    title="Copiar Link"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
                   <a 
-                    href={client.siteLink ? (client.siteLink.startsWith('http') ? client.siteLink : `https://${client.siteLink}`) : '#'} 
+                    href={linkAgendamento} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex-1 md:flex-none px-8 py-4 bg-white/5 border border-white/10 hover:border-primary-500/50 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary-500 transition-all duration-300 shadow-xl group"
+                    className="flex-1 sm:flex-none px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
                   >
-                    <Globe size={20} />
-                    Acessar Meu Site
-                    <ExternalLink size={18} className="group-hover:scale-110 transition-transform" />
+                    <Globe size={14} />
+                    Ver Página
                   </a>
-                  
-                  <div className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col justify-center">
-                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Plano Ativo</span>
-                    <span className="text-sm font-bold text-white">{client.plan}</span>
-                  </div>
+                  <button 
+                    onClick={() => setActiveTab('agenda_settings')}
+                    className="flex-1 sm:flex-none px-4 py-3 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/20 hover:border-primary-500/30 text-primary-400 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                    <Edit size={14} />
+                    Editar Links
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
