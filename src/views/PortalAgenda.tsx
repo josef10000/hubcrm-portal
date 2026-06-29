@@ -178,6 +178,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const [isSubmittingService, setIsSubmittingService] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [appointmentType, setAppointmentType] = useState<'service' | 'rental'>('service');
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
@@ -218,6 +219,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const closeAppointmentModal = () => {
     setIsModalOpen(false);
     setEditingAppointmentId(null);
+    setAppointmentType('service');
     setNewClientName('');
     setNewClientPhone('');
     setNewClientEmail('');
@@ -258,6 +260,11 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setSelectedPackageId(app.packageId || '');
     setNewResourceId(app.resourceId || '');
     setNewCheckoutDate(app.checkoutDate || '');
+    if (app.resourceId || app.serviceId === 'locacao') {
+      setAppointmentType('rental');
+    } else {
+      setAppointmentType('service');
+    }
     setIsModalOpen(true);
   };
 
@@ -274,14 +281,18 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
   const handleSaveAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     const isBlocking = newClientName === "Horário Bloqueado" && newClientPhone === "000000000";
+    const isRental = appointmentType === 'rental';
 
-    if (!newClientName.trim() || !newClientPhone.trim() || !newTime || (!isBlocking && !newServiceId) || !orgId) {
+    const isTimeValid = isRental ? true : !!newTime;
+    const isServiceValid = isRental ? true : (isBlocking ? true : !!newServiceId);
+
+    if (!newClientName.trim() || !newClientPhone.trim() || !isTimeValid || !isServiceValid || !orgId) {
       toast.error('Preencha os campos obrigatórios.');
       return;
     }
 
     let selectedSrv: any = null;
-    if (!isBlocking) {
+    if (!isBlocking && !isRental) {
       selectedSrv = services.find(s => s.id === newServiceId);
       if (!selectedSrv) {
         toast.error('Selecione um serviço válido.');
@@ -292,7 +303,13 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
     setIsSubmittingAppointment(true);
     try {
       // Validação de Overbooking/Conflito para Recursos Locáveis
-      if (!isBlocking && isRentalsActive && newResourceId) {
+      if (!isBlocking && isRentalsActive && (isRental || newResourceId)) {
+        const resourceToValidate = isRental ? newResourceId : newResourceId;
+        if (!resourceToValidate) {
+          toast.error('Selecione o recurso/item locado.');
+          setIsSubmittingAppointment(false);
+          return;
+        }
         if (!newCheckoutDate) {
           toast.error('Informe a data de check-out.');
           setIsSubmittingAppointment(false);
@@ -307,7 +324,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         // Verificar conflito com agendamentos existentes
         const hasConflict = appointments.some(app => {
           if (app.status === 'cancelled' || app.id === editingAppointmentId) return false;
-          if (app.resourceId !== newResourceId) return false;
+          if (app.resourceId !== resourceToValidate) return false;
 
           const checkinExistente = app.date;
           const checkoutExistente = app.checkoutDate || app.date;
@@ -330,16 +347,16 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         clientName: newClientName.trim(),
         clientPhone: newClientPhone.trim(),
         clientEmail: newClientEmail.trim(),
-        serviceId: isBlocking ? "bloqueio" : newServiceId,
-        serviceName: isBlocking ? "Bloqueio de Horário" : selectedSrv.name,
+        serviceId: isBlocking ? "bloqueio" : (isRental ? "locacao" : newServiceId),
+        serviceName: isBlocking ? "Bloqueio de Horário" : (isRental ? `Locação: ${resources.find(r => r.id === newResourceId)?.name || 'Recurso'}` : selectedSrv.name),
         date: newDate,
-        time: newTime,
+        time: isBlocking ? newTime : (isRental ? "00:00" : newTime),
         price: isBlocking ? 0 : (newPaymentMethod === 'pacote' ? 0 : Number(newPrice.replace(',', '.'))),
         paymentStatus: isBlocking ? "paid" : (newPaymentMethod === 'pacote' ? 'paid' : newPaymentStatus),
         paymentMethod: isBlocking ? 'dinheiro_pix_cartao' : newPaymentMethod,
         packageId: isBlocking ? '' : (newPaymentMethod === 'pacote' ? selectedPackageId : ''),
-        resourceId: isBlocking ? '' : (newResourceId || ''),
-        checkoutDate: isBlocking ? '' : (newCheckoutDate || ''),
+        resourceId: isBlocking ? '' : (isRental ? newResourceId : (newResourceId || '')),
+        checkoutDate: isBlocking ? '' : (isRental ? newCheckoutDate : (newCheckoutDate || '')),
         updatedAt: serverTimestamp()
       };
 
@@ -1609,13 +1626,37 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 </div>
               )}
               
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0 h-[46px]"
-              >
-                <Plus size={16} />
-                <span>{labelSingular === 'Proposta' ? 'Criar Proposta' : 'Agendar'}</span>
-              </button>
+              {modulesConfig?.activeModules?.agenda !== false && (
+                <button
+                  onClick={() => {
+                    setAppointmentType('service');
+                    setIsModalOpen(true);
+                  }}
+                  className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer border-0 h-[46px]"
+                >
+                  <Plus size={16} />
+                  <span>{labelSingular === 'Proposta' ? 'Criar Proposta' : 'Agendar Serviço'}</span>
+                </button>
+              )}
+              
+              {isRentalsActive && resources.length > 0 && (
+                <button
+                  onClick={() => {
+                    setAppointmentType('rental');
+                    if (resources.length > 0) {
+                      setNewResourceId(resources[0].id);
+                      if (resources[0].price) {
+                        setNewPrice(resources[0].price.toString().replace('.', ','));
+                      }
+                    }
+                    setIsModalOpen(true);
+                  }}
+                  className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer border-0 h-[46px]"
+                >
+                  <Plus size={16} />
+                  <span>Nova Locação</span>
+                </button>
+              )}
               
               <button
                 onClick={handleOpenBlockModal}
@@ -3664,14 +3705,16 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
 
             <div className="mb-6">
               <h3 className="text-xl font-bold text-white mb-1">
-{editingAppointmentId 
-                  ? (isBlocking ? 'Editar Bloqueio' : `Editar ${labelSingular}`) 
-                  : (isBlocking ? 'Bloquear Horário' : `Novo(a) ${labelSingular}`)}
+                {editingAppointmentId 
+                  ? (isBlocking ? 'Editar Bloqueio' : (appointmentType === 'rental' ? 'Editar Locação / Reserva' : `Editar ${labelSingular}`)) 
+                  : (isBlocking ? 'Bloquear Horário' : (appointmentType === 'rental' ? 'Nova Locação / Reserva' : `Novo(a) ${labelSingular}`))}
               </h3>
               <p className="text-xs text-gray-400">
                 {isBlocking 
                   ? 'Indisponibilize um slot específico do seu expediente para outros agendamentos.'
-                  : (editingAppointmentId ? `Ajuste os dados salvos do(a) ${labelSingular.toLowerCase()}.` : `Preencha os dados do cliente e selecione o serviço para registrar o(a) ${labelSingular.toLowerCase()}.`)}
+                  : (editingAppointmentId 
+                      ? (appointmentType === 'rental' ? 'Ajuste os dados salvos da locação do recurso.' : `Ajuste os dados salvos do(a) ${labelSingular.toLowerCase()}.`) 
+                      : (appointmentType === 'rental' ? 'Preencha os dados do cliente e selecione o recurso para registrar a locação.' : `Preencha os dados do cliente e selecione o serviço para registrar o(a) ${labelSingular.toLowerCase()}.`))}
               </p>
             </div>
 
@@ -3734,21 +3777,23 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                       />
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
-                      <CustomSelect
-                        value={newServiceId}
-                        onChange={(val) => handleServiceChange(val)}
-                        placeholder="Selecione um serviço..."
-                        options={services.map(s => ({
-                          value: s.id,
-                          label: `${s.name} (R$ ${s.price})`
-                        }))}
-                      />
-                    </div>
+                    appointmentType === 'service' && (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Serviço Ofertado</label>
+                        <CustomSelect
+                          value={newServiceId}
+                          onChange={(val) => handleServiceChange(val)}
+                          placeholder="Selecione um serviço..."
+                          options={services.map(s => ({
+                            value: s.id,
+                            label: `${s.name} (R$ ${s.price})`
+                          }))}
+                        />
+                      </div>
+                    )
                   )}
 
-                  {!isBlocking && expediente.packagesActive && (
+                  {!isBlocking && appointmentType === 'service' && expediente.packagesActive && (
                     <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Forma de Pagamento</label>
@@ -3839,38 +3884,77 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 {/* Coluna da Direita: Agenda & Recursos Locados */}
                 <div className="space-y-3">
                   <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
-                    📅 Agendamento & Recursos
+                    {appointmentType === 'rental' ? '📅 Período & Recurso Locado' : '📅 Agendamento & Recursos'}
                   </span>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
-                      <input
-                        type="date"
-                        value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)}
-                        className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
-                      <CustomSelect
-                        value={newTime}
-                        onChange={(val) => setNewTime(val)}
-                        placeholder="Horário..."
-                        options={[
-                          ...(newDate ? getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).map(slot => ({ value: slot, label: slot })) : []),
-                          ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).includes(newTime) 
-                            ? [{ value: newTime, label: `${newTime} (Atual)` }] 
-                            : [])
-                        ]}
-                      />
-                    </div>
-                  </div>
+                  {appointmentType === 'service' ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data</label>
+                          <input
+                            type="date"
+                            value={newDate}
+                            onChange={(e) => setNewDate(e.target.value)}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Horário</label>
+                          <CustomSelect
+                            value={newTime}
+                            onChange={(val) => setNewTime(val)}
+                            placeholder="Horário..."
+                            options={[
+                              ...(newDate ? getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).map(slot => ({ value: slot, label: slot })) : []),
+                              ...(editingAppointmentId && newTime && newDate && !getAvailableTimeSlots(newDate, isBlocking ? 'bloqueio' : newServiceId).includes(newTime) 
+                                ? [{ value: newTime, label: `${newTime} (Atual)` }] 
+                                : [])
+                            ]}
+                          />
+                        </div>
+                      </div>
 
-                  {!isBlocking && isRentalsActive && resources.length > 0 && (
-                    <div className="space-y-3 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                      {!isBlocking && isRentalsActive && resources.length > 0 && (
+                        <div className="space-y-3 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vincular Recurso (Opcional)</label>
+                            <CustomSelect
+                              value={newResourceId}
+                              onChange={(val) => {
+                                setNewResourceId(val);
+                                const selectedResource = resources.find(r => r.id === val);
+                                if (selectedResource && selectedResource.price) {
+                                  setNewPrice(selectedResource.price.toString().replace('.', ','));
+                                }
+                              }}
+                              placeholder="Selecione um item (Ex: Apartamento)..."
+                              options={resources.map(r => ({
+                                value: r.id,
+                                label: `${r.name} (R$ ${r.price})`
+                              }))}
+                            />
+                          </div>
+
+                          {newResourceId && (
+                            <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data de Check-out (Saída)</label>
+                              <input
+                                type="date"
+                                value={newCheckoutDate}
+                                onChange={(e) => setNewCheckoutDate(e.target.value)}
+                                className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
+                                required
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Modo Rental */
+                    <>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recurso / Item Locado</label>
                         <CustomSelect
@@ -3882,7 +3966,7 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                               setNewPrice(selectedResource.price.toString().replace('.', ','));
                             }
                           }}
-                          placeholder="Selecione um item (Ex: Apartamento)..."
+                          placeholder="Selecione o recurso/imóvel..."
                           options={resources.map(r => ({
                             value: r.id,
                             label: `${r.name} (R$ ${r.price})`
@@ -3890,9 +3974,19 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                         />
                       </div>
 
-                      {newResourceId && (
-                        <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Data de Check-out (Saída)</label>
+                      <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-200">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Check-in (Entrada)</label>
+                          <input
+                            type="date"
+                            value={newDate}
+                            onChange={(e) => setNewDate(e.target.value)}
+                            className="w-full px-4 py-3 bg-black/40 border border-white/10 text-white rounded-xl text-xs outline-none transition-all focus:border-primary-500 font-bold font-mono"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Check-out (Saída)</label>
                           <input
                             type="date"
                             value={newCheckoutDate}
@@ -3901,8 +3995,8 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                             required
                           />
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    </>
                   )}
 
                   {!isBlocking && isRentalsActive && newResourceId && editingAppointmentId && (
