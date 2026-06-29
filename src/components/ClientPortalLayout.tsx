@@ -420,7 +420,17 @@ export default function ClientPortalLayout() {
     return () => unsub();
   }, [orgId, clientId, navigate]);
 
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = sessionStorage.getItem(`portal_active_tab_${orgId || ''}_${clientId || ''}`);
+    return saved || 'home';
+  });
+
+  useEffect(() => {
+    if (orgId && clientId) {
+      sessionStorage.setItem(`portal_active_tab_${orgId}_${clientId}`, activeTab);
+    }
+  }, [activeTab, orgId, clientId]);
+
   const [isGrowthExpanded, setIsGrowthExpanded] = useState(false);
   const [growthSubTab, setGrowthSubTab] = useState<'brand' | 'insights' | 'templates' | 'sales' | 'trainings'>('brand');
 
