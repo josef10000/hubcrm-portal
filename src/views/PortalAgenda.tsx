@@ -372,12 +372,36 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
         toast.success(isBlocking ? 'Horário bloqueado com sucesso!' : 'Agendamento realizado com sucesso!');
       }
 
-      // Sincronização automática do cliente com a aba Clientes (CRM)
+      // Sincronização automática do cliente com a aba Clientes (CRM) via API segura do Backend
       if (!isBlocking) {
-        try {
-          const cleanPhone = newClientPhone.replace(/\D/g, '');
-          if (cleanPhone) {
-            const clientExists = crmClientsList.some(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+        (async () => {
+          try {
+            const cleanPhone = newClientPhone.replace(/\D/g, '');
+            if (!cleanPhone) return;
+
+            const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
+            const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
+
+            // 1. Buscar a lista de clientes e configurações atuais direto da API do CRM
+            const getRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get_client', orgId, clientId, token })
+            });
+
+            if (!getRes.ok) {
+              console.warn('[PortalAgenda] Falha ao buscar dados atuais do CRM para sincronização.');
+              return;
+            }
+
+            const getData = await getRes.json();
+            const clientData = getData.client || getData || {};
+            const fid = clientData.fidelitySettings || {};
+            const currentCrmClients = fid.crmClients || [];
+
+            // 2. Verificar se o cliente do agendamento já existe na lista
+            const clientExists = currentCrmClients.some((c: any) => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+
             if (!clientExists) {
               const newClientObj = {
                 id: `client-${Date.now()}`,
@@ -385,45 +409,36 @@ export default function PortalAgenda({ orgId, clientId, initialSubTab = 'timelin
                 phone: newClientPhone.trim(),
                 email: newClientEmail.trim()
               };
-              const updatedClients = [...crmClientsList, newClientObj];
-              
-              // Sincroniza via Firestore com setDoc (cria o documento se não existir)
-              const clientsDocRef = doc(db, 'organizations', orgId, 'clients', clientId);
-              await setDoc(clientsDocRef, {
-                fidelitySettings: {
-                  ...fidelitySettingsObj,
-                  crmClients: updatedClients
-                }
-              }, { merge: true });
-              
-              // Também sincroniza com API do crm
-              try {
-                const token = localStorage.getItem('portalToken') || sessionStorage.getItem('portalToken') || '';
-                const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-                await fetch(`${crmApiUrl}/api/portal_handler`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    action: 'update_client',
-                    orgId,
-                    clientId,
-                    token,
-                    uid: auth.currentUser?.uid || '',
-                    email: auth.currentUser?.email || '',
-                    fidelitySettings: {
-                      ...fidelitySettingsObj,
-                      crmClients: updatedClients
-                    }
-                  })
-                });
-              } catch (apiErr) {
-                console.warn('[PortalAgenda] Erro ao sincronizar novo cliente via API externa:', apiErr);
+              const updatedClients = [...currentCrmClients, newClientObj];
+
+              // 3. Salvar de volta usando a API do CRM (action: update_client)
+              const updateRes = await fetch(`${crmApiUrl}/api/portal_handler`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'update_client',
+                  orgId,
+                  clientId,
+                  token,
+                  uid: auth.currentUser?.uid || '',
+                  email: auth.currentUser?.email || '',
+                  fidelitySettings: {
+                    ...fid,
+                    crmClients: updatedClients
+                  }
+                })
+              });
+
+              if (updateRes.ok) {
+                console.log('[PortalAgenda] Novo cliente sincronizado com sucesso no CRM:', newClientObj.name);
+              } else {
+                console.warn('[PortalAgenda] Erro ao salvar novo cliente via API de update_client.');
               }
             }
+          } catch (crmErr) {
+            console.warn('[PortalAgenda] Erro no fluxo de sincronização automática de cliente no CRM:', crmErr);
           }
-        } catch (crmErr) {
-          console.warn('[PortalAgenda] Erro ao processar sincronização automática de cliente no CRM:', crmErr);
-        }
+        })();
       }
 
       closeAppointmentModal();
