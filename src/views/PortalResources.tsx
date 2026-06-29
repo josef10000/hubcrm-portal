@@ -382,7 +382,7 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[82vh] overflow-y-auto pb-6 custom-scrollbar"
+            className="max-w-2xl md:max-w-3xl w-full bg-[#0b0c10] border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5 text-left max-h-[82vh] overflow-y-auto pb-6 custom-scrollbar"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -405,124 +405,137 @@ export default function PortalResources({ orgId }: PortalResourcesProps) {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nome do Item / Recurso</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Apartamento 101, Chácara Recanto, Cama Elástica..."
-                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
+            <form onSubmit={handleSave} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                {/* Coluna da Esquerda: Informações Gerais */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                    📋 Informações Gerais
+                  </span>
+                  
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tipo</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
-                    >
-                      <option value="property">🏠 Imóvel</option>
-                      <option value="space">🏢 Salão</option>
-                      <option value="equipment">⚙️ Equipamento</option>
-                      <option value="other">📦 Outro</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Preço Base (R$)</label>
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nome do Item / Recurso</label>
                     <input
                       type="text"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="Ex: 250,00"
-                      className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Apartamento 101, Chácara Recanto, Cama Elástica..."
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500"
+                      required
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cobrança</label>
-                    <select
-                      value={priceType}
-                      onChange={(e) => setPriceType(e.target.value)}
-                      className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
-                    >
-                      <option value="daily">📅 Diária</option>
-                      <option value="hourly">⏱️ Hora</option>
-                      <option value="event">🎉 Evento</option>
-                      <option value="fixed">📦 Fixo</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição Curta</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Descrição geral ou resumo da propriedade..."
-                    rows={2}
-                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Regras de Uso e Convivência</label>
-                  <textarea
-                    value={rules}
-                    onChange={(e) => setRules(e.target.value)}
-                    placeholder="Ex: Não fazer barulho após às 22h, proibido fumar, recolher lixo ao sair..."
-                    rows={2}
-                    className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
-                  />
-                </div>
-
-                {/* Sub-seção de manuais de acesso / Wi-Fi */}
-                <div className="p-4 bg-black/30 border border-white/5 rounded-2xl space-y-3 text-left">
-                  <span className="text-[9px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
-                    Guia de Acesso do Hóspede (Opcional)
-                  </span>
-
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Nome da Rede Wi-Fi</label>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Tipo</label>
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
+                      >
+                        <option value="property">🏠 Imóvel</option>
+                        <option value="space">🏢 Salão</option>
+                        <option value="equipment">⚙️ Equipamento</option>
+                        <option value="other">📦 Outro</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Preço Base (R$)</label>
                       <input
                         type="text"
-                        value={wifiName}
-                        onChange={(e) => setWifiName(e.target.value)}
-                        placeholder="Ex: WiFi_Casa_Praia"
-                        className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder="Ex: 250,00"
+                        className="w-full px-3 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 font-mono font-bold"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Senha do Wi-Fi</label>
-                      <input
-                        type="text"
-                        value={wifiPassword}
-                        onChange={(e) => setWifiPassword(e.target.value)}
-                        placeholder="Ex: 12345678"
-                        className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
-                      />
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cobrança</label>
+                      <select
+                        value={priceType}
+                        onChange={(e) => setPriceType(e.target.value)}
+                        className="w-full px-2 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all focus:ring-1 focus:ring-primary-500 cursor-pointer"
+                      >
+                        <option value="daily">📅 Diária</option>
+                        <option value="hourly">⏱️ Hora</option>
+                        <option value="event">🎉 Evento</option>
+                        <option value="fixed">📦 Fixo</option>
+                      </select>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Instruções de Acesso / Chaves</label>
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Descrição Curta</label>
                     <textarea
-                      value={accessInstructions}
-                      onChange={(e) => setAccessInstructions(e.target.value)}
-                      placeholder="Senha do cofre de chaves, senha da fechadura eletrônica, instruções de montagem..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Descrição geral ou resumo da propriedade..."
                       rows={2}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none resize-none"
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Regras de Uso e Convivência</label>
+                    <textarea
+                      value={rules}
+                      onChange={(e) => setRules(e.target.value)}
+                      placeholder="Ex: Não fazer barulho após às 22h, proibido fumar, recolher lixo ao sair..."
+                      rows={2}
+                      className="w-full px-4 py-2.5 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-xl text-xs outline-none transition-all placeholder-gray-600 focus:ring-1 focus:ring-primary-500 resize-none"
                     />
                   </div>
                 </div>
+
+                {/* Coluna da Direita: Manual & Instruções do Hóspede */}
+                <div className="space-y-3 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block border-b border-white/5 pb-1">
+                      🔑 Guia de Acesso do Hóspede
+                    </span>
+
+                    <div className="p-4 bg-black/30 border border-white/5 rounded-2xl space-y-3 text-left">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Nome da Rede Wi-Fi</label>
+                          <input
+                            type="text"
+                            value={wifiName}
+                            onChange={(e) => setWifiName(e.target.value)}
+                            placeholder="Ex: WiFi_Casa_Praia"
+                            className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Senha do Wi-Fi</label>
+                          <input
+                            type="text"
+                            value={wifiPassword}
+                            onChange={(e) => setWifiPassword(e.target.value)}
+                            placeholder="Ex: 12345678"
+                            className="w-full px-3 py-2.0 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Instruções de Acesso / Chaves</label>
+                        <textarea
+                          value={accessInstructions}
+                          onChange={(e) => setAccessInstructions(e.target.value)}
+                          placeholder="Senha do cofre de chaves, fechadura eletrônica, check-in passo a passo..."
+                          rows={4}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/10 focus:border-primary-500 text-white rounded-lg text-xs outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <div className="flex gap-2.5 pt-3 border-t border-white/5">
