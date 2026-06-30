@@ -51,6 +51,7 @@ import PortalManagement from '../views/PortalManagement';
 import PortalProfile from '../views/PortalProfile';
 import PortalClients from '../views/PortalClients';
 import PortalModulesConfig from '../views/PortalModulesConfig';
+import PortalOrders from '../views/PortalOrders';
 
 const getTabTheme = (tabId: string, isLight: boolean = false) => {
   if (isLight) {
@@ -145,6 +146,16 @@ const getTabTheme = (tabId: string, isLight: boolean = false) => {
           glowColor: '29, 78, 216',
           hexStart: '#1d4ed8',
           hexEnd: '#1e3a8a'
+        };
+      case 'orders':
+        return {
+          color: 'text-rose-700',
+          activeGlow: 'shadow-[0_4px_12px_rgba(244,63,94,0.06)] border-rose-200 bg-rose-50/30',
+          mobileColor: 'text-rose-700',
+          mobileIndicator: 'bg-rose-700 shadow-sm',
+          glowColor: '190, 24, 74',
+          hexStart: '#be1848',
+          hexEnd: '#831843'
         };
       default:
         return {
@@ -251,6 +262,16 @@ const getTabTheme = (tabId: string, isLight: boolean = false) => {
         glowColor: '59, 130, 246',
         hexStart: '#60a5fa',
         hexEnd: '#2563eb'
+      };
+    case 'orders':
+      return {
+        color: 'text-rose-400',
+        activeGlow: 'shadow-[0_0_30px_rgba(244,63,94,0.4),inset_0_2px_4px_rgba(255,255,255,0.2)] border-rose-500/40 from-rose-500/25 to-rose-500/5',
+        mobileColor: 'text-rose-400',
+        mobileIndicator: 'bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.6)]',
+        glowColor: '244, 63, 94',
+        hexStart: '#fb7185',
+        hexEnd: '#e11d48'
       };
     default:
       return {
@@ -653,7 +674,10 @@ export default function ClientPortalLayout() {
       { id: 'agenda_settings', label: 'Configurações', icon: Settings }
     ] : []),
     ...(isModuleActive('crm_finance') ? [{ id: 'crm_finance', label: 'Finanças', icon: DollarSign }] : []),
-    ...(isModuleActive('management') ? [{ id: 'management', label: 'Estoque & Negócio', icon: Package }] : []),
+    ...(isModuleActive('management') ? [
+      { id: 'management', label: 'Estoque & Negócio', icon: Package },
+      { id: 'orders', label: 'Pedidos Delivery', icon: ShoppingBag }
+    ] : []),
     ...(isModuleActive('growth') ? [{ id: 'growth', label: 'Crescer', icon: Rocket }] : []),
     ...(isModuleActive('clients') ? [{ id: 'clients', label: 'Clientes', icon: Users }] : []),
     ...(client && !client.isCourtesy ? [
@@ -1044,6 +1068,9 @@ export default function ClientPortalLayout() {
               )}
               {activeTab === 'management' && (
                 <PortalManagement orgId={orgId || ''} clientId={activeClientId || ''} />
+              )}
+              {activeTab === 'orders' && (
+                <PortalOrders orgId={orgId || ''} />
               )}
               {activeTab === 'growth' && (
                 <PortalGrowthHub 
