@@ -828,7 +828,7 @@ export default function PortalPublicMenu() {
               <div className="h-[1px] bg-white/5" />
 
               {/* Formulário de Finalização */}
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleCheckout('whatsapp'); }} className="space-y-4">
                 <h4 className="text-[10px] text-gray-500 font-black uppercase tracking-wider block">Informações de entrega</h4>
 
                 {/* Nome */}
@@ -944,14 +944,11 @@ export default function PortalPublicMenu() {
                   </div>
                 </div>
 
-                {/* Botões de Ação Duplos */}
-                <div className="space-y-3 pt-2">
-                  
-                  {/* Botão A: Confirmar via WhatsApp (Ação Principal) */}
+                {/* Botão de Checkout Único (WhatsApp) */}
+                <div className="pt-2">
                   <button
-                    type="button"
+                    type="submit"
                     disabled={isSubmitting}
-                    onClick={() => handleCheckout('whatsapp')}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-0 cursor-pointer shadow-lg shadow-emerald-600/10 active:scale-98"
                   >
                     {isSubmitting ? (
@@ -960,23 +957,6 @@ export default function PortalPublicMenu() {
                       <>
                         <Send size={14} />
                         <span>Confirmar via WhatsApp</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Botão B: Fazer Pedido pelo Site (Ação Operacional) */}
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => handleCheckout('site')}
-                    className="w-full py-3.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-white/10 cursor-pointer active:scale-98"
-                  >
-                    {isSubmitting ? (
-                      <span>Processando...</span>
-                    ) : (
-                      <>
-                        <Globe size={14} />
-                        <span>Fazer Pedido pelo Site</span>
                       </>
                     )}
                   </button>
