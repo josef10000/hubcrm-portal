@@ -619,66 +619,80 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
             const isLowStock = item.quantity <= item.minQuantity;
             return (
               <div 
-                key={item.id}
+                key={item.id} 
                 onClick={() => openEditModal(item)}
                 className={`
-                  relative bg-[var(--theme-glass)] border p-6 rounded-[2rem] flex flex-col justify-between shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--theme-glass-hover)] cursor-pointer hover:scale-[1.02] active:scale-[0.99] group/card
+                  relative bg-[var(--theme-glass)] border p-5 rounded-[2rem] flex flex-col justify-between shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--theme-glass-hover)] cursor-pointer hover:scale-[1.02] active:scale-[0.99] group/card overflow-hidden text-left
                   ${isLowStock 
                     ? 'border-amber-500/30' 
                     : 'border-[var(--theme-border-subtle)]'}
                 `}
               >
                 <div>
-                  {/* Status Badges */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest block">{item.brand || 'Sem Marca'}</span>
-                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                      {item.showInPos && (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-500/10 border border-primary-500/20 rounded-full text-[8px] font-black text-primary-400 uppercase tracking-tight">
-                          <ShoppingCart className="w-2.5 h-2.5" />
-                          PDV
-                        </div>
-                      )}
-                      {item.visibleOnline && (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[8px] font-black text-blue-400 uppercase tracking-tight">
-                          <Globe className="w-2.5 h-2.5" />
-                          Online
-                        </div>
-                      )}
-                      {isLowStock ? (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[8px] font-black text-amber-500 uppercase tracking-tight">
-                          <AlertTriangle className="w-2.5 h-2.5" />
-                          Baixo
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black text-emerald-400 uppercase tracking-tight">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          Saudável
-                        </div>
-                      )}
-                      {(() => {
-                        const duration = calculateStockDuration(item);
-                        return (
-                          <div className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[8px] font-black uppercase tracking-tight ${duration.color}`}>
-                            {duration.label}
+                  {/* Seção Superior: Mídia de Destaque com Badges Flutuantes */}
+                  <div className="w-full h-36 relative rounded-2xl overflow-hidden border border-white/5 bg-black/20 mb-4 group/image">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover transition-transform duration-350 group-hover/card:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-gray-600 bg-gradient-to-br from-white/5 to-white/0">
+                        <Package className="w-8 h-8 stroke-1 text-gray-700 animate-pulse" />
+                        <span className="text-[8px] uppercase tracking-widest font-bold">Sem imagem</span>
+                      </div>
+                    )}
+
+                    {/* Marca Flutuante (Top Left) */}
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-lg text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                      {item.brand || 'Sem Marca'}
+                    </div>
+
+                    {/* Badges Flutuantes (Top Right) */}
+                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {item.showInPos && (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-primary-500/80 backdrop-blur-md rounded-md text-[7px] font-black text-white uppercase tracking-tight">
+                            <ShoppingCart className="w-2 h-2" />
+                            PDV
                           </div>
-                        );
-                      })()}
+                        )}
+                        {item.visibleOnline && (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/80 backdrop-blur-md rounded-md text-[7px] font-black text-white uppercase tracking-tight">
+                            <Globe className="w-2 h-2" />
+                            Cardápio
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {isLowStock ? (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/90 backdrop-blur-md rounded-md text-[7px] font-black text-white uppercase tracking-tight">
+                            <AlertTriangle className="w-2 h-2" />
+                            Baixo
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/90 backdrop-blur-md rounded-md text-[7px] font-black text-white uppercase tracking-tight">
+                            <CheckCircle2 className="w-2 h-2" />
+                            Saudável
+                          </div>
+                        )}
+                        {(() => {
+                          const duration = calculateStockDuration(item);
+                          return (
+                            <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-md rounded-md text-[7px] font-black uppercase tracking-tight ${duration.color}`}>
+                              {duration.label}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-4 items-start">
-                    {item.imageUrl && (
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0">
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
+                  {/* Nome e Categoria do Produto */}
+                  <div className="text-left space-y-1">
+                    <h4 className="text-sm font-black text-white line-clamp-1 uppercase leading-tight tracking-tight group-hover/card:text-primary-400 transition-colors">{item.name}</h4>
+                    {item.category && (
+                      <span className="inline-block text-[8px] bg-primary-500/10 text-primary-400 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                        {item.category}
+                      </span>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-black text-white mb-2 line-clamp-1 uppercase leading-snug">{item.name}</h4>
-                      {item.category && (
-                        <span className="text-[9px] text-primary-400 font-bold uppercase tracking-wider block -mt-1">{item.category}</span>
-                      )}
-                    </div>
                   </div>
                   
                   {/* Stock Quantity */}
@@ -816,7 +830,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
           <div 
-            className="border border-[var(--theme-border)] p-6 md:p-8 rounded-[2.5rem] max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200"
+            className="border border-[var(--theme-border)] p-6 md:p-8 rounded-[2.5rem] max-w-3xl w-full shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar"
             style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
           >
             <button
@@ -826,176 +840,40 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
               <X size={16} />
             </button>
 
-            <h3 className="text-lg font-black uppercase tracking-tight mb-6 flex items-center gap-2" style={{ color: 'var(--theme-text-primary)' }}>
+            <h3 className="text-lg font-black uppercase tracking-tight mb-6 flex items-center gap-2 text-left" style={{ color: 'var(--theme-text-primary)' }}>
               <Package className="text-primary-500 w-5 h-5" />
               {editingItemId ? 'Editar Produto' : 'Cadastrar Produto'}
             </h3>
 
-            <form onSubmit={handleSaveItem} className="space-y-4">
+            <form onSubmit={handleSaveItem} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Nome */}
-              <div className="text-left">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Nome do Produto/Insumo *</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Ex: Coca-Cola Lata 350ml"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
-                />
-              </div>
-
-              {/* Marca */}
-              <div className="text-left">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Marca (opcional)</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: Coca-Cola, Heineken, Ambev"
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
-                />
-              </div>
-
-              {/* Quantidade e Unidade */}
-              <div className="grid grid-cols-2 gap-4 text-left">
-                <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Qtd Atual *</label>
-                  <input 
-                    type="number" 
-                    required
-                    min="0"
-                    placeholder="0"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Unidade *</label>
-                  <CustomSelect 
-                    value={unit}
-                    onChange={(val) => setUnit(val)}
-                    options={[
-                      { value: 'un', label: 'un (unidades)' },
-                      { value: 'g', label: 'g (gramas)' },
-                      { value: 'kg', label: 'kg (quilos)' },
-                      { value: 'ml', label: 'ml (mililitros)' },
-                      { value: 'L', label: 'L (litros)' },
-                      { value: 'm', label: 'm (metros)' }
-                    ]}
-                  />
-                </div>
-              </div>
-
-              {/* Estoque Mínimo e Custo */}
-              <div className="grid grid-cols-2 gap-4 text-left">
-                <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Estoque Mínimo *</label>
-                  <input 
-                    type="number" 
-                    required
-                    min="0"
-                    placeholder="Mínimo crítico"
-                    value={minQuantity}
-                    onChange={(e) => setMinQuantity(e.target.value)}
-                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (por {unit})</label>
-                  <input 
-                    type="text" 
-                    placeholder="0,00"
-                    value={costPerUnit}
-                    onChange={(e) => setCostPerUnit(e.target.value)}
-                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Custo total do lote calculado em tempo real */}
-              {Number(quantity) > 0 && Number(costPerUnit.replace(',', '.')) > 0 && (
-                <div className="bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
-                  <span>Custo Total do Lote ({quantity} {unit}):</span>
-                  <span className="font-mono text-white text-xs">
-                    R$ {(Number(quantity) * Number(costPerUnit.replace(',', '.'))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              )}
-
-              {/* Preço de Venda e Checkbox PDV / Cardápio Online */}
-              <div className="grid grid-cols-2 gap-4 text-left items-end">
-                <div>
-                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Venda (R$)</label>
-                  <input 
-                    type="text" 
-                    placeholder="0,00"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
-                  />
-                </div>
+              {/* COLUNA ESQUERDA: Mídia e Visibilidade */}
+              <div className="space-y-4 flex flex-col justify-between">
                 
-                <div className="flex flex-col gap-2">
-                  {/* Switch Exibir no PDV */}
-                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowInPos(!showInPos)}>
-                    <input 
-                      type="checkbox" 
-                      checked={showInPos}
-                      onChange={() => {}} // Lida pelo onClick da div
-                      className="w-4 h-4 accent-primary-500 cursor-pointer"
-                    />
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no PDV</span>
-                  </div>
-
-                  {/* Switch Exibir Online (Cardápio) */}
-                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setVisibleOnline(!visibleOnline)}>
-                    <input 
-                      type="checkbox" 
-                      checked={visibleOnline}
-                      onChange={() => {}} // Lida pelo onClick da div
-                      className="w-4 h-4 accent-primary-500 cursor-pointer"
-                    />
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no Cardápio</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Categoria */}
-              <div className="text-left">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Categoria do Produto</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: Hamburgueres, Pizzas, Bebidas, Doces"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
-                />
-              </div>
-
-              {/* Imagem do Produto */}
-              <div className="text-left space-y-2">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Imagem do Produto (opcional)</label>
-                
-                <div className="flex gap-3 items-center">
-                  {/* Preview da Imagem */}
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[var(--theme-border)] bg-black/20 flex-shrink-0 flex items-center justify-center relative">
+                {/* Imagem e Preview de Destaque */}
+                <div className="text-left space-y-2">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Imagem do Produto (opcional)</label>
+                  
+                  {/* Container de Preview Gigante e Otimizado */}
+                  <div className="w-full h-44 rounded-2xl overflow-hidden border border-[var(--theme-border)] bg-black/30 flex items-center justify-center relative shadow-inner group">
                     {imageUrl.trim() ? (
-                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={imageUrl} alt="Destaque" className="w-full h-full object-cover transition-transform duration-350 group-hover:scale-105" />
                     ) : (
-                      <Package className="w-6 h-6 text-gray-600" />
+                      <div className="flex flex-col items-center gap-2 text-gray-600">
+                        <Package className="w-10 h-10 stroke-1 animate-pulse" />
+                        <span className="text-[9px] uppercase font-black tracking-widest">Sem Imagem</span>
+                      </div>
                     )}
                     {uploadingImage && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Otimizando...</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Ações de Upload / Link */}
-                  <div className="flex-1 space-y-1.5 text-left">
+                  {/* Upload e Input */}
+                  <div className="flex gap-2 items-stretch mt-1">
                     <input 
                       type="file" 
                       accept="image/*"
@@ -1006,25 +884,170 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                     />
                     <label 
                       htmlFor="product-image-upload"
-                      className="inline-flex px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider cursor-pointer transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
                     >
-                      {uploadingImage ? 'Enviando...' : 'Fazer Upload Foto'}
+                      {uploadingImage ? 'Processando...' : 'Fazer Upload'}
                     </label>
-                    <p className="text-[9px] text-gray-500">Faça upload da imagem ou cole o link abaixo:</p>
+                    <input 
+                      type="text" 
+                      placeholder="Ou cole a URL da foto..."
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className="flex-1 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary-500/50 text-[10px] font-bold font-mono text-gray-300 min-w-0"
+                    />
                   </div>
                 </div>
 
-                <input 
-                  type="text" 
-                  placeholder="https://exemplo.com/imagem-do-produto.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-[10px] font-bold font-mono text-gray-300"
-                />
+                {/* Categoria */}
+                <div className="text-left">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Categoria do Produto</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Hamburgueres, Pizzas, Bebidas, Doces"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
+                  />
+                </div>
+
+                {/* Swithes de Exibição lado a lado */}
+                <div className="bg-white/5 border border-white/5 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-around gap-4 text-left">
+                  {/* Switch Exibir no PDV */}
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowInPos(!showInPos)}>
+                    <input 
+                      type="checkbox" 
+                      checked={showInPos}
+                      onChange={() => {}} 
+                      className="w-4 h-4 accent-primary-500 cursor-pointer"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no PDV</span>
+                  </div>
+
+                  {/* Switch Exibir no Cardápio */}
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setVisibleOnline(!visibleOnline)}>
+                    <input 
+                      type="checkbox" 
+                      checked={visibleOnline}
+                      onChange={() => {}} 
+                      className="w-4 h-4 accent-primary-500 cursor-pointer"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir Online</span>
+                  </div>
+                </div>
+
               </div>
 
-              {/* Botões Ações */}
-              <div className="pt-4 flex gap-3">
+              {/* COLUNA DIREITA: Detalhes de Estoque e Preços */}
+              <div className="space-y-4 text-left">
+                
+                {/* Nome */}
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Nome do Produto/Insumo *</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Ex: Coca-Cola Lata 350ml"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
+                  />
+                </div>
+
+                {/* Marca */}
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Marca (opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Coca-Cola, Heineken, Ambev"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
+                  />
+                </div>
+
+                {/* Quantidade e Unidade */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Qtd Atual *</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="0"
+                      placeholder="0"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Unidade *</label>
+                    <CustomSelect 
+                      value={unit}
+                      onChange={(val) => setUnit(val)}
+                      options={[
+                        { value: 'un', label: 'un (unidades)' },
+                        { value: 'g', label: 'g (gramas)' },
+                        { value: 'kg', label: 'kg (quilos)' },
+                        { value: 'ml', label: 'ml (mililitros)' },
+                        { value: 'L', label: 'L (litros)' },
+                        { value: 'm', label: 'm (metros)' }
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Estoque Mínimo e Custo */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Estoque Mínimo *</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="0"
+                      placeholder="Mínimo crítico"
+                      value={minQuantity}
+                      onChange={(e) => setMinQuantity(e.target.value)}
+                      className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Custo (por {unit})</label>
+                    <input 
+                      type="text" 
+                      placeholder="0,00"
+                      value={costPerUnit}
+                      onChange={(e) => setCostPerUnit(e.target.value)}
+                      className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Preço de Venda */}
+                <div>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Venda (R$)</label>
+                  <input 
+                    type="text" 
+                    placeholder="0,00"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
+                  />
+                </div>
+
+                {/* Custo total do lote calculado em tempo real */}
+                {Number(quantity) > 0 && Number(costPerUnit.replace(',', '.')) > 0 && (
+                  <div className="bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
+                    <span>Custo Total do Lote ({quantity} {unit}):</span>
+                    <span className="font-mono text-white text-xs">
+                      R$ {(Number(quantity) * Number(costPerUnit.replace(',', '.'))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+
+              </div>
+
+              {/* RODAPÉ: Ações de largura total */}
+              <div className="md:col-span-2 pt-4 flex gap-3 border-t border-[var(--theme-border-subtle)] mt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
