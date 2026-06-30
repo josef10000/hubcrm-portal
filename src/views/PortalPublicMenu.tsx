@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { 
-  collection, doc, getDoc, addDoc, getDocs, updateDoc, increment, query, where, serverTimestamp, arrayUnion 
+  collection, doc, getDoc, setDoc, addDoc, getDocs, updateDoc, increment, query, where, serverTimestamp, arrayUnion 
 } from 'firebase/firestore';
 import { 
   ShoppingBag, Search, Plus, Minus, X, Check, Phone, MapPin, Send, ArrowLeft, CheckCircle2, Globe, Clock
@@ -297,86 +297,13 @@ export default function PortalPublicMenu() {
 
       const total = getCartTotal();
 
-      // 2. Transação Firestore: Salva o pedido com o status pendente e o canal de fechamento
-      const orderPayload = {
-        clientName: clientName.trim(),
-        clientPhone: clientPhone.trim(),
-        deliveryType,
-        address: deliveryType === 'delivery' ? address.trim() : 'Retirada no Balcão',
-        paymentMethod,
-        total,
-        status: 'pendente',
-        createdAt: serverTimestamp(),
-        checkoutMethod: method,
-        items: cart.map(item => ({
-          productId: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-          notes: item.notes,
-          additions: item.selectedAdditions
-        }))
-      };
+      // 2. Cria referências de ID e número legível de forma síncrona
+      const ordersColRef = collection(db, 'organizations', orgId, 'orders');
+      const newOrderDocRef = doc(ordersColRef);
+      const orderId = newOrderDocRef.id;
+      const displayOrderNumber = orderId.slice(-6).toUpperCase();
 
-      const orderRef = await addDoc(collection(db, 'organizations', orgId, 'orders'), orderPayload);
-
-      // 3. Dedução de Estoque reativa
-      for (const item of cart) {
-        const productRef = doc(db, 'organizations', orgId, 'inventory', item.product.id);
-        await updateDoc(productRef, {
-          quantity: increment(-item.quantity)
-        });
-
-        // Grava histórico de movimentação
-        try {
-          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-            itemId: item.product.id,
-            itemName: item.product.name,
-            type: 'saida',
-            quantity: item.quantity,
-            date: serverTimestamp(),
-            description: `Venda online via Cardápio Público (Pedido #${orderRef.id.slice(-6).toUpperCase()})`
-          });
-        } catch (logErr) {
-          console.warn('Erro ao salvar log de movimentação de estoque:', logErr);
-        }
-      }
-
-      // 4. Salva transação no Financeiro (revenues)
-      try {
-        await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
-          amount: total,
-          description: `Venda online via Cardápio Público #${orderRef.id.slice(-6).toUpperCase()}`,
-          date: new Date().toISOString(),
-          category: 'Venda de Produtos',
-          paymentMethod: paymentMethod === 'pix' ? 'Pix' : paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
-          createdAt: serverTimestamp()
-        });
-      } catch (revErr) {
-        console.warn('Erro ao salvar receita no financeiro:', revErr);
-      }
-
-      // 5. Integração com o CRM (Cadastro de Clientes do Lojista)
-      try {
-        const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
-        const cleanPhone = clientPhone.replace(/\D/g, '');
-        
-        await updateDoc(settingsRef, {
-          crmClients: arrayUnion({
-            id: `client_${Date.now()}`,
-            name: clientName.trim(),
-            phone: cleanPhone,
-            totalSpent: total,
-            lastVisit: new Date().toISOString().split('T')[0],
-            visitCount: 1,
-            notes: `Cadastrado automaticamente via Cardápio Digital Público (${method === 'whatsapp' ? 'WhatsApp' : 'Site'}).`
-          })
-        });
-      } catch (crmErr) {
-        console.warn('Configuração de CRM/Fidelidade indisponível para esta organização. Pedido salvo com sucesso.', crmErr);
-      }
-
-      // 6. Montagem da Mensagem do WhatsApp
+      // 3. Montagem da Mensagem do WhatsApp de forma síncrona
       let msg = `*🍔 NOVO PEDIDO - ${orgData?.name?.toUpperCase() || 'DELIVERY'}*\n`;
       msg += `===============================\n`;
       msg += `*Cliente:* ${clientName.trim()}\n`;
@@ -405,19 +332,104 @@ export default function PortalPublicMenu() {
 
       msg += `===============================\n`;
       msg += `*VALOR TOTAL:* R$ ${total.toFixed(2)}\n\n`;
-      msg += `*Código do Pedido:* #${orderRef.id.slice(-6).toUpperCase()}\n`;
+      msg += `*Código do Pedido:* #${displayOrderNumber}\n`;
       msg += `Obrigado pela preferência!`;
 
-      // 7. Redirecionamento instantâneo se for WhatsApp
+      // 4. Redirecionamento instantâneo para o WhatsApp (SÍNCRONO - para evitar bloqueio de popup)
       if (method === 'whatsapp') {
-        const phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+        let phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+        if (phone && phone.length <= 11) {
+          phone = '55' + phone; // Garante o DDI do Brasil para números de DDD
+        }
         const text = encodeURIComponent(msg);
         window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
       }
 
-      // 8. Define estado de sucesso com o método de checkout
+      // 5. Transação Firestore: Salva o pedido com o ID gerado síncrono e a propriedade displayId/orderNumber
+      const orderPayload = {
+        id: orderId,
+        orderNumber: displayOrderNumber,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim(),
+        deliveryType,
+        address: deliveryType === 'delivery' ? address.trim() : 'Retirada no Balcão',
+        paymentMethod,
+        total,
+        status: 'pendente',
+        createdAt: serverTimestamp(),
+        checkoutMethod: method,
+        items: cart.map(item => ({
+          productId: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          notes: item.notes,
+          additions: item.selectedAdditions
+        }))
+      };
+
+      // Gravação assíncrona no Firestore
+      await setDoc(newOrderDocRef, orderPayload);
+
+      // 6. Dedução de Estoque reativa
+      for (const item of cart) {
+        const productRef = doc(db, 'organizations', orgId, 'inventory', item.product.id);
+        await updateDoc(productRef, {
+          quantity: increment(-item.quantity)
+        });
+
+        // Grava histórico de movimentação
+        try {
+          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+            itemId: item.product.id,
+            itemName: item.product.name,
+            type: 'saida',
+            quantity: item.quantity,
+            date: serverTimestamp(),
+            description: `Venda online via Cardápio Público (Pedido #${displayOrderNumber})`
+          });
+        } catch (logErr) {
+          console.warn('Erro ao salvar log de movimentação de estoque:', logErr);
+        }
+      }
+
+      // 7. Salva transação no Financeiro (revenues)
+      try {
+        await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
+          amount: total,
+          description: `Venda online via Cardápio Público #${displayOrderNumber}`,
+          date: new Date().toISOString(),
+          category: 'Venda de Produtos',
+          paymentMethod: paymentMethod === 'pix' ? 'Pix' : paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
+          createdAt: serverTimestamp()
+        });
+      } catch (revErr) {
+        console.warn('Erro ao salvar receita no financeiro:', revErr);
+      }
+
+      // 8. Integração com o CRM (Cadastro de Clientes do Lojista)
+      try {
+        const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
+        const cleanPhone = clientPhone.replace(/\D/g, '');
+        
+        await updateDoc(settingsRef, {
+          crmClients: arrayUnion({
+            id: `client_${Date.now()}`,
+            name: clientName.trim(),
+            phone: cleanPhone,
+            totalSpent: total,
+            lastVisit: new Date().toISOString().split('T')[0],
+            visitCount: 1,
+            notes: `Cadastrado automaticamente via Cardápio Digital Público (${method === 'whatsapp' ? 'WhatsApp' : 'Site'}).`
+          })
+        });
+      } catch (crmErr) {
+        console.warn('Configuração de CRM/Fidelidade indisponível para esta organização. Pedido salvo com sucesso.', crmErr);
+      }
+
+      // 9. Define estado de sucesso com o método de checkout
       setOrderSuccess({
-        id: orderRef.id.slice(-6).toUpperCase(),
+        id: displayOrderNumber,
         total,
         message: msg,
         method
@@ -436,7 +448,10 @@ export default function PortalPublicMenu() {
 
   const handleOpenWhatsApp = () => {
     if (!orderSuccess) return;
-    const phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+    let phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+    if (phone && phone.length <= 11) {
+      phone = '55' + phone; // Garante o DDI do Brasil para números de DDD
+    }
     const text = encodeURIComponent(orderSuccess.message);
     window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
   };

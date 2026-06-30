@@ -18,6 +18,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  orderNumber?: string;
   clientName: string;
   clientPhone: string;
   deliveryType: 'delivery' | 'pickup';
@@ -141,15 +142,16 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
   const handleSendStatusWhatsApp = (order: Order) => {
     const cleanPhone = order.clientPhone.replace(/\D/g, '');
     let text = '';
+    const displayId = order.orderNumber || order.id.slice(-6).toUpperCase();
     
     if (order.status === 'preparo') {
-      text = `Olá, *${order.clientName}*! Seu pedido *#${order.id.slice(-6).toUpperCase()}* já está sendo preparado com muito carinho por nossa equipe. Logo sairá para você! 🍔`;
+      text = `Olá, *${order.clientName}*! Seu pedido *#${displayId}* já está sendo preparado com muito carinho por nossa equipe. Logo sairá para você! 🍔`;
     } else if (order.status === 'pronto') {
-      text = `Olá, *${order.clientName}*! Seu pedido *#${order.id.slice(-6).toUpperCase()}* está *PRONTO*! ${order.deliveryType === 'delivery' ? 'O motoboy já está saindo para entrega!' : 'Você já pode vir retirar no nosso balcão!'} 🛵🏪`;
+      text = `Olá, *${order.clientName}*! Seu pedido *#${displayId}* está *PRONTO*! ${order.deliveryType === 'delivery' ? 'O motoboy já está saindo para entrega!' : 'Você já pode vir retirar no nosso balcão!'} 🛵🏪`;
     } else if (order.status === 'finalizado') {
-      text = `Olá, *${order.clientName}*! Seu pedido *#${order.id.slice(-6).toUpperCase()}* foi entregue/finalizado. Esperamos que tenha gostado! Se puder, nos avalie. Bom apetite! ❤️`;
+      text = `Olá, *${order.clientName}*! Seu pedido *#${displayId}* foi entregue/finalizado. Esperamos que tenha gostado! Se puder, nos avalie. Bom apetite! ❤️`;
     } else {
-      text = `Olá, *${order.clientName}*! Entramos em contato para falar sobre seu pedido *#${order.id.slice(-6).toUpperCase()}*.`;
+      text = `Olá, *${order.clientName}*! Entramos em contato para falar sobre seu pedido *#${displayId}*.`;
     }
 
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
@@ -242,7 +244,7 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
                   <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-xs font-black text-white font-mono uppercase">
-                        #{order.id.slice(-6).toUpperCase()}
+                        #{order.orderNumber || order.id.slice(-6).toUpperCase()}
                       </span>
                       <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${getStatusBadgeClass(order.status)}`}>
                         {getStatusLabel(order.status)}
@@ -284,7 +286,7 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
                   <div>
                     <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block">Pedido Selecionado</span>
                     <h3 className="text-sm font-black text-white font-mono uppercase mt-0.5">
-                      #{selectedOrder.id.slice(-6).toUpperCase()}
+                      #{selectedOrder.orderNumber || selectedOrder.id.slice(-6).toUpperCase()}
                     </h3>
                   </div>
                   <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${getStatusBadgeClass(selectedOrder.status)}`}>

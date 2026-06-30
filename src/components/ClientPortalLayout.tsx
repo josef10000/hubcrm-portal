@@ -441,6 +441,21 @@ export default function ClientPortalLayout() {
     return () => unsub();
   }, [orgId, clientId, navigate]);
 
+  const [deliveryActive, setDeliveryActive] = useState(true);
+
+  useEffect(() => {
+    if (!orgId) return;
+    const orgDocRef = doc(db, 'organizations', orgId);
+    const unsub = onSnapshot(orgDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const orgData = docSnap.data();
+        const settings = orgData.deliverySettings || {};
+        setDeliveryActive(settings.active !== false);
+      }
+    });
+    return () => unsub();
+  }, [orgId]);
+
   const [activeTab, setActiveTab] = useState(() => {
     const saved = sessionStorage.getItem(`portal_active_tab_${orgId || ''}_${clientId || ''}`);
     return saved || 'home';
@@ -676,7 +691,7 @@ export default function ClientPortalLayout() {
     ...(isModuleActive('crm_finance') ? [{ id: 'crm_finance', label: 'Finanças', icon: DollarSign }] : []),
     ...(isModuleActive('management') ? [
       { id: 'management', label: 'Estoque & Negócio', icon: Package },
-      { id: 'orders', label: 'Pedidos Delivery', icon: ShoppingBag }
+      ...(deliveryActive ? [{ id: 'orders', label: 'Pedidos Delivery', icon: ShoppingBag }] : [])
     ] : []),
     ...(isModuleActive('growth') ? [{ id: 'growth', label: 'Crescer', icon: Rocket }] : []),
     ...(isModuleActive('clients') ? [{ id: 'clients', label: 'Clientes', icon: Users }] : []),
