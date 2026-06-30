@@ -4,7 +4,7 @@ import {
   collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, limit 
 } from 'firebase/firestore';
 import { 
-  Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X, ArrowUpRight, ArrowDownRight, History, ShoppingCart
+  Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X, ArrowUpRight, ArrowDownRight, History, ShoppingCart, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from './ConfirmModal';
@@ -25,6 +25,9 @@ interface InventoryItem {
   showInPos?: boolean;
   price?: number;
   sales?: number;
+  category?: string;
+  visibleOnline?: boolean;
+  imageUrl?: string;
 }
 
 // Função utilitária para codificar/decodificar metadados no campo name
@@ -82,6 +85,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [brand, setBrand] = useState('');
   const [showInPos, setShowInPos] = useState(false);
   const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
+  const [visibleOnline, setVisibleOnline] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -156,7 +162,10 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           sales: meta.sales,
           costPerUnit,
           quantity,
-          minQuantity
+          minQuantity,
+          category: data.category || '',
+          visibleOnline: data.visibleOnline || false,
+          imageUrl: data.imageUrl || ''
         } as InventoryItem;
       });
       setItems(list);
@@ -204,6 +213,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     setBrand('');
     setShowInPos(false);
     setPrice('');
+    setCategory('');
+    setVisibleOnline(false);
+    setImageUrl('');
     setIsModalOpen(true);
   };
 
@@ -217,6 +229,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     setBrand(item.brand || '');
     setShowInPos(item.showInPos || false);
     setPrice(item.price ? item.price.toString().replace('.', ',') : '');
+    setCategory(item.category || '');
+    setVisibleOnline(item.visibleOnline || false);
+    setImageUrl(item.imageUrl || '');
     setIsModalOpen(true);
   };
 
@@ -239,6 +254,9 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
         unit,
         minQuantity: Number(minQuantity),
         costPerUnit: costPerUnit ? Number(costPerUnit.replace(',', '.')) : 0,
+        category: category.trim(),
+        visibleOnline: visibleOnline,
+        imageUrl: imageUrl.trim(),
         updatedAt: serverTimestamp()
       };
 
@@ -541,11 +559,17 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   {/* Status Badges */}
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest block">{item.brand || 'Sem Marca'}</span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
                       {item.showInPos && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-500/10 border border-primary-500/20 rounded-full text-[8px] font-black text-primary-400 uppercase tracking-tight">
                           <ShoppingCart className="w-2.5 h-2.5" />
                           PDV
+                        </div>
+                      )}
+                      {item.visibleOnline && (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[8px] font-black text-blue-400 uppercase tracking-tight">
+                          <Globe className="w-2.5 h-2.5" />
+                          Online
                         </div>
                       )}
                       {isLowStock ? (
@@ -570,7 +594,19 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                     </div>
                   </div>
 
-                  <h4 className="text-sm font-black text-white mb-2 line-clamp-1 uppercase leading-snug">{item.name}</h4>
+                  <div className="flex gap-4 items-start">
+                    {item.imageUrl && (
+                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0">
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-black text-white mb-2 line-clamp-1 uppercase leading-snug">{item.name}</h4>
+                      {item.category && (
+                        <span className="text-[9px] text-primary-400 font-bold uppercase tracking-wider block -mt-1">{item.category}</span>
+                      )}
+                    </div>
+                  </div>
                   
                   {/* Stock Quantity */}
                   <div className="flex items-baseline gap-1 mt-4">
@@ -816,7 +852,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                 </div>
               )}
 
-              {/* Preço de Venda e Checkbox PDV */}
+              {/* Preço de Venda e Checkbox PDV / Cardápio Online */}
               <div className="grid grid-cols-2 gap-4 text-left items-end">
                 <div>
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Preço de Venda (R$)</label>
@@ -829,15 +865,59 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                   />
                 </div>
                 
-                {/* Switch Exibir no PDV */}
-                <div className="flex items-center gap-2 h-[42px] cursor-pointer" onClick={() => setShowInPos(!showInPos)}>
+                <div className="flex flex-col gap-2">
+                  {/* Switch Exibir no PDV */}
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowInPos(!showInPos)}>
+                    <input 
+                      type="checkbox" 
+                      checked={showInPos}
+                      onChange={() => {}} // Lida pelo onClick da div
+                      className="w-4 h-4 accent-primary-500 cursor-pointer"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no PDV</span>
+                  </div>
+
+                  {/* Switch Exibir Online (Cardápio) */}
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setVisibleOnline(!visibleOnline)}>
+                    <input 
+                      type="checkbox" 
+                      checked={visibleOnline}
+                      onChange={() => {}} // Lida pelo onClick da div
+                      className="w-4 h-4 accent-primary-500 cursor-pointer"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no Cardápio</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div className="text-left">
+                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Categoria do Produto</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Hamburgueres, Pizzas, Bebidas, Doces"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
+                />
+              </div>
+
+              {/* Imagem do Produto */}
+              <div className="text-left">
+                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">URL da Imagem do Produto (opcional)</label>
+                <div className="flex gap-2 items-center">
                   <input 
-                    type="checkbox" 
-                    checked={showInPos}
-                    onChange={() => {}} // Lida pelo onClick da div
-                    className="w-4 h-4 accent-primary-500 cursor-pointer"
+                    type="text" 
+                    placeholder="https://exemplo.com/foto.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="flex-1 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
                   />
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider select-none">Exibir no PDV</span>
+                  {imageUrl.trim() && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--theme-border)] bg-black/20 flex-shrink-0 flex items-center justify-center">
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).style.display = 'none'; }} />
+                    </div>
+                  )}
                 </div>
               </div>
 
