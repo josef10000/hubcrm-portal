@@ -370,61 +370,7 @@ export default function PortalPublicMenu() {
       // Gravação robusta no Firestore com ID automático
       await addDoc(collection(db, 'organizations', orgId, 'orders'), orderPayload);
 
-      // 6. Dedução de Estoque reativa
-      for (const item of cart) {
-        const productRef = doc(db, 'organizations', orgId, 'inventory', item.product.id);
-        await updateDoc(productRef, {
-          quantity: increment(-item.quantity)
-        });
 
-        // Grava histórico de movimentação
-        try {
-          await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
-            itemId: item.product.id,
-            itemName: item.product.name,
-            type: 'saida',
-            quantity: item.quantity,
-            date: serverTimestamp(),
-            description: `Venda online via Cardápio Público (Pedido #${displayOrderNumber})`
-          });
-        } catch (logErr) {
-          console.warn('Erro ao salvar log de movimentação de estoque:', logErr);
-        }
-      }
-
-      // 7. Salva transação no Financeiro (revenues)
-      try {
-        await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
-          amount: total,
-          description: `Venda online via Cardápio Público #${displayOrderNumber}`,
-          date: new Date().toISOString(),
-          category: 'Venda de Produtos',
-          paymentMethod: paymentMethod === 'pix' ? 'Pix' : paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
-          createdAt: serverTimestamp()
-        });
-      } catch (revErr) {
-        console.warn('Erro ao salvar receita no financeiro:', revErr);
-      }
-
-      // 8. Integração com o CRM (Cadastro de Clientes do Lojista)
-      try {
-        const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
-        const cleanPhone = clientPhone.replace(/\D/g, '');
-        
-        await updateDoc(settingsRef, {
-          crmClients: arrayUnion({
-            id: `client_${Date.now()}`,
-            name: clientName.trim(),
-            phone: cleanPhone,
-            totalSpent: total,
-            lastVisit: new Date().toISOString().split('T')[0],
-            visitCount: 1,
-            notes: `Cadastrado automaticamente via Cardápio Digital Público (${method === 'whatsapp' ? 'WhatsApp' : 'Site'}).`
-          })
-        });
-      } catch (crmErr) {
-        console.warn('Configuração de CRM/Fidelidade indisponível para esta organização. Pedido salvo com sucesso.', crmErr);
-      }
 
       // 9. Redireciona a janela em branco aberta anteriormente após o salvamento no Firestore
       if (whatsappWindow) {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp 
+  collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, increment, arrayUnion, serverTimestamp 
 } from 'firebase/firestore';
 import { 
   Clock, MapPin, Check, X, Phone, MessageSquare, AlertCircle, Play, ShoppingBag, CheckCircle2, ChevronRight, Volume2, VolumeX
@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 
 interface OrderItem {
+  productId?: string;
   name: string;
   price: number;
   quantity: number;
@@ -123,10 +124,74 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
   // Atualiza Status do Pedido
   const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
+      const orderObj = orders.find(o => o.id === orderId);
       const orderRef = doc(db, 'organizations', orgId, 'orders', orderId);
       await updateDoc(orderRef, { status: newStatus });
       
       toast.success(`Pedido atualizado para: ${getStatusLabel(newStatus)}`);
+
+      // Se o pedido foi aceito (movido de pendente para preparo), roda as atualizações de estoque/CRM/financeiro sob autenticação do lojista
+      if (orderObj && newStatus === 'preparo' && orderObj.status === 'pendente') {
+        const displayOrderNumber = orderObj.orderNumber || orderObj.id.slice(-6).toUpperCase();
+        
+        // 1. Dedução de Estoque reativa
+        for (const item of orderObj.items) {
+          if (item.productId) {
+            const productRef = doc(db, 'organizations', orgId, 'inventory', item.productId);
+            try {
+              await updateDoc(productRef, {
+                quantity: increment(-item.quantity)
+              });
+
+              // Grava histórico de movimentação
+              await addDoc(collection(db, 'organizations', orgId, 'inventory_logs'), {
+                itemId: item.productId,
+                itemName: item.name,
+                type: 'saida',
+                quantity: item.quantity,
+                date: serverTimestamp(),
+                description: `Venda online via Cardápio Público (Pedido #${displayOrderNumber})`
+              });
+            } catch (stockErr) {
+              console.warn('Erro ao atualizar estoque para o item:', item.name, stockErr);
+            }
+          }
+        }
+
+        // 2. Salva transação no Financeiro (revenues)
+        try {
+          await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
+            amount: orderObj.total,
+            description: `Venda online via Cardápio Público #${displayOrderNumber}`,
+            date: new Date().toISOString(),
+            category: 'Venda de Produtos',
+            paymentMethod: orderObj.paymentMethod === 'pix' ? 'Pix' : orderObj.paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
+            createdAt: serverTimestamp()
+          });
+        } catch (revErr) {
+          console.warn('Erro ao salvar receita no financeiro:', revErr);
+        }
+
+        // 3. Integração com o CRM (Cadastro de Clientes do Lojista)
+        try {
+          const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
+          const cleanPhone = orderObj.clientPhone.replace(/\D/g, '');
+          
+          await updateDoc(settingsRef, {
+            crmClients: arrayUnion({
+              id: `client_${Date.now()}`,
+              name: orderObj.clientName.trim(),
+              phone: cleanPhone,
+              totalSpent: orderObj.total,
+              lastVisit: new Date().toISOString().split('T')[0],
+              visitCount: 1,
+              notes: `Cadastrado automaticamente via Cardápio Digital Público.`
+            })
+          });
+        } catch (crmErr) {
+          console.warn('Configuração de CRM/Fidelidade indisponível para esta organização.', crmErr);
+        }
+      }
       
       // Atualiza o pedido selecionado se for o mesmo
       if (selectedOrder?.id === orderId) {
