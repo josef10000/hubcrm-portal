@@ -130,7 +130,7 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
       
       toast.success(`Pedido atualizado para: ${getStatusLabel(newStatus)}`);
 
-      // Se o pedido foi aceito (movido de pendente para preparo), roda as atualizações de estoque/CRM/financeiro sob autenticação do lojista
+      // Se o pedido foi aceito (movido de pendente para preparo), roda as atualizações de estoque e CRM
       if (orderObj && newStatus === 'preparo' && orderObj.status === 'pendente') {
         const displayOrderNumber = orderObj.orderNumber || orderObj.id.slice(-6).toUpperCase();
         
@@ -158,21 +158,7 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
           }
         }
 
-        // 2. Salva transação no Financeiro (revenues)
-        try {
-          await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
-            amount: orderObj.total,
-            description: `Venda online via Cardápio Público #${displayOrderNumber}`,
-            date: new Date().toISOString(),
-            category: 'Venda de Produtos',
-            paymentMethod: orderObj.paymentMethod === 'pix' ? 'Pix' : orderObj.paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
-            createdAt: serverTimestamp()
-          });
-        } catch (revErr) {
-          console.warn('Erro ao salvar receita no financeiro:', revErr);
-        }
-
-        // 3. Integração com o CRM (Cadastro de Clientes do Lojista)
+        // 2. Integração com o CRM (Cadastro de Clientes do Lojista)
         try {
           const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
           const cleanPhone = orderObj.clientPhone.replace(/\D/g, '');
@@ -190,6 +176,23 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
           });
         } catch (crmErr) {
           console.warn('Configuração de CRM/Fidelidade indisponível para esta organização.', crmErr);
+        }
+      }
+
+      // Se o pedido foi finalizado (concluído/pago), lança a receita no Financeiro (revenues) do CRM
+      if (orderObj && newStatus === 'finalizado' && orderObj.status !== 'finalizado') {
+        const displayOrderNumber = orderObj.orderNumber || orderObj.id.slice(-6).toUpperCase();
+        try {
+          await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
+            amount: orderObj.total,
+            description: `Venda online via Cardápio Público #${displayOrderNumber}`,
+            date: new Date().toISOString(),
+            category: 'Venda de Produtos',
+            paymentMethod: orderObj.paymentMethod === 'pix' ? 'Pix' : orderObj.paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
+            createdAt: serverTimestamp()
+          });
+        } catch (revErr) {
+          console.warn('Erro ao salvar receita no financeiro:', revErr);
         }
       }
       
