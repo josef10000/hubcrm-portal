@@ -66,6 +66,53 @@ export const parseNameAndMetadata = (rawName: string) => {
   return { name, brand, price, showInPos, sales };
 };
 
+// Função utilitária para comprimir e converter imagem para WebP no frontend
+export const compressImageToWebP = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calcula a proporção mantendo maxWidth
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Não foi possível obter o contexto 2D do Canvas.'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Falha ao converter o Canvas para Blob WebP.'));
+            }
+          },
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -99,12 +146,19 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
 
     setUploadingImage(true);
     try {
-      const secureUrl = await uploadToCloudinary(file);
+      toast.info('Otimizando imagem para WebP...');
+      const compressedBlob = await compressImageToWebP(file, 800, 0.8);
+      
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+        type: 'image/webp'
+      });
+
+      const secureUrl = await uploadToCloudinary(compressedFile);
       setImageUrl(secureUrl);
-      toast.success('Imagem enviada com sucesso!');
+      toast.success('Imagem otimizada e enviada com sucesso!');
     } catch (err: any) {
       console.error(err);
-      toast.error('Erro ao fazer upload da imagem: ' + (err.message || 'Tente novamente.'));
+      toast.error('Erro ao otimizar ou fazer upload da imagem: ' + (err.message || 'Tente novamente.'));
     } finally {
       setUploadingImage(false);
     }
