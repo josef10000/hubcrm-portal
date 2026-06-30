@@ -11,6 +11,7 @@ const PortalPublicBooking = lazy(() => import('./views/PortalPublicBooking'));
 const PortalPixPayment = lazy(() => import('./views/PortalPixPayment'));
 const PortalResourceGuide = lazy(() => import('./views/PortalResourceGuide'));
 const PortalRentalContract = lazy(() => import('./views/PortalRentalContract'));
+const PortalPublicMenu = lazy(() => import('./views/PortalPublicMenu'));
 
 export default function App() {
   return (
@@ -38,6 +39,9 @@ export default function App() {
             <Route path="/portal/bio/:orgId" element={<PortalBioSite />} />
             <Route path="/agendar/:orgId" element={<PortalPublicBooking />} />
             <Route path="/portal/agendar/:orgId" element={<PortalPublicBooking />} />
+            
+            <Route path="/cardapio/:orgId" element={<PortalPublicMenu />} />
+            <Route path="/portal/cardapio/:orgId" element={<PortalPublicMenu />} />
 
             <Route path="/guia/:orgId/:resourceId" element={<PortalResourceGuide />} />
             <Route path="/portal/guia/:orgId/:resourceId" element={<PortalResourceGuide />} />
