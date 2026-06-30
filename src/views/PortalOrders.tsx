@@ -184,12 +184,17 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
         const displayOrderNumber = orderObj.orderNumber || orderObj.id.slice(-6).toUpperCase();
         try {
           await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
+            value: orderObj.total,
             amount: orderObj.total,
             description: `Venda online via Cardápio Público #${displayOrderNumber}`,
-            date: new Date().toISOString(),
+            date: new Date().toISOString().split('T')[0],
             category: 'Venda de Produtos',
             paymentMethod: orderObj.paymentMethod === 'pix' ? 'Pix' : orderObj.paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
-            createdAt: serverTimestamp()
+            clientName: orderObj.clientName || 'Cliente Delivery',
+            clientPhone: orderObj.clientPhone || '',
+            createdAt: serverTimestamp(),
+            status: 'paid',
+            type: 'pontual'
           });
         } catch (revErr) {
           console.warn('Erro ao salvar receita no financeiro:', revErr);
