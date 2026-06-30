@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { 
-  collection, doc, addDoc, getDocs, updateDoc, increment, query, where, serverTimestamp, arrayUnion 
+  collection, doc, getDoc, addDoc, getDocs, updateDoc, increment, query, where, serverTimestamp, arrayUnion 
 } from 'firebase/firestore';
 import { 
   ShoppingBag, Search, Plus, Minus, X, Check, Phone, MapPin, Send, ArrowLeft, CheckCircle2, Globe, Clock
@@ -103,7 +103,7 @@ export default function PortalPublicMenu() {
       try {
         // Carrega dados da Org pela API pública do CRM para manter consistência de logotipo/identidade
         const crmApiUrl = import.meta.env.VITE_CRM_API_URL || 'https://hubcrm.hubsymples.com.br';
-        let orgDetails = { name: 'Estabelecimento', imageUrl: '', phone: '' };
+        let orgDetails = { name: 'Estabelecimento', imageUrl: '', phone: '', active: true, bannerUrl: '' };
         
         try {
           const res = await fetch(`${crmApiUrl}/api/portal_handler?action=public_get_bio&orgId=${orgId}`);
@@ -113,13 +113,34 @@ export default function PortalPublicMenu() {
               orgDetails = {
                 name: data.org.name || 'Estabelecimento',
                 imageUrl: data.org.logoUrl || data.org.logo || data.org.imageUrl || '',
-                phone: data.org.phone || ''
+                phone: data.org.phone || '',
+                active: true,
+                bannerUrl: ''
               };
             }
           }
         } catch (apiErr) {
           console.warn('Erro ao ler org via API do CRM, utilizando fallback.', apiErr);
         }
+
+        // Tenta buscar configurações específicas de delivery do Firestore
+        try {
+          const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
+          const settingsSnap = await getDoc(settingsDocRef);
+          if (settingsSnap.exists()) {
+            const settingsData = settingsSnap.data();
+            orgDetails = {
+              name: settingsData.name || orgDetails.name,
+              imageUrl: settingsData.logoUrl || orgDetails.imageUrl,
+              phone: settingsData.whatsapp || orgDetails.phone,
+              active: settingsData.active !== undefined ? settingsData.active : true,
+              bannerUrl: settingsData.bannerUrl || ''
+            };
+          }
+        } catch (settingsErr) {
+          console.warn('Erro ao ler configurações de delivery do Firestore:', settingsErr);
+        }
+
         setOrgData(orgDetails);
 
         // Carrega os produtos da coleção inventory
@@ -251,8 +272,7 @@ export default function PortalPublicMenu() {
   };
 
   // Finaliza Pedido (WhatsApp + Firestore + CRM + Dedução de Estoque)
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckout = async (method: 'site' | 'whatsapp') => {
     if (!orgId) return;
 
     if (!clientName.trim() || !clientPhone.trim()) {
@@ -276,7 +296,7 @@ export default function PortalPublicMenu() {
 
       const total = getCartTotal();
 
-      // 2. Transação Firestore: Salva o pedido
+      // 2. Transação Firestore: Salva o pedido com o status pendente e o canal de fechamento
       const orderPayload = {
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
@@ -286,6 +306,7 @@ export default function PortalPublicMenu() {
         total,
         status: 'pendente',
         createdAt: serverTimestamp(),
+        checkoutMethod: method,
         items: cart.map(item => ({
           productId: item.product.id,
           name: item.product.name,
@@ -337,7 +358,6 @@ export default function PortalPublicMenu() {
       // 5. Integração com o CRM (Cadastro de Clientes do Lojista)
       try {
         const settingsRef = doc(db, 'organizations', orgId, 'fidelity_settings', 'settings');
-        // Sanitiza telefone
         const cleanPhone = clientPhone.replace(/\D/g, '');
         
         await updateDoc(settingsRef, {
@@ -348,7 +368,7 @@ export default function PortalPublicMenu() {
             totalSpent: total,
             lastVisit: new Date().toISOString().split('T')[0],
             visitCount: 1,
-            notes: `Cadastrado automaticamente via Cardápio Digital Público.`
+            notes: `Cadastrado automaticamente via Cardápio Digital Público (${method === 'whatsapp' ? 'WhatsApp' : 'Site'}).`
           })
         });
       } catch (crmErr) {
@@ -387,11 +407,19 @@ export default function PortalPublicMenu() {
       msg += `*Código do Pedido:* #${orderRef.id.slice(-6).toUpperCase()}\n`;
       msg += `Obrigado pela preferência!`;
 
-      // 7. Redirecionamento
+      // 7. Redirecionamento instantâneo se for WhatsApp
+      if (method === 'whatsapp') {
+        const phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+        const text = encodeURIComponent(msg);
+        window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
+      }
+
+      // 8. Define estado de sucesso com o método de checkout
       setOrderSuccess({
         id: orderRef.id.slice(-6).toUpperCase(),
         total,
-        message: msg
+        message: msg,
+        method
       });
 
       setCart([]);
@@ -439,11 +467,26 @@ export default function PortalPublicMenu() {
     );
   }
 
+  if (orgData && orgData.active === false) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center text-left">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border-2 border-amber-500/20 flex items-center justify-center mb-6 text-amber-500">
+          <Clock className="w-8 h-8 animate-pulse" />
+        </div>
+        <h3 className="text-white font-black uppercase text-sm tracking-wider mb-2">Cardápio Temporariamente Indisponível</h3>
+        <p className="text-gray-400 text-xs max-w-sm">No momento, este estabelecimento pausou o recebimento de novos pedidos pelo cardápio online. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] text-gray-200 font-sans pb-24 text-left">
       
       {/* Banner / Header do Estabelecimento */}
-      <div className="relative bg-gradient-to-b from-primary-500/20 to-black/80 border-b border-white/5 py-12 px-6 text-center">
+      <div 
+        className="relative py-12 px-6 text-center border-b border-white/5 overflow-hidden bg-cover bg-center"
+        style={orgData?.bannerUrl ? { backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(5, 5, 5, 0.95)), url(${orgData.bannerUrl})` } : {}}
+      >
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           {orgData?.imageUrl ? (
             <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-primary-500 shadow-2xl shadow-primary-500/10 mb-4">
@@ -769,7 +812,7 @@ export default function PortalPublicMenu() {
               <div className="h-[1px] bg-white/5" />
 
               {/* Formulário de Finalização */}
-              <form onSubmit={handleCheckout} className="space-y-4">
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
                 <h4 className="text-[10px] text-gray-500 font-black uppercase tracking-wider block">Informações de entrega</h4>
 
                 {/* Nome */}
@@ -885,21 +928,43 @@ export default function PortalPublicMenu() {
                   </div>
                 </div>
 
-                {/* Botão de Checkout */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-700 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-0 cursor-pointer shadow-lg shadow-primary-500/10"
-                >
-                  {isSubmitting ? (
-                    <span>Processando Pedido...</span>
-                  ) : (
-                    <>
-                      <Send size={14} />
-                      <span>Enviar Pedido via WhatsApp</span>
-                    </>
-                  )}
-                </button>
+                {/* Botões de Ação Duplos */}
+                <div className="space-y-3 pt-2">
+                  
+                  {/* Botão A: Confirmar via WhatsApp (Ação Principal) */}
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleCheckout('whatsapp')}
+                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-0 cursor-pointer shadow-lg shadow-emerald-600/10 active:scale-98"
+                  >
+                    {isSubmitting ? (
+                      <span>Processando...</span>
+                    ) : (
+                      <>
+                        <Send size={14} />
+                        <span>Confirmar via WhatsApp</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Botão B: Fazer Pedido pelo Site (Ação Operacional) */}
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleCheckout('site')}
+                    className="w-full py-3.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-white/10 cursor-pointer active:scale-98"
+                  >
+                    {isSubmitting ? (
+                      <span>Processando...</span>
+                    ) : (
+                      <>
+                        <Globe size={14} />
+                        <span>Fazer Pedido pelo Site</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
               </form>
 
@@ -914,20 +979,35 @@ export default function PortalPublicMenu() {
           <div className="bg-[#0c0c0c] border border-white/10 p-6 md:p-8 rounded-[2rem] max-w-md w-full shadow-2xl text-center relative animate-in fade-in zoom-in duration-200">
             <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4 animate-bounce" />
             
-            <h3 className="text-white font-black uppercase text-sm tracking-wider mb-2">Pedido Criado no Sistema!</h3>
+            <h3 className="text-white font-black uppercase text-sm tracking-wider mb-2">
+              {orderSuccess.method === 'site' ? 'Pedido Recebido!' : 'Pedido Enviado!'}
+            </h3>
+            
             <p className="text-gray-400 text-xs max-w-xs mx-auto mb-6">
-              O pedido <span className="text-white font-black font-mono">#{orderSuccess.id}</span> foi registrado com sucesso. Agora, clique no botão abaixo para enviar o resumo completo para o WhatsApp da loja para finalizarem o preparo!
+              {orderSuccess.method === 'site' ? (
+                <>
+                  O seu pedido <span className="text-white font-black font-mono">#{orderSuccess.id}</span> foi registrado diretamente no nosso sistema. Em instantes, nosso atendente entrará em contato com você pelo WhatsApp para prosseguir!
+                </>
+              ) : (
+                <>
+                  O seu pedido <span className="text-white font-black font-mono">#{orderSuccess.id}</span> foi registrado. Caso a janela de chat do WhatsApp não tenha aberto automaticamente, clique no botão verde abaixo para enviar a mensagem do pedido.
+                </>
+              )}
             </p>
 
             <div className="space-y-3">
+              {orderSuccess.method === 'whatsapp' && (
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsApp}
+                  className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-0 cursor-pointer shadow-xl shadow-emerald-500/10"
+                >
+                  <Phone size={14} />
+                  <span>Enviar para WhatsApp</span>
+                </button>
+              )}
               <button
-                onClick={handleOpenWhatsApp}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 border-0 cursor-pointer shadow-xl shadow-emerald-500/10"
-              >
-                <Phone size={14} />
-                <span>Enviar para WhatsApp</span>
-              </button>
-              <button
+                type="button"
                 onClick={() => setOrderSuccess(null)}
                 className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all border border-white/10 cursor-pointer bg-transparent"
               >

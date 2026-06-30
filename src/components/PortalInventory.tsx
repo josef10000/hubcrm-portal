@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, limit 
+  collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, limit, setDoc 
 } from 'firebase/firestore';
 import { 
   Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X, ArrowUpRight, ArrowDownRight, History, ShoppingCart, Globe, Copy, ExternalLink, Palette
@@ -172,6 +172,107 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     isOpen: false,
     itemId: ''
   });
+
+  // Estados de Configuração do Delivery
+  const [deliveryActive, setDeliveryActive] = useState(true);
+  const [deliveryName, setDeliveryName] = useState('');
+  const [deliveryWhatsapp, setDeliveryWhatsapp] = useState('');
+  const [deliveryLogoUrl, setDeliveryLogoUrl] = useState('');
+  const [deliveryBannerUrl, setDeliveryBannerUrl] = useState('');
+  
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Escuta/Carrega as Configurações de Delivery do Firestore
+  useEffect(() => {
+    if (!orgId) return;
+    const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
+    const unsub = onSnapshot(settingsDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDeliveryActive(data.active !== undefined ? data.active : true);
+        setDeliveryName(data.name || '');
+        setDeliveryWhatsapp(data.whatsapp || '');
+        setDeliveryLogoUrl(data.logoUrl || '');
+        setDeliveryBannerUrl(data.bannerUrl || '');
+      } else {
+        setDeliveryActive(true);
+        setDeliveryName('');
+        setDeliveryWhatsapp('');
+        setDeliveryLogoUrl('');
+        setDeliveryBannerUrl('');
+      }
+    });
+    return () => unsub();
+  }, [orgId]);
+
+  // Função para salvar configurações de delivery no Firestore
+  const handleSaveDeliverySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgId) return;
+    setIsSavingSettings(true);
+    try {
+      const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
+      await setDoc(settingsDocRef, {
+        active: deliveryActive,
+        name: deliveryName,
+        whatsapp: deliveryWhatsapp.replace(/\D/g, ''),
+        logoUrl: deliveryLogoUrl,
+        bannerUrl: deliveryBannerUrl,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      toast.success('Configurações do cardápio salvas com sucesso!');
+      setIsSettingsModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao salvar configurações: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Upload do Logotipo
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      toast.info('Otimizando logotipo...');
+      const compressedBlob = await compressImageToWebP(file, 400, 0.8);
+      const compressedFile = new File([compressedBlob], 'logo_' + Date.now() + '.webp', { type: 'image/webp' });
+      const secureUrl = await uploadToCloudinary(compressedFile);
+      setDeliveryLogoUrl(secureUrl);
+      toast.success('Logotipo atualizado!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao subir logotipo: ' + err.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  // Upload do Banner
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      toast.info('Otimizando banner de capa...');
+      const compressedBlob = await compressImageToWebP(file, 1200, 0.75);
+      const compressedFile = new File([compressedBlob], 'banner_' + Date.now() + '.webp', { type: 'image/webp' });
+      const secureUrl = await uploadToCloudinary(compressedFile);
+      setDeliveryBannerUrl(secureUrl);
+      toast.success('Banner de capa atualizado!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao subir banner: ' + err.message);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
 
   const calculateStockDuration = (item: InventoryItem) => {
     const itemLogs = logs.filter(log => log.itemId === item.id && log.type === 'saida');
@@ -486,7 +587,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     <div className="space-y-6 text-left">
 
       {/* Banner de Acesso ao Cardápio Digital Público */}
-      <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/25 p-6 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/25 p-6 rounded-[2rem] flex flex-col xl:flex-row xl:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
         
         {/* Glow de Fundo */}
         <div className="absolute -right-16 -top-16 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -497,7 +598,14 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
               <Globe size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">Seu Cardápio Digital está Ativo!</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Seu Cardápio Digital está Ativo!</h3>
+                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${
+                  deliveryActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                }`}>
+                  {deliveryActive ? 'Ativo' : 'Pausado'}
+                </span>
+              </div>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">Link de Pedidos Online para Clientes</p>
             </div>
           </div>
@@ -506,8 +614,8 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           </p>
           <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider bg-black/20 py-1 px-3 rounded-xl w-fit border border-white/5">
             <Palette size={12} className="text-primary-400" />
-            <span>Edite logo, capa e cores em:</span>
-            <span className="text-gray-300 font-black">Agenda &gt; Mini-Site/Bio</span>
+            <span>Customize logo, capa, WhatsApp e nome clicando em</span>
+            <span className="text-white font-black cursor-pointer hover:underline" onClick={() => setIsSettingsModalOpen(true)}>Configurar</span>
           </div>
         </div>
 
@@ -526,6 +634,15 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
               <Copy size={14} />
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Palette size={13} />
+            <span>Configurar</span>
+          </button>
 
           <a 
             href={publicMenuUrl} 
@@ -1128,6 +1245,172 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
           </div>
         </div>
       )}
+      {/* Modal de Configuração do Delivery */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="border border-[var(--theme-border)] p-6 md:p-8 rounded-[2.5rem] max-w-2xl w-full shadow-2xl relative animate-in fade-in zoom-in duration-250 max-h-[90vh] overflow-y-auto custom-scrollbar text-left"
+            style={{ backgroundColor: 'var(--theme-bg-secondary)' }}
+          >
+            <button
+              onClick={() => setIsSettingsModalOpen(false)}
+              className="absolute top-6 right-6 p-1.5 bg-[var(--theme-glass)] border border-[var(--theme-border-subtle)] hover:bg-[var(--theme-glass-hover)] rounded-xl text-gray-400 hover:text-white transition-colors bg-transparent border-0 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            <h3 className="text-lg font-black uppercase tracking-tight mb-6 flex items-center gap-2" style={{ color: 'var(--theme-text-primary)' }}>
+              <Palette className="text-primary-500 w-5 h-5" />
+              Configurar Cardápio Digital
+            </h3>
+
+            <form onSubmit={handleSaveDeliverySettings} className="space-y-6">
+              
+              {/* Status do Cardápio */}
+              <div className="bg-white/5 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Cardápio Online Ativo</h4>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Se desativado, os clientes não conseguirão fazer novos pedidos.</p>
+                </div>
+                <div 
+                  className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-all duration-300 ${
+                    deliveryActive ? 'bg-emerald-500' : 'bg-white/10'
+                  }`}
+                  onClick={() => setDeliveryActive(!deliveryActive)}
+                >
+                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${
+                    deliveryActive ? 'translate-x-6' : 'translate-x-0'
+                  }`} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Coluna 1: Dados do Negócio */}
+                <div className="space-y-4">
+                  {/* Nome do Estabelecimento */}
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">Nome do Estabelecimento *</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ex: Pizzaria Bella Italia"
+                      value={deliveryName}
+                      onChange={(e) => setDeliveryName(e.target.value)}
+                      className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold"
+                    />
+                  </div>
+
+                  {/* WhatsApp de Recebimento */}
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">WhatsApp p/ Pedidos (com DDD) *</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ex: 11999999999"
+                      value={deliveryWhatsapp}
+                      onChange={(e) => setDeliveryWhatsapp(e.target.value)}
+                      className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
+                    />
+                    <p className="text-[9px] text-gray-500 mt-1">Este número receberá a conversa de confirmação dos clientes.</p>
+                  </div>
+                </div>
+
+                {/* Coluna 2: Mídias do Cardápio */}
+                <div className="space-y-4">
+                  {/* Logotipo do Estabelecimento */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Logotipo do Estabelecimento</label>
+                    <div className="flex gap-3 items-center">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border border-[var(--theme-border)] bg-black/20 flex-shrink-0 flex items-center justify-center relative">
+                        {deliveryLogoUrl.trim() ? (
+                          <img src={deliveryLogoUrl} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <Palette className="w-5 h-5 text-gray-600" />
+                        )}
+                        {uploadingLogo && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          id="delivery-logo-upload"
+                          className="hidden"
+                          disabled={uploadingLogo}
+                        />
+                        <label 
+                          htmlFor="delivery-logo-upload"
+                          className="inline-flex px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-lg text-[9px] uppercase tracking-wider cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {uploadingLogo ? 'Enviando...' : 'Mudar Logo'}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Banner de Capa */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Banner de Capa (Panorâmico)</label>
+                    <div className="w-full h-16 rounded-xl overflow-hidden border border-[var(--theme-border)] bg-black/20 relative flex items-center justify-center">
+                      {deliveryBannerUrl.trim() ? (
+                        <img src={deliveryBannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Sem Banner</span>
+                      )}
+                      {uploadingBanner && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleBannerUpload}
+                        id="delivery-banner-upload"
+                        className="hidden"
+                        disabled={uploadingBanner}
+                      />
+                      <label 
+                        htmlFor="delivery-banner-upload"
+                        className="inline-flex px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-lg text-[9px] uppercase tracking-wider cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {uploadingBanner ? 'Enviando...' : 'Mudar Capa'}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Ações */}
+              <div className="pt-4 flex gap-3 border-t border-[var(--theme-border-subtle)]">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsModalOpen(false)}
+                  className="flex-1 py-3.5 bg-[var(--theme-glass)] border border-[var(--theme-border-subtle)] hover:bg-[var(--theme-glass-hover)] text-gray-400 hover:text-white font-bold rounded-2xl text-xs uppercase tracking-wider transition-all cursor-pointer bg-transparent"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings || uploadingLogo || uploadingBanner}
+                  className="flex-1 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-700 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-primary-500/10 border-0 cursor-pointer"
+                >
+                  {isSavingSettings ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Confirmação de Exclusão */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
