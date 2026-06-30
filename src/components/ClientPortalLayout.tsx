@@ -1151,7 +1151,7 @@ export default function ClientPortalLayout() {
           boxShadow: isLight ? '0 15px 50px rgba(0,0,0,0.08)' : '0 15px 50px rgba(0,0,0,0.6)'
         }}
       >
-        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'clients', 'services', 'support'].includes(item.id)).map((item) => {
+        {navItems.filter(item => ['home', 'agenda', 'crm_finance', 'management', 'growth', 'clients', 'services', 'support', 'orders'].includes(item.id)).map((item) => {
           const isSelected = activeTab === item.id || (item.id === 'agenda' && activeTab === 'agenda_settings');
           const theme = getTabTheme(item.id, isLight);
           return (
@@ -1362,6 +1362,16 @@ export default function ClientPortalLayout() {
                   >
                     <Package size={20} className="text-cyan-400" />
                     <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Estoque & Negócio</span>
+                  </button>
+                )}
+
+                {isModuleActive('management') && deliveryActive && (
+                  <button
+                    onClick={() => { setActiveTab('orders'); setIsMobileMenuOpen(false); }}
+                    className="p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 text-center group cursor-pointer"
+                  >
+                    <ShoppingBag size={20} className="text-rose-400" />
+                    <span className="text-[9px] text-gray-300 font-bold uppercase tracking-wider">Pedidos Delivery</span>
                   </button>
                 )}
 
