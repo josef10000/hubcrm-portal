@@ -245,6 +245,25 @@ export default function PortalPublicMenu() {
   const handleAddToCart = () => {
     if (!selectedProduct) return;
     
+    // 1. Calcula a quantidade que já está no carrinho para este produto
+    const currentQtyInCart = cart
+      .filter(item => item.product.id === selectedProduct.id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    // 2. A quantidade total proposta é a atual no carrinho + a que quer adicionar agora
+    const totalProposedQty = currentQtyInCart + detailQty;
+
+    // 3. Faz o bloqueio se a quantidade proposta ultrapassar o estoque disponível
+    if (totalProposedQty > selectedProduct.quantity) {
+      const remaining = selectedProduct.quantity - currentQtyInCart;
+      if (remaining <= 0) {
+        toast.error(`Produto sem estoque suficiente! Já existem ${currentQtyInCart} unidades no carrinho.`);
+      } else {
+        toast.error(`Estoque insuficiente! Temos apenas mais ${remaining} unidade(s) de ${selectedProduct.name} disponível(is).`);
+      }
+      return;
+    }
+
     const selected = tempAdditions.filter(t => t.checked).map(t => ({ name: t.name, price: t.price }));
     
     const cartItem: CartItem = {
@@ -700,7 +719,20 @@ export default function PortalPublicMenu() {
                 </button>
                 <span className="text-sm font-black text-white font-mono w-4 text-center">{detailQty}</span>
                 <button
-                  onClick={() => setDetailQty(q => q + 1)}
+                  onClick={() => setDetailQty(q => {
+                    const currentQtyInCart = selectedProduct 
+                      ? cart.filter(item => item.product.id === selectedProduct.id).reduce((sum, item) => sum + item.quantity, 0)
+                      : 0;
+                    const maxAvailableToAdd = selectedProduct 
+                      ? selectedProduct.quantity - currentQtyInCart
+                      : 1;
+
+                    if (q >= maxAvailableToAdd) {
+                      toast.warning(`Limite de estoque atingido! (${selectedProduct?.quantity} unidades no total)`);
+                      return q;
+                    }
+                    return q + 1;
+                  })}
                   className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white flex items-center justify-center cursor-pointer bg-transparent border-0"
                 >
                   <Plus size={14} />
