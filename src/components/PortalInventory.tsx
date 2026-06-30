@@ -4,7 +4,7 @@ import {
   collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, limit 
 } from 'firebase/firestore';
 import { 
-  Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X, ArrowUpRight, ArrowDownRight, History, ShoppingCart, Globe
+  Plus, Trash2, Edit2, Search, AlertTriangle, CheckCircle2, Package, Coins, Minus, X, ArrowUpRight, ArrowDownRight, History, ShoppingCart, Globe, Copy, ExternalLink, Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConfirmModal from './ConfirmModal';
@@ -475,8 +475,69 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     .filter(rec => rec.duration.days <= 7)
     .sort((a, b) => a.duration.days - b.duration.days);
 
+  const publicMenuUrl = `${window.location.origin}/cardapio/${orgId}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicMenuUrl);
+    toast.success('Link do cardápio copiado com sucesso!');
+  };
+
   return (
     <div className="space-y-6 text-left">
+
+      {/* Banner de Acesso ao Cardápio Digital Público */}
+      <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/25 p-6 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+        
+        {/* Glow de Fundo */}
+        <div className="absolute -right-16 -top-16 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="space-y-2 flex-1 text-left">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400">
+              <Globe size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">Seu Cardápio Digital está Ativo!</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">Link de Pedidos Online para Clientes</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 max-w-xl">
+            Seus clientes podem fazer pedidos, escolher adicionais e enviar as propostas direto no seu WhatsApp por esta página pública.
+          </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider bg-black/20 py-1 px-3 rounded-xl w-fit border border-white/5">
+            <Palette size={12} className="text-primary-400" />
+            <span>Edite logo, capa e cores em:</span>
+            <span className="text-gray-300 font-black">Agenda &gt; Mini-Site/Bio</span>
+          </div>
+        </div>
+
+        {/* Bloco de Ações com Link */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between gap-4">
+            <span className="text-[11px] font-mono font-bold text-gray-400 truncate max-w-[180px] sm:max-w-[240px]">
+              {publicMenuUrl}
+            </span>
+            <button 
+              type="button"
+              onClick={handleCopyLink}
+              className="p-1.5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all active:scale-90 cursor-pointer border-0 bg-transparent"
+              title="Copiar Link"
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+
+          <a 
+            href={publicMenuUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10 border-0 text-center select-none cursor-pointer decoration-none"
+          >
+            <span>Ver Cardápio</span>
+            <ExternalLink size={13} />
+          </a>
+        </div>
+      </div>
       
       {/* Grid de Métricas Financeiras */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
