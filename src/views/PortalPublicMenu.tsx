@@ -125,16 +125,17 @@ export default function PortalPublicMenu() {
 
         // Tenta buscar configurações específicas de delivery do Firestore
         try {
-          const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
-          const settingsSnap = await getDoc(settingsDocRef);
-          if (settingsSnap.exists()) {
-            const settingsData = settingsSnap.data();
+          const orgDocRef = doc(db, 'organizations', orgId);
+          const orgSnap = await getDoc(orgDocRef);
+          if (orgSnap.exists()) {
+            const orgData = orgSnap.data();
+            const data = orgData.deliverySettings || {};
             orgDetails = {
-              name: settingsData.name || orgDetails.name,
-              imageUrl: settingsData.logoUrl || orgDetails.imageUrl,
-              phone: settingsData.whatsapp || orgDetails.phone,
-              active: settingsData.active !== undefined ? settingsData.active : true,
-              bannerUrl: settingsData.bannerUrl || ''
+              name: data.name || orgData.name || orgDetails.name,
+              imageUrl: data.logoUrl || orgData.logoUrl || orgData.logo || orgData.imageUrl || orgDetails.imageUrl,
+              phone: data.whatsapp || orgData.phone || orgDetails.phone,
+              active: data.active !== undefined ? data.active : true,
+              bannerUrl: data.bannerUrl || ''
             };
           }
         } catch (settingsErr) {

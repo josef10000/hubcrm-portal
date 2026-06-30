@@ -188,14 +188,15 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   // Escuta/Carrega as Configurações de Delivery do Firestore
   useEffect(() => {
     if (!orgId) return;
-    const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
-    const unsub = onSnapshot(settingsDocRef, (docSnap) => {
+    const orgDocRef = doc(db, 'organizations', orgId);
+    const unsub = onSnapshot(orgDocRef, (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const orgData = docSnap.data();
+        const data = orgData.deliverySettings || {};
         setDeliveryActive(data.active !== undefined ? data.active : true);
-        setDeliveryName(data.name || '');
-        setDeliveryWhatsapp(data.whatsapp || '');
-        setDeliveryLogoUrl(data.logoUrl || '');
+        setDeliveryName(data.name || orgData.name || '');
+        setDeliveryWhatsapp(data.whatsapp || orgData.phone || orgData.whatsapp || '');
+        setDeliveryLogoUrl(data.logoUrl || orgData.logoUrl || orgData.logo || orgData.imageUrl || '');
         setDeliveryBannerUrl(data.bannerUrl || '');
       } else {
         setDeliveryActive(true);
@@ -214,15 +215,17 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
     if (!orgId) return;
     setIsSavingSettings(true);
     try {
-      const settingsDocRef = doc(db, 'organizations', orgId, 'settings', 'delivery');
-      await setDoc(settingsDocRef, {
-        active: deliveryActive,
-        name: deliveryName,
-        whatsapp: deliveryWhatsapp.replace(/\D/g, ''),
-        logoUrl: deliveryLogoUrl,
-        bannerUrl: deliveryBannerUrl,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const orgDocRef = doc(db, 'organizations', orgId);
+      await updateDoc(orgDocRef, {
+        deliverySettings: {
+          active: deliveryActive,
+          name: deliveryName,
+          whatsapp: deliveryWhatsapp.replace(/\D/g, ''),
+          logoUrl: deliveryLogoUrl,
+          bannerUrl: deliveryBannerUrl,
+          updatedAt: new Date().toISOString()
+        }
+      });
 
       toast.success('Configurações do cardápio salvas com sucesso!');
       setIsSettingsModalOpen(false);
