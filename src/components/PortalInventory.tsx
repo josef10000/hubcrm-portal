@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 import ConfirmModal from './ConfirmModal';
 import CustomSelect from './CustomSelect';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 interface PortalInventoryProps {
   orgId: string;
@@ -90,6 +91,24 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
   const [imageUrl, setImageUrl] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const secureUrl = await uploadToCloudinary(file);
+      setImageUrl(secureUrl);
+      toast.success('Imagem enviada com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao fazer upload da imagem: ' + (err.message || 'Tente novamente.'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Estado para Confirmação Customizada
   const [confirmModal, setConfirmModal] = useState<{
@@ -903,22 +922,51 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
               </div>
 
               {/* Imagem do Produto */}
-              <div className="text-left">
-                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">URL da Imagem do Produto (opcional)</label>
-                <div className="flex gap-2 items-center">
-                  <input 
-                    type="text" 
-                    placeholder="https://exemplo.com/foto.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="flex-1 bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-xs font-bold font-mono"
-                  />
-                  {imageUrl.trim() && (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--theme-border)] bg-black/20 flex-shrink-0 flex items-center justify-center">
-                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).style.display = 'none'; }} />
-                    </div>
-                  )}
+              <div className="text-left space-y-2">
+                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Imagem do Produto (opcional)</label>
+                
+                <div className="flex gap-3 items-center">
+                  {/* Preview da Imagem */}
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[var(--theme-border)] bg-black/20 flex-shrink-0 flex items-center justify-center relative">
+                    {imageUrl.trim() ? (
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-6 h-6 text-gray-600" />
+                    )}
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ações de Upload / Link */}
+                  <div className="flex-1 space-y-1.5 text-left">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      id="product-image-upload"
+                      className="hidden"
+                      disabled={uploadingImage}
+                    />
+                    <label 
+                      htmlFor="product-image-upload"
+                      className="inline-flex px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {uploadingImage ? 'Enviando...' : 'Fazer Upload Foto'}
+                    </label>
+                    <p className="text-[9px] text-gray-500">Faça upload da imagem ou cole o link abaixo:</p>
+                  </div>
                 </div>
+
+                <input 
+                  type="text" 
+                  placeholder="https://exemplo.com/imagem-do-produto.jpg"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full bg-[var(--theme-input-bg)] border border-[var(--theme-border)] rounded-xl px-3.5 py-2.5 outline-none focus:ring-1 focus:ring-primary-500/50 text-[10px] font-bold font-mono text-gray-300"
+                />
               </div>
 
               {/* Botões Ações */}
@@ -932,7 +980,7 @@ export default function PortalInventory({ orgId }: PortalInventoryProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || uploadingImage}
                   className="flex-1 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-700 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-primary-500/10 border-0 cursor-pointer"
                 >
                   {isSubmitting ? 'Salvando...' : 'Salvar'}
