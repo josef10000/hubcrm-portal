@@ -272,6 +272,16 @@ export default function PortalPublicMenu() {
     }, 0);
   };
 
+  // Gera um número de pedido aleatório de 6 caracteres no frontend de forma síncrona
+  const generateOrderNumber = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
   // Finaliza Pedido (WhatsApp + Firestore + CRM + Dedução de Estoque)
   const handleCheckout = async (method: 'site' | 'whatsapp') => {
     if (!orgId) return;
@@ -285,10 +295,13 @@ export default function PortalPublicMenu() {
       return;
     }
 
+    // 1. Abre a aba em branco de forma síncrona imediata para evitar Popup Blocker do navegador
+    const whatsappWindow = method === 'whatsapp' ? window.open('', '_blank') : null;
+
     setIsSubmitting(true);
 
     try {
-      // 1. Salva dados no localStorage para facilitar próximas compras
+      // 2. Salva dados no localStorage para facilitar próximas compras
       localStorage.setItem('hubcrm_client_name', clientName.trim());
       localStorage.setItem('hubcrm_client_phone', clientPhone.trim());
       if (deliveryType === 'delivery') {
@@ -297,13 +310,10 @@ export default function PortalPublicMenu() {
 
       const total = getCartTotal();
 
-      // 2. Cria referências de ID e número legível de forma síncrona
-      const ordersColRef = collection(db, 'organizations', orgId, 'orders');
-      const newOrderDocRef = doc(ordersColRef);
-      const orderId = newOrderDocRef.id;
-      const displayOrderNumber = orderId.slice(-6).toUpperCase();
+      // 3. Gera o código de pedido curto no frontend de forma síncrona
+      const displayOrderNumber = generateOrderNumber();
 
-      // 3. Montagem da Mensagem do WhatsApp de forma síncrona
+      // 4. Montagem da Mensagem do WhatsApp
       let msg = `*🍔 NOVO PEDIDO - ${orgData?.name?.toUpperCase() || 'DELIVERY'}*\n`;
       msg += `===============================\n`;
       msg += `*Cliente:* ${clientName.trim()}\n`;
@@ -335,19 +345,8 @@ export default function PortalPublicMenu() {
       msg += `*Código do Pedido:* #${displayOrderNumber}\n`;
       msg += `Obrigado pela preferência!`;
 
-      // 4. Redirecionamento instantâneo para o WhatsApp (SÍNCRONO - para evitar bloqueio de popup)
-      if (method === 'whatsapp') {
-        let phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
-        if (phone && phone.length <= 11) {
-          phone = '55' + phone; // Garante o DDI do Brasil para números de DDD
-        }
-        const text = encodeURIComponent(msg);
-        window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank');
-      }
-
-      // 5. Transação Firestore: Salva o pedido com o ID gerado síncrono e a propriedade displayId/orderNumber
+      // 5. Transação Firestore: Salva o pedido usando addDoc (compatível com regras de escrita livre na subcoleção orders)
       const orderPayload = {
-        id: orderId,
         orderNumber: displayOrderNumber,
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
@@ -368,8 +367,8 @@ export default function PortalPublicMenu() {
         }))
       };
 
-      // Gravação assíncrona no Firestore
-      await setDoc(newOrderDocRef, orderPayload);
+      // Gravação robusta no Firestore com ID automático
+      await addDoc(collection(db, 'organizations', orgId, 'orders'), orderPayload);
 
       // 6. Dedução de Estoque reativa
       for (const item of cart) {
@@ -427,7 +426,17 @@ export default function PortalPublicMenu() {
         console.warn('Configuração de CRM/Fidelidade indisponível para esta organização. Pedido salvo com sucesso.', crmErr);
       }
 
-      // 9. Define estado de sucesso com o método de checkout
+      // 9. Redireciona a janela em branco aberta anteriormente após o salvamento no Firestore
+      if (whatsappWindow) {
+        let phone = orgData?.phone ? orgData.phone.replace(/\D/g, '') : '';
+        if (phone && phone.length <= 11) {
+          phone = '55' + phone; // Garante o DDI do Brasil para números de DDD
+        }
+        const text = encodeURIComponent(msg);
+        whatsappWindow.location.href = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
+      }
+
+      // 10. Define estado de sucesso
       setOrderSuccess({
         id: displayOrderNumber,
         total,
@@ -440,7 +449,11 @@ export default function PortalPublicMenu() {
 
     } catch (err: any) {
       console.error(err);
-      toast.error('Erro ao finalizar o pedido. Tente novamente.');
+      // Se falhou ao salvar o pedido no Firestore, fechamos a nova janela do WhatsApp
+      if (whatsappWindow) {
+        whatsappWindow.close();
+      }
+      toast.error('Erro ao registrar o pedido. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
