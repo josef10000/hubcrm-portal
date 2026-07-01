@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../lib/firebase';
 import { 
-  collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, increment, arrayUnion, serverTimestamp 
+  collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, increment, arrayUnion, deleteDoc, getDocs, where, serverTimestamp 
 } from 'firebase/firestore';
 import { 
-  Clock, MapPin, Check, X, Phone, MessageSquare, AlertCircle, Play, ShoppingBag, CheckCircle2, ChevronRight, Volume2, VolumeX
+  Clock, MapPin, Check, X, Phone, MessageSquare, AlertCircle, Play, ShoppingBag, CheckCircle2, ChevronRight, Volume2, VolumeX, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,13 +33,23 @@ interface Order {
 
 interface PortalOrdersProps {
   orgId: string;
+  clientId: string;
 }
 
-export default function PortalOrders({ orgId }: PortalOrdersProps) {
+const ITEMS_PER_PAGE = 6;
+
+export default function PortalOrders({ orgId, clientId }: PortalOrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Estados de paginação e exclusão
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [deleteRevenueAlso, setDeleteRevenueAlso] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Sintetizador de áudio nativo (Web Audio API) para tocar notificação de novos pedidos
   const playNewOrderNotification = () => {
@@ -184,12 +194,13 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
         const displayOrderNumber = orderObj.orderNumber || orderObj.id.slice(-6).toUpperCase();
         try {
           await addDoc(collection(db, 'organizations', orgId, 'revenues'), {
-            value: orderObj.total,
-            amount: orderObj.total,
+            value: Number(orderObj.total),
+            amount: Number(orderObj.total),
             description: `Venda online via Cardápio Público #${displayOrderNumber}`,
             date: new Date().toISOString().split('T')[0],
             category: 'Venda de Produtos',
             paymentMethod: orderObj.paymentMethod === 'pix' ? 'Pix' : orderObj.paymentMethod === 'card' ? 'Cartão' : 'Dinheiro',
+            clientId: clientId || '', // Crucial: associa a receita ao atendente logado para aparecer no painel financeiro!
             clientName: orderObj.clientName || 'Cliente Delivery',
             clientPhone: orderObj.clientPhone || '',
             createdAt: serverTimestamp(),
@@ -208,6 +219,51 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
     } catch (err: any) {
       console.error(err);
       toast.error('Erro ao atualizar status do pedido.');
+    }
+  };
+
+  // Exclui o Pedido e opcionalmente a Receita Financeira vinculada
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+    setIsDeleting(true);
+    try {
+      const orderId = orderToDelete.id;
+      const displayOrderNumber = orderToDelete.orderNumber || orderId.slice(-6).toUpperCase();
+
+      // 1. Se estiver marcado para excluir a receita também
+      if (deleteRevenueAlso) {
+        try {
+          const revenuesRef = collection(db, 'organizations', orgId, 'revenues');
+          const q = query(
+            revenuesRef, 
+            where('description', '==', `Venda online via Cardápio Público #${displayOrderNumber}`)
+          );
+          const revSnapshot = await getDocs(q);
+          for (const docSnap of revSnapshot.docs) {
+            await deleteDoc(doc(db, 'organizations', orgId, 'revenues', docSnap.id));
+          }
+          console.info(`[PortalOrders] Receita(s) associada(s) ao pedido #${displayOrderNumber} removida(s) do financeiro.`);
+        } catch (revErr) {
+          console.warn('Erro ao tentar excluir receita do financeiro:', revErr);
+        }
+      }
+
+      // 2. Exclui o documento do pedido
+      await deleteDoc(doc(db, 'organizations', orgId, 'orders', orderId));
+      
+      toast.success(`Pedido #${displayOrderNumber} excluído com sucesso!`);
+      
+      // Limpa seleções
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(null);
+      }
+      setIsDeleteModalOpen(false);
+      setOrderToDelete(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao excluir o pedido.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -252,6 +308,13 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
 
   const activeOrdersCount = orders.filter(o => o.status !== 'finalizado' && o.status !== 'cancelado').length;
 
+  // Paginação lateral
+  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = orders.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="space-y-6 text-left">
       
@@ -294,59 +357,86 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           
-          {/* Coluna da Esquerda: Lista de Pedidos */}
-          <div className="lg:col-span-2 space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-            {orders.map(order => {
-              const formattedDate = order.createdAt?.seconds 
-                ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                : '';
-              
-              const isSelected = selectedOrder?.id === order.id;
+          {/* Coluna da Esquerda: Lista de Pedidos com Paginação */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+              {paginatedOrders.map(order => {
+                const formattedDate = order.createdAt?.seconds 
+                  ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                
+                const isSelected = selectedOrder?.id === order.id;
 
-              return (
-                <div 
-                  key={order.id}
-                  onClick={() => setSelectedOrder(order)}
-                  className={`
-                    p-5 bg-[var(--theme-glass)] border rounded-[2rem] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 transition-all cursor-pointer hover:bg-[var(--theme-glass-hover)] hover:-translate-y-0.5 shadow-md
-                    ${isSelected 
-                      ? 'border-rose-500/50 shadow-rose-500/5 ring-1 ring-rose-500/35 bg-white/5' 
-                      : 'border-[var(--theme-border-subtle)]'}
-                  `}
-                >
-                  <div className="space-y-2 min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-xs font-black text-white font-mono uppercase">
-                        #{order.orderNumber || order.id.slice(-6).toUpperCase()}
-                      </span>
-                      <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${getStatusBadgeClass(order.status)}`}>
-                        {getStatusLabel(order.status)}
-                      </span>
-                      <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
-                        <Clock size={12} />
-                        {formattedDate}
-                      </span>
+                return (
+                  <div 
+                    key={order.id}
+                    onClick={() => setSelectedOrder(order)}
+                    className={`
+                      p-5 bg-[var(--theme-glass)] border rounded-[2rem] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 transition-all cursor-pointer hover:bg-[var(--theme-glass-hover)] hover:-translate-y-0.5 shadow-md
+                      ${isSelected 
+                        ? 'border-rose-500/50 shadow-rose-500/5 ring-1 ring-rose-500/35 bg-white/5' 
+                        : 'border-[var(--theme-border-subtle)]'}
+                    `}
+                  >
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="text-xs font-black text-white font-mono uppercase">
+                          #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${getStatusBadgeClass(order.status)}`}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
+                          <Clock size={12} />
+                          {formattedDate}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-black text-white truncate uppercase">{order.clientName}</h4>
+                      
+                      <p className="text-[11px] text-gray-500 flex items-center gap-1 font-bold">
+                        <MapPin size={12} />
+                        {order.deliveryType === 'delivery' ? 'Entrega em casa' : 'Retirada no Balcão'}
+                      </p>
                     </div>
 
-                    <h4 className="text-sm font-black text-white truncate uppercase">{order.clientName}</h4>
-                    
-                    <p className="text-[11px] text-gray-500 flex items-center gap-1 font-bold">
-                      <MapPin size={12} />
-                      {order.deliveryType === 'delivery' ? 'Entrega em casa' : 'Retirada no Balcão'}
-                    </p>
+                    <div className="flex sm:flex-col items-end justify-between sm:justify-center gap-2">
+                      <span className="text-base font-black text-emerald-400 font-mono">
+                        R$ {order.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
+                        {order.items.reduce((sum, i) => sum + i.quantity, 0)} itens
+                      </span>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="flex sm:flex-col items-end justify-between sm:justify-center gap-2">
-                    <span className="text-base font-black text-emerald-400 font-mono">
-                      R$ {order.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
-                      {order.items.reduce((sum, i) => sum + i.quantity, 0)} itens
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+            {/* Controles de Paginação */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-[var(--theme-border-subtle)] px-2">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-black uppercase rounded-xl transition-all cursor-pointer"
+                >
+                  Anterior
+                </button>
+                <span className="text-[10px] text-gray-500 font-black tracking-wider uppercase font-mono">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-black uppercase rounded-xl transition-all cursor-pointer"
+                >
+                  Próximo
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Coluna da Direita: Detalhe do Pedido Selecionado */}
@@ -362,9 +452,22 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
                       #{selectedOrder.orderNumber || selectedOrder.id.slice(-6).toUpperCase()}
                     </h3>
                   </div>
-                  <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${getStatusBadgeClass(selectedOrder.status)}`}>
-                    {getStatusLabel(selectedOrder.status)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderToDelete(selectedOrder);
+                        setIsDeleteModalOpen(true);
+                      }}
+                      className="p-1.5 bg-white/5 hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 rounded-lg border border-white/5 hover:border-rose-500/25 transition-all cursor-pointer"
+                      title="Excluir Pedido"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${getStatusBadgeClass(selectedOrder.status)}`}>
+                      {getStatusLabel(selectedOrder.status)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Cliente */}
@@ -522,6 +625,78 @@ export default function PortalOrders({ orgId }: PortalOrdersProps) {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* Modal Personalizado de Confirmação de Exclusão (Opção C) */}
+      {isDeleteModalOpen && orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#121214] border border-white/10 rounded-[2.5rem] p-6 max-w-sm w-full space-y-6 shadow-2xl relative">
+            
+            {/* Cabeçalho */}
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-rose-500/10 rounded-2xl border border-rose-500/20 text-rose-400">
+                <AlertCircle size={22} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">Confirmar Exclusão</h4>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Pedido #{orderToDelete.orderNumber || orderToDelete.id.slice(-6).toUpperCase()}</p>
+              </div>
+            </div>
+
+            {/* Descrição */}
+            <p className="text-xs text-gray-400 font-medium leading-relaxed">
+              Você tem certeza de que deseja excluir o pedido de <strong className="text-white uppercase font-bold">{orderToDelete.clientName}</strong>? Esta ação é irreversível.
+            </p>
+
+            {/* Opção Checkbox de estorno financeiro */}
+            <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-start gap-3 hover:bg-white/10 transition-colors">
+              <input
+                id="delete-revenue-checkbox"
+                type="checkbox"
+                checked={deleteRevenueAlso}
+                onChange={(e) => setDeleteRevenueAlso(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500 focus:ring-2 mt-0.5 cursor-pointer accent-rose-500"
+              />
+              <label htmlFor="delete-revenue-checkbox" className="text-[11px] text-gray-300 font-bold leading-normal cursor-pointer select-none">
+                Estornar receita do financeiro
+                <span className="block text-[9px] text-gray-500 font-normal uppercase tracking-wider mt-0.5">
+                  Remove automaticamente o faturamento de R$ {orderToDelete.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} do seu CRM Financeiro.
+                </span>
+              </label>
+            </div>
+
+            {/* Ações */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setOrderToDelete(null);
+                }}
+                className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white font-black rounded-xl text-[10px] uppercase tracking-wider transition-all border border-white/10 cursor-pointer active:scale-[0.98]"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteOrder}
+                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-800 text-white font-black rounded-xl text-[10px] uppercase tracking-wider transition-all border-0 flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/10 active:scale-[0.98]"
+              >
+                {isDeleting ? (
+                  <span>Excluindo...</span>
+                ) : (
+                  <>
+                    <Trash2 size={12} />
+                    <span>Confirmar</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 

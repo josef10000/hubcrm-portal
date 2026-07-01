@@ -1085,7 +1085,7 @@ export default function ClientPortalLayout() {
                 <PortalManagement orgId={orgId || ''} clientId={activeClientId || ''} />
               )}
               {activeTab === 'orders' && (
-                <PortalOrders orgId={orgId || ''} />
+                <PortalOrders orgId={orgId || ''} clientId={activeClientId || ''} />
               )}
               {activeTab === 'growth' && (
                 <PortalGrowthHub 
